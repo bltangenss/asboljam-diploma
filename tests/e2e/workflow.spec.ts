@@ -1,6 +1,23 @@
-import {test,expect} from '@playwright/test';
+import {test,expect,type Page} from '@playwright/test';
 import fs from 'node:fs';
 const login=JSON.parse(fs.readFileSync('.cache/e2e-login.json','utf8'));
+
+/** Allow decision/role scenarios to run alone against seeded sales and a real worker. */
+async function ensureForecast(page:Page,headers:Record<string,string>,branch='1') {
+ const listed=await page.request.get('/api/v1/forecasts?branch_id='+encodeURIComponent(branch));
+ expect(listed.status()).toBe(200);
+ const forecasts=await listed.json();
+ if(forecasts.items.length)return forecasts.items[0];
+ const queued=await page.request.post('/api/v1/forecasts',{headers,data:{branch_id:branch,origin:'2025-12-31',model:'seasonal_naive_7'}});
+ expect(queued.status()).toBe(202);
+ const run=await queued.json();let forecastId='';
+ await expect.poll(async()=>{
+  const response=await page.request.get('/api/v1/runs/'+run.run_id);expect(response.status()).toBe(200);
+  const result=await response.json();forecastId=result.result_id;return result.status;
+ },{timeout:120000}).toBe('succeeded');
+ const completed=await page.request.get('/api/v1/forecasts/'+forecastId);expect(completed.status()).toBe(200);
+ return completed.json();
+}
 test('login → CSV validation/commit → sales → forecast → procurement → approval → export',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
@@ -40,8 +57,8 @@ test('branch context, Russian labels, empty result and recoverable network failu
 test('stale plan approval forces review and audit records the winning decision',async({page})=>{
  await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы'})).toBeVisible();
  const session=await (await page.request.get('/api/v1/session/me')).json();const headers={'Origin':'http://127.0.0.1:3000','X-CSRF-Token':session.csrf_token};
- const forecasts=await (await page.request.get('/api/v1/forecasts?branch_id=1')).json();expect(forecasts.items.length).toBeGreaterThan(0);
- const queued=await page.request.post('/api/v1/procurement',{headers,data:{branch_id:'1',forecast_id:forecasts.items[0].id,budget:'0',strategy:'point'}});expect(queued.status()).toBe(202);const run=await queued.json();let planId='';
+ const forecast=await ensureForecast(page,headers);
+ const queued=await page.request.post('/api/v1/procurement',{headers,data:{branch_id:'1',forecast_id:forecast.id,budget:'0',strategy:'point'}});expect(queued.status()).toBe(202);const run=await queued.json();let planId='';
  await expect.poll(async()=>{const r=await (await page.request.get('/api/v1/runs/'+run.run_id)).json();planId=r.result_id;return r.status},{timeout:90000}).toBe('succeeded');
  await page.goto('/procurement/'+planId);await expect(page.getByRole('button',{name:'Жоспарды бекіту',exact:true})).toBeVisible();const plan=await (await page.request.get('/api/v1/plans/'+planId)).json();
  const approved=await page.request.post('/api/v1/plans/'+planId+'/approve',{headers:{...headers,'Idempotency-Key':'e2e-winning-'+planId},data:{expected_version:plan.version,reason:'E2E concurrent reviewer confirmed shortage',acknowledge_shortage:true}});expect(approved.status()).toBe(200);
@@ -64,6 +81,7 @@ test('admin manages access and analyst cannot approve or read another branch',as
  await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();await page.getByRole('button',{name:'Пайдаланушы қосу',exact:true}).click();
  await page.getByLabel('Электрондық пошта',{exact:true}).fill(email);await page.getByLabel('Құпиясөз',{exact:true}).fill(password);await page.getByLabel('Role',{exact:true}).selectOption('analyst');await page.getByLabel('Demo_Canteen_A',{exact:true}).check();await page.getByRole('button',{name:'Сақтау',exact:true}).click();await expect(page.locator('.user-admin')).toContainText('Өзгеріс сақталды және аудитке жазылды.');await expect(page.locator('.user-admin tbody')).toContainText(email);
  await page.getByTitle('Шығу',{exact:true}).click();await page.getByLabel('Электрондық пошта').fill(email);await page.getByLabel('Құпиясөз').fill(password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByLabel('Бөлімше').locator('option')).toHaveCount(1);expect((await page.request.get('/api/v1/dashboard?branch_id=2')).status()).toBe(403);
+ const analystSession=await(await page.request.get('/api/v1/session/me')).json();await ensureForecast(page,{Origin:new URL(page.url()).origin,'X-CSRF-Token':analystSession.csrf_token});
  await page.locator('.sidebar').getByRole('button',{name:'Сатып алу',exact:true}).click();await expect(page.getByRole('button',{name:'Есептеу',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Есептеу',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/[a-f0-9]+$/,{timeout:90000});await expect(page.getByRole('button',{name:'Жоспарды бекіту',exact:true})).toBeDisabled();await expect(page.getByText('Бұл әрекетке рұқсатыңыз жоқ.',{exact:true})).toBeVisible();
  const planId=page.url().split('/').pop(),session=await(await page.request.get('/api/v1/session/me')).json();const response=await page.request.post('/api/v1/plans/'+planId+'/approve',{headers:{Origin:'http://127.0.0.1:3000','X-CSRF-Token':session.csrf_token,'Idempotency-Key':'forbidden-'+planId},data:{expected_version:1,reason:'E2E unauthorized approval',acknowledge_shortage:true}});expect(response.status()).toBe(403);
 });
