@@ -76,7 +76,7 @@ docker compose logs --tail 100 api worker web
 docker compose config --no-interpolate --quiet
 ```
 
-Контейнеры API/worker/web и PostgreSQL 17.11 действительно запускались. В отдельном проекте `asboljam-verification` 18 API-тестов прошли на PostgreSQL; версии, seed counts и image ID сохранены в [artifacts/verification/postgres.json](artifacts/verification/postgres.json). Проверочный проект использовал 3010/8010; обычный запуск выше использует 3000/8000. Теги базовых образов остаются без закрепления digest; для целевой среды их следует зафиксировать отдельно. Проверенный Docker runtime не подтверждает публичное размещение, TLS или нагрузочную готовность.
+Контейнеры API/worker/web и PostgreSQL 17.11 действительно запускались. В последнем прогоне отдельного проекта `asboljam-verification` 19 API-тестов прошли на PostgreSQL; версии, количества записей и image ID сохранены в [artifacts/verification/postgres.json](artifacts/verification/postgres.json). Проверочный проект использовал 3010/8010; обычный запуск выше использует 3000/8000. Теги базовых образов остаются без закрепления digest; для целевой среды их следует зафиксировать отдельно. Проверенный Docker runtime не подтверждает публичное размещение, TLS или нагрузочную готовность.
 
 Отдельный HTTP-сценарий через nginx и работающий отдельным процессом worker прошёл 77 проверок: [runtime.json](artifacts/verification/runtime.json) сохраняет результаты и границы покрытия. Dump PostgreSQL восстановлен в новую БД; совпадение количества строк таблиц, password hashes и миграции зафиксировано в [postgres-backup.json](artifacts/verification/postgres-backup.json). Сам dump содержит служебные данные и исключён из Git/ZIP. Это проверка восстановления demo-базы; целевое production-восстановление требует своей проверки.
 
@@ -107,6 +107,8 @@ python -X utf8 scripts/run_research.py
 Для E2E нужны доступные API/worker/web и учётная запись; актуальные требования смотрите в тестах. Снимки интерфейса должны происходить только из фактического запуска.
 
 API-тест проходит настоящий worker-прогноз → закупку → утверждение → CSV и проверяет конкуренцию, изоляцию и ротацию токенов. Итоговые числа всех проверок, команды и ограничения ведутся в [FINAL_REPORT.md](FINAL_REPORT.md) и [templates/PROGRESS.md](templates/PROGRESS.md), чтобы не расходиться между копиями README. Наличие команды не является доказательством успешной проверки.
+
+Последний общий Python-прогон записан в [python.json](artifacts/verification/python.json). Windows launcher прошёл запуск и остановку без установки зависимостей: [windows-launcher.json](artifacts/verification/windows-launcher.json). Cloud отменён пользователем; подготовленные cloud-скрипты сохранены, но запуск именно в Codex Cloud остаётся NOT TESTED.
 
 Реально рассчитаны 9 прогнозов и 36 сценариев закупки по трём филиалам. Метрики, строки закупок и происхождение результатов: [artifacts/research/README_KK.md](artifacts/research/README_KK.md), [provenance.json](artifacts/research/provenance.json). Тестовый интервал — 04.12.2025–31.12.2025, по 336 наблюдений на филиал. Это результаты на синтетических продажах, не доказательство экономии реального предприятия.
 

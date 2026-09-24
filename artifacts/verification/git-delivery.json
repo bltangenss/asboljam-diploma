@@ -1,0 +1,21 @@
+{
+  "recorded_at_utc": "2026-09-24T17:43:25.8306191Z",
+  "repository": "bltangenss/asboljam-diploma",
+  "branch": "main",
+  "visibility_previously_verified": "PRIVATE",
+  "historical_push": {
+    "status": "passed",
+    "through_commit": "24d2ddef4ce53c628a799323e976ce47dbc21126"
+  },
+  "git_write_recovery": {
+    "status": "passed",
+    "method": "User enabled unrestricted filesystem access for the current local task.",
+    "first_new_commit": "58a50e0",
+    "latest_commit_before_delivery_record": "fd3f1b2"
+  },
+  "current_push": {
+    "status": "pending_at_record_time",
+    "note": "The final commit and push are performed after this evidence file is committed. Use git rev-parse HEAD and git status -sb for the authoritative final state."
+  },
+  "prohibited_workarounds_used": false
+}

@@ -5,12 +5,12 @@
 | Жұмыс | ИИ көмегі | Нақты тексеру / шектеу |
 |---|---|---|
 | Берілген файлдарды аудиттеу | TXT, DOCX, XLSX, PDF, ZIP мазмұнын оқу; дубликаттарды, қайшылықтарды және жоқ артефактілерді бөлу | docs/SOURCE_REVIEW_RU.md; сыртқы библиографияның бәрі қайта тексерілді деген мәлімдеме жоқ |
-| Backend және worker | SQLAlchemy схема, CSV валидатор, auth, рөлдер, кезек, келісу және экспорт кодын жасау | SQLite тексерулеріне қоса PostgreSQL 17.11 ішінде API suite сәтті өтті; [орындалған PostgreSQL тексеруі](../artifacts/verification/postgres.json) |
+| Backend және worker | SQLAlchemy схема, CSV валидатор, auth, рөлдер, кезек, келісу және экспорт кодын жасау | [Соңғы жалпы Python suite](../artifacts/verification/python.json) және PostgreSQL 17.11 ішіндегі API suite сәтті өтті; [орындалған PostgreSQL тексеруі](../artifacts/verification/postgres.json) |
 | ML және сатып алу | Уақыттық белгілер, үш модель, метрикалар, MILP, Decimal қайта тексеруі | Engine тесттері және сақталған жоспар құны/budget/yield қайта тексерілді; oracle қолданылмаған; соңғы сандар негізгі есепте |
 | Зерттеу артефактілері | Қайта есептеу скрипті және нәтижелер кестелері | Нақты орындалған 9 болжам, 36 сценарий; дерек пен код хэштері тіркелген |
 | Резервтік көшіру | SQLite online backup/restore және PostgreSQL dump/restore тексеру құралдары | SQLite restore/WAL/tamper тесттері өтті; [PostgreSQL жаңа базаға қалпына келтірілді](../artifacts/verification/postgres-backup.json): жазба саны, password hash және миграция сәйкес; production бөлек тексеріледі |
 | Web/mobile | Клиент коды, интерфейс және API байланысы | Құрастыру/браузер/құрылғы нәтижелері [PROGRESS.md](PROGRESS.md) ішінде жеке көрсетіледі; JS bundle APK/IPA емес |
-| Инфрақұрылым/нұсқаулық | Compose, Dockerfile, Windows/Linux және cloud скрипттері, README | Docker API/worker/web/PostgreSQL іске қосылды; [nginx арқылы HTTP және бөлек worker сценарийі](../artifacts/verification/runtime.json) өтті; cloud байланысы мен public deployment бөлек тексеріледі |
+| Инфрақұрылым/нұсқаулық | Compose, Dockerfile, Windows/Linux және cloud скрипттері, README | Docker API/worker/web/PostgreSQL іске қосылды; [nginx арқылы HTTP және бөлек worker сценарийі](../artifacts/verification/runtime.json) өтті. Cloud пайдаланушы өтінішімен тоқтатылды; дайын скрипттер Codex Cloud ішінде орындалмаған (NOT TESTED). Public deployment орындалмады |
 | POS офлайн адаптері | Айқын mapping, origin/PII/oracle/unit тексерулері, dry run және provenance | [Құжат пен шектеулер](../docs/POS_ADAPTER_RU.md): REAL өзгертілмейді, live REAL import қолдау таппайды; кәсіпорынмен үйлесімділік пен толық жеке дерек аудиті мәлімделмейді |
 | Research origin boundary | REAL/mixed/missing-origin кірістерін output пен есептеуге дейін қабылдамау | Жеке тесттерде модельді оқыту/MILP орындалмай, қабылдамау және файл жазбасының болмауы тексерілді |
 

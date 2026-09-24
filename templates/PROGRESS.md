@@ -1,70 +1,72 @@
-﻿# AsBoljam — журнал проверяемого прогресса
+# AsBoljam — журнал прогресса
 
-Обновлено: 24.09.2026. Здесь фиксируются выполненные проверки. Файл дополняется после каждой итерации; документация сама по себе не является результатом теста.
+Состояние: 24.09.2026, локальная работа возобновлена по прямому запросу пользователя. Codex Cloud отменён. Проект и Git history сохранены; текущее продолжение начинается с `24d2dde` в `main`, origin — PRIVATE `bltangenss/asboljam-diploma`.
 
 ## DONE
 
-- Прочитаны и сопоставлены все 14 переданных файлов: TXT, DOCX, XLSX, PDF и ZIP; дубликаты и противоречия зафиксированы в `docs/SOURCE_REVIEW_RU.md`.
-- Созданы FastAPI, долговечная очередь/worker, SQLite/PostgreSQL-модели и миграция 0001; роли, сессии, ограничения организации и филиала.
-- Девять CSV-схем, preview, атомарный commit, шаблоны CSV, продажи и справочники, безопасный экспорт.
-- Три модели, общий временной holdout, реальные квантили HGB, метрики и provenance. Рассчитаны 9 прогнозов и 36 закупочных сценариев.
-- Потребности по рецептам, годные остатки, MILP с целыми упаковками и независимым Decimal-контролем ограничений.
-- Версионное утверждение/отклонение, идемпотентность, явное принятие дефицита и аудит.
-- Web KK/RU, responsive dashboard, данные, прогнозы и закупки, график истории/квантилей, управление доступом пользователей.
-- Expo-клиент, secure refresh storage, защита конкурентных сессий; Android JS bundle собран.
-- Локальный Git main, gitignore, проверка секретов, отдельные коммиты; GitHub CLI установлен.
-- README, AGENTS, CLOUD_HANDOFF из 20 пунктов, cloud setup/verify scripts, резервирование SQLite.
+Прочитаны и сверены все 14 исходных приложений, включая дубликаты. Реализована цепочка login → CSV preview/validation/commit → sales → forecast worker → recipes/requirements/inventory → procurement MILP → manager decision → audit/export. Данные остаются SYNTHETIC, история до 31.12.2025, целевой день и snapshot 01.01.2026. Исходники Downloads не менялись.
+
+| Этап | Реальное состояние |
+|---|---|
+| A — repository/environment/DB/auth | Git/private origin; SQLite и PostgreSQL17; migration0001; web/native auth, роли и scope реализованы |
+| B — CSV/sales/references | Девять строгих схем, templates, preview/transaction/duplicates/oracle guards; продажи и справочники |
+| C — forecast | Две baseline модели и HGB/quantiles; общий test, реальные метрики/provenance, отдельный worker |
+| D — ingredients/inventory/procurement | Yield один раз, годные партии, integer packs/MOQ/budget/storage/lead time, Decimal recheck и явный дефицит |
+| E — approval/audit/export | Причина/version/deficit acknowledgement; атомарное решение, idempotency и audit |
+| F — frontend | Web KK/RU, responsive, loading/empty/error/offline/stale; графики, users/roles UI |
+| G — regression/security | Python59, PostgreSQL19 и отдельные packaging10 PASS; реальный CUA workflow PASS в описанном объёме; CLI Playwright 0/11 заблокирован средой |
+| H — Docker/deployment | Linux images и четыре сервиса проверены, 77 HTTP checks и отдельный pg_dump/restore PASS; production rollout не заявлен |
+| I — enterprise adapter | Offline POS CSV mapping и 19 tests готовы; реальные данные/договор источника отсутствуют, importer SYNTHETIC-only |
+| J — native | Expo55 client, typecheck, 13 session tests и Android JS export PASS; debug APK отложен пользователем, APK не создан |
 
 ## IN PROGRESS
 
-- Docker Compose: Linux API-образ построен; выполняется проверка отдельного PostgreSQL/API/worker/web окружения на 3010/8010.
-- Финальная браузерная регрессия после исправления возврата к login при 401 и смены файла во время CSV preview.
-- Подготовка offline enterprise CSV adapter, окончательного отчёта и проверенного ZIP.
+- При текущем возобновлении пользователь установил порог: остановить работу и спросить о продолжении при **10% использованного лимита Codex** (90% остаётся). Перед началом расход составлял 0%; после проверки состояния — 1%. Это лимит аккаунта, а не оценка готовности проекта.
+- Предыдущая длительная Android-попытка завершилась с кодом `1073807364` (`0x40010004`) без APK; отчёт сохранён в `artifacts/verification/android-build-interrupted.json`. SDK36, NDK27.1 и CMake3.22.1 уже находятся в кэше. Повторный запуск дошёл до `configureCMakeDebug[x86]` и остановлен по прямому решению пользователя; мобильное приложение оставлено на потом. [Текущий статус](../artifacts/verification/android-build.json): `deferred_by_user`, APK отсутствует.
+- Синхронизация документации и подготовка проверяемого ZIP. Финальный `releases/AsBoljam_Final.zip` создаётся после финального commit из чистого Git checkout; секреты не включаются.
 
 ## TODO
 
-| Этап | Реализация и следующий шаг |
-|---|---|
-| A — repository/environment/DB/auth | Реализовано; осталось подтвердить private remote/push после входа владельца |
-| B — CSV/sales/references | Реализовано и проверено API; повторить UI после последних исправлений |
-| C — forecast | Реализовано и проверено; расширение горизонта выходит за однодневный MVP |
-| D — requirements/inventory/procurement | Реализовано и проверено; настоящий складской ledger — отдельное расширение |
-| E — approval/audit/export | Реализовано и проверено, включая конкуренцию и повтор запроса |
-| F — frontend | Основные страницы реализованы; финальная регрессия текущей версии выполняется |
-| G — integration/E2E/security | 36 Python PASS; отдельные UI-сценарии проходили, финальный связанный прогон ожидается |
-| H — Docker/deployment | Образы и реальный PostgreSQL проверяются; TLS/нагрузка/production backup отдельно |
-| I — real enterprise adapter | Offline mapping готовится; реальные данные/правила POS от предприятия не предоставлены |
-| J — mobile after API | Исходники, typecheck, 13 session tests, Metro export PASS; устройство/APK/IPA не проверены |
+Выполнить финальную проверку секретов, создать ZIP и проверить release manifest/CRC/SHA256. Сделать commit и обычный push. Повторить полный Playwright suite после устранения запрета запуска его subprocess. Android debug APK возобновлять только по новому решению пользователя. Не повторять уже прошедшие тяжёлые проверки без изменений соответствующего кода.
+
+Упаковщик по умолчанию берёт точные blobs чистого Git checkout. Явный `--working-tree` проверяет снимок tracked/untracked nonignored файлов и записывает `source_commit: null`, `base_commit: HEAD`, `includes_uncommitted_changes: true`; он не создаёт commit и не доказывает push. Фактические количество файлов и SHA256 финального архива фиксируются выводом упаковщика и sidecar после финального commit.
 
 ## BLOCKED
 
-- GitHub не авторизован: `gh auth status` сообщил отсутствие входа. Для PRIVATE репозитория/push владелец выполняет `& 'C:\Program Files\GitHub CLI\gh.exe' auth login`. Токены в проекте не сохраняются. Локальная работа продолжается.
-- Реального набора предприятия и договора схемы POS нет. Нельзя подтвердить совместимость с настоящим источником или экономию.
-- Подписанный iOS/Store release требует внешнего аккаунта/подписей и целевого устройства. Они не предоставлены.
+- Историческая блокировка `.git/index.lock` снята пользователем через полный доступ к рабочей среде. `git add` и новые локальные коммиты успешно создаются; итоговый hash и push фиксируются после документального коммита.
+- `npm.cmd run test:e2e`: 0 из 11 тестов выполнено; `spawn EPERM` в `child_process.fork / WorkerHost.startRunner`. Расширенный повтор автоматически отклонён политикой `sandbox_approval=false`. [Результат](../artifacts/verification/browser.json). Отдельный успешный CUA workflow не является PASS полного Playwright suite.
+- Для live enterprise/POS необходимы реальные обезличенные данные, контракт единиц/валюты и доступ к источнику; их не предоставляли. Offline adapter не является внедрением.
+- iOS/Store release/signing требует целевой платформы и внешних аккаунтов. Эти действия не выполнялись.
 
 ## TESTED
 
-| Команда/проверка | Выполненный результат |
+| Команда / проверка | Подтверждённый результат |
 |---|---|
-| `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` | 36/36 PASS, 93.152 s: 18 API + 14 engine + 4 backup |
-| `python scripts/run_research.py` | 9 прогнозов + 36 сценариев, 32.547 s; 36/36 constraints_valid |
-| `npm run build` | TypeScript + Vite 7.3.6 PASS после CSV-template link; 1749 модулей, 30.77 s |
-| Первый полный Playwright workflow | PASS 36.5 s: login/import/sales/forecast/procurement/approval/export, responsive/offline/logout |
-| Дополнительные Playwright сценарии | Branch/RU/empty/error; stale approval/audit; HGB chart; analyst restrictions — отдельные PASS |
-| `cd apps/mobile; npm run typecheck; npm test` | PASS; 13/13 session tests |
-| `cd apps/mobile; npm run export:android` | PASS, 588 modules, Hermes 1.8 MB, 61.139 s; это JS bundle, не APK |
-| npm dependency install/audit | Web и mobile: 0 vulnerabilities после закреплённых исправлений; не полный security audit |
-| `docker compose config --no-interpolate --quiet` | PASS; Docker daemon 29.8.0 реально запущен |
-| PowerShell Parser / `bash -n` | start/stop и cloud Bash syntax PASS |
-| `python scripts/check_secrets.py --staged` | Последний mobile commit: 14 файлов, 0 находок |
+| `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` | 59/59 PASS, 20.364 s; [python.json](../artifacts/verification/python.json) |
+| `python scripts/verify_postgres.py` | PostgreSQL17.11, 19/19 API PASS, 24.341 s; [postgres.json](../artifacts/verification/postgres.json) |
+| `python scripts/verify_runtime.py` | 77 HTTP checks PASS, nginx и отдельный worker; [runtime.json](../artifacts/verification/runtime.json) |
+| `python scripts/verify_postgres_backup.py` | Новая restored DB, table counts/password hashes/migration marker совпали; [postgres-backup.json](../artifacts/verification/postgres-backup.json) |
+| Docker Compose builds/runtime | PASS, services/health/API proxy/SPA fallback; [docker-state.json](../artifacts/verification/docker-state.json) |
+| Windows `scripts/start.ps1`, `scripts/stop.ps1` | PASS, API/web200 и закрытые после stop порты; `-Install` отдельно не запускался |
+| `npm run build` | TypeScript/Vite7.3.6 PASS, 1749 modules, 8.19 s; [web-build.json](../artifacts/verification/web-build.json) |
+| `python scripts/run_research.py` | 9 forecasts/36 plans, 35.085184 s, все constraints_valid; код/данные SHA сохранены |
+| Mobile `npm run typecheck`, `npm test` | PASS, 13/13, 455.844 ms; [mobile-source.json](../artifacts/verification/mobile-source.json) |
+| Mobile `npm run export:android` | Metro/Hermes PASS, 588 modules, 20.831 s; это JS export, не APK |
+| `python -X utf8 -m unittest discover -s tests -p test_package_release.py -v` | Отдельные 10/10 PASS, 3.052 s; временные fixture-архивы, финальный ZIP не создан; [packaging-tests.json](../artifacts/verification/packaging-tests.json) |
+| Codex in-app browser / CUA с реальным API и отдельным worker | PASS в перечисленном объёме: login → CSV validation/commit → sales → baseline forecast → procurement → approval → audit/download event; recipes/inventory, второй филиал, RU, dashboard 360 px, logout; [browser-cua.json](../artifacts/verification/browser-cua.json) |
+| `python scripts/generate_contracts.py` | Manifest/design contracts синхронизированы с фактическим кодом |
+| `python scripts/check_secrets.py` | Последняя проверка 154 candidate files, 0 findings; финальная проверка перед ZIP отдельно |
 
-Повторный браузерный прогон при одновременной Docker-сборке дошёл до approval/export, затем упал на пятисекундном ожидании dashboard. Прогон остановлен; PASS всему набору не приписывается. На компьютере 8 GB RAM было около 216 MB свободно. Тяжёлые проверки далее выполняются последовательно; ожидание UI увеличено до 15 секунд.
+59 Python tests = 19 API + 14 engine + 4 backup + 19 POS adapter + 3 research-origin guards. Последнее исправление row lock при предоставлении доступа к импортированному филиалу уже включено в Python59/PostgreSQL19. После этих проверок соответствующий API/ML code не менялся, повторный тяжёлый прогон без причины не выполняется. Новые 10 packaging tests выполнены отдельно; общий набор из 69 тестов повторно не запускался.
+
+CUA использовал собранный Vite preview с `--configLoader native`, новую ignored SQLite DB и настоящий worker, без mock API. Прогноз показал 28 исторических точек и 0 baseline-интервалов. План: 10 ингредиентов, 87513.2 ₸ при бюджете 150000 ₸, 0 дефицитных ингредиентов; причина решения видна в аудите. После проверки её browser/API/worker/preview остановлены; demo база не менялась.
 
 ## NOT TESTED
 
-- Полный cloud setup/verify именно в Codex Cloud; private GitHub push.
-- Установка APK/IPA, реальные Android/iOS, OS SecureStore, полный мобильный пользовательский путь.
-- Production TLS, нагрузка, восстановление PostgreSQL, SLA/мониторинг и независимый security audit.
-- Реальные данные предприятия, подтверждённая экономия, интервью и регламент конкретного вуза.
+Полный текущий Playwright suite не выполнен из-за ограничения среды. В CUA не повторялись offline/network injection, stale approval race, analyst role и HGB chart; при нулевом дефиците не требовался deficit acknowledgement. Наблюдались download event и HTTP 200, но скачанные CSV bytes отдельно не проверялись. Снимок dashboard 360 px не является полным visual regression или accessibility audit. APK installation/Android/iOS device/OS SecureStore, IPA/release signing/Store publishing, production TLS/load/SLA/monitoring и независимый security audit не проверены. Cloud setup/verify именно в Codex Cloud не запускались; Cloud отменён. Windows launcher install branch и Linux desktop launchers целиком не проверялись. Production PostgreSQL restore отдельно от выполненного локального Docker restore не заявляется.
 
-Python checks выполнены на Windows/Python 3.13; временные SQLite-файлы потребовали запуска за пределами Windows sandbox из-за ACL. Это не выдаётся за успешный sandbox-run. Данные остаются SYNTHETIC, история до 31.12.2025 и сценарий 01.01.2026.
+## История последней остановки и возобновления
+
+Перед паузой шесть browser session/import-race checks прошли; workflow превысил 180 s, остальные четыре сценария не завершены. Пользователь остановил работу; серверы были выключены. При возобновлении trace показал 119.09 s ожидания прогноза и 25.97 s закупки; approval/export состоялись, общий timeout исчерпан при последующих UI/screenshots. Этот run остаётся FAILED/interrupted, а не PASS. Подробности: [browser-interrupted.json](../artifacts/verification/browser-interrupted.json).
+
+Cloud handoff был подготовлен, но task не создан: штатный CLI сообщил `environment_repo_access_failed`. Пользователь затем отменил Cloud и явно возобновил локальный план. Эта облачная зависимость больше не является условием завершения локальной работы.

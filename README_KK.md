@@ -39,7 +39,7 @@ docker compose up --build -d
 docker compose exec api python scripts/seed_demo.py
 ```
 
-Веб: `http://localhost:3000`. PostgreSQL дерегі named volume-де сақталады. Құпиясөзді репозиторийге қоспаңыз. Docker ішінде API/worker/web және PostgreSQL 17.11 іске қосылды; бөлек тексеру жобасында 18 API тесті сәтті өтті. Нақты нұсқалар, дерек саны және image ID — [PostgreSQL тексеру артефактісінде](artifacts/verification/postgres.json). Тексеру жобасы 3010/8010 порттарын қолданды; жоғарыдағы қалыпты іске қосу 3000/8000 порттарын қолданады. Бұл public deployment, TLS немесе production жүктеме сынағы емес.
+Веб: `http://localhost:3000`. PostgreSQL дерегі named volume-де сақталады. Құпиясөзді репозиторийге қоспаңыз. Docker ішінде API/worker/web және PostgreSQL 17.11 іске қосылды; соңғы бөлек тексеру жобасында 19 API тесті сәтті өтті. Нақты нұсқалар, дерек саны және image ID — [PostgreSQL тексеру артефактісінде](artifacts/verification/postgres.json). Тексеру жобасы 3010/8010 порттарын қолданды; жоғарыдағы қалыпты іске қосу 3000/8000 порттарын қолданады. Бұл public deployment, TLS немесе production жүктеме сынағы емес.
 
 Nginx арқылы сыртқы HTTP сценарийі бөлек worker-пен орындалды: [runtime.json](artifacts/verification/runtime.json) ішінде 77 сәтті тексеру және олардың шектеулері бар. PostgreSQL dump жаңа базаға қалпына келтірілді; кестелердегі жазба саны, password hash және миграция сәйкес келгені [backup артефактісінде](artifacts/verification/postgres-backup.json) тіркелген. Dump файлының өзі құпия дерек ретінде Git/ZIP-тен тыс қалады; production ортадағы қалпына келтіру бөлек тексеріледі.
 
@@ -68,6 +68,8 @@ python -X utf8 scripts/run_research.py
 ```
 
 Python, PostgreSQL, web, браузер және native тексерулерінің соңғы саны мен орындалған пәрмендері [қорытынды есепте](FINAL_REPORT.md) және [PROGRESS.md](templates/PROGRESS.md) тіркеледі. Мұнда жалпы test санын қайталамаймыз: жаңа тексерулер қосылғанда бір негізгі есеп жаңартылады. Команданың жазылуы оның сәтті орындалғанын білдірмейді.
+
+Соңғы Python suite нәтижесі [python.json](artifacts/verification/python.json) ішінде, Windows launcher іске қосу/тоқтату нәтижесі [windows-launcher.json](artifacts/verification/windows-launcher.json) ішінде сақталған; бұл launcher тексеруінде тәуелділіктерді орнату жалауы қолданылмады. Пайдаланушы Cloud жұмысынан бас тартты: дайын cloud скрипттері сақталған, бірақ Codex Cloud ішінде іске қосылмаған (NOT TESTED).
 
 Нақты есептелген нәтижелер: 9 болжам, 36 сатып алу сценарийі; тест кезеңі 04.12.2025–31.12.2025, әр бөлімшеде 336 бақылау. [Зерттеу нәтижелері](artifacts/research/README_KK.md) және [шығу тегі](artifacts/research/provenance.json). Бұл нақты кәсіпорындағы экономикалық үнемнің дәлелі емес. HGB p10–p90 номинал аралығы — 80%; базалық модельдерде квантильдер жоқ.
 

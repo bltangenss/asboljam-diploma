@@ -1,4 +1,4 @@
-﻿# AsBoljam — передача проекта для продолжения разработки
+# AsBoljam — передача проекта для продолжения разработки
 
 Снимок состояния: 24.09.2026. Продолжать существующий код; не начинать проект заново. Этот файл описывает выполненную работу и воспроизводимые команды. Создание файла не означает подключения Codex Cloud или успешного deployment. Последующие результаты фиксируются в [PROGRESS](templates/PROGRESS.md).
 
@@ -8,7 +8,7 @@
 
 ## 2. Цель проекта
 
-Довести до проверяемого рабочего состояния цепочку: CSV → предварительная валидация → транзакционный импорт → продажи → однодневный прогноз → рецептуры → потребность → годный запас → предложения → MILP → план → решение менеджера → аудит → экспорт. Основной язык UI — казахский; русский переключатель уже реализован. Перенос в облачную среду нужен для продолжения разработки, а не подменяет готовность продукта.
+Довести до проверяемого рабочего состояния цепочку: CSV → предварительная валидация → транзакционный импорт → продажи → однодневный прогноз → рецептуры → потребность → годный запас → предложения → MILP → план → решение менеджера → аудит → экспорт. Основной язык UI — казахский; русский переключатель уже реализован. По актуальному решению пользователя разработка и проверки выполняются локально; Codex Cloud отменён.
 
 ## 3. Текущая архитектура
 
@@ -43,19 +43,31 @@ Next.js, Tailwind, Alembic, Redis и Celery не используются. Ра�
 
 ## 6. Какие проверки действительно проходили
 
-Подробная итоговая матрица команд и фактических длительностей находится в [FINAL_REPORT.md](FINAL_REPORT.md), текущее состояние итерации — в [PROGRESS](templates/PROGRESS.md). Машиночитаемые отчёты — `artifacts/verification`; это результаты выполненных команд, а не описание будущих проверок.
+Подтверждённые отчёты находятся в `artifacts/verification`, итоговая матрица — в [FINAL_REPORT.md](FINAL_REPORT.md).
 
-На момент этой записи подтверждены: Python API/engine/backup (36 тестов одним прогоном), POS adapter (19 тестов отдельно), research-origin guard (3 теста отдельно), mobile session (13 тестов), web TypeScript/Vite и Android Metro/Hermes JS export. Первый полный браузерный workflow и четыре дополнительных сценария проходили; окончательный связанный browser run фиксируется в итоговом отчёте после последних исправлений.
+- Python: 59/59 PASS за 20.364 s (19 API, 14 engine, 4 backup, 19 POS adapter, 3 research-origin guards).
+- PostgreSQL 17.11: 19/19 API tests PASS за 24.341 s на отдельной новой тестовой БД. Все девять операционных CSV загружены; дополнительная строка smoke-import объясняет 26317 продаж в runtime при 26316 в исходнике.
+- Внешний HTTP через nginx и отдельный worker: 77 проверок PASS. Это отдельное свидетельство от проверки фактического PostgreSQL dialect.
+- pg_dump/pg_restore: восстановление в новую БД PASS; совпали количества всех таблиц, password hashes и marker миграции. Полный хеш содержимого всех таблиц не сравнивался.
+- Linux Docker images построены; проверены API/PostgreSQL health, web/worker и HTTP 200 для SPA fallback/API proxy. После проверки контейнеры остановлены без удаления volumes.
+- Web TypeScript/Vite build PASS: 1749 modules, 8.19 s. Mobile typecheck и 13 session tests PASS; Metro/Hermes Android JS export PASS (588 modules, 20.831 s). JS export не является APK.
+- Research: 9 прогнозов и 36 закупочных сценариев, 35.085184 s, сохранены provenance и SHA256.
+- Windows start/stop реально выполнены: API/web 200, после остановки порты закрыты. Ветка `-Install` launcher отдельно не запускалась; зависимости устанавливались самостоятельными командами.
+- После возобновления: отдельные 10/10 packaging tests PASS, 3.052 s; общий Python suite из 69 тестов повторно не запускался. Проверены временные fixture-архивы, финальный ZIP не создан. [Отчёт](artifacts/verification/packaging-tests.json).
+- Реальный браузерный сценарий через Codex in-app browser / CUA PASS в перечисленном объёме: login, CSV validation/commit, sales, baseline forecast через отдельный worker, procurement, approval, audit/download event, recipes/inventory, второй филиал, RU, dashboard 360 px и logout. Использованы собранный Vite preview с `--configLoader native` и отдельная ignored SQLite DB; mock API нет. [Результат и ограничения](artifacts/verification/browser-cua.json).
 
-PostgreSQL **17.11** реально подключён к API через psycopg; seed загрузил 26316 продаж и остальные восемь CSV. **18/18 API tests PASS за 33.274 s** на новой изолированной PostgreSQL test DB. Linux-образы собраны, API/PostgreSQL healthy, web/worker запущены. Evidence: `artifacts/verification/postgres.json`. HTTP через nginx, pg_dump/restore и финальная пересборка web имеют отдельные отчёты по мере выполнения.
-
-Исследование действительно рассчитывает 9 прогнозов и 36 сценариев. PowerShell start/stop и Bash cloud/start/stop прошли синтаксическую проверку; полный запуск launcher отмечается отдельно. Не складывать разные наборы тестов в один якобы выполненный прогон.
-
+Полный Playwright suite и native APK имеют отдельные статусы ниже; CUA workflow не заменяет полный набор браузерных тестов. Успешные тяжёлые расчёты не повторяются без изменений связанных компонентов.
 ## 7. Какие проверки падали или пока не подтверждены
 
-Ранние browser assertions с неоднозначными label/текстом исправлены. При одновременной Docker-сборке повторный browser run упал на пятисекундном ожидании dashboard; тест остановлен и не считается PASS. Тяжёлые проверки переведены на последовательный запуск, ожидание UI — 15 секунд. Для первых PostgreSQL tests исправлен Origin только тестового контейнера: он должен соответствовать развёртыванию.
+Повторный `npm.cmd run test:e2e` заблокирован средой до старта тестов: выполнено 0 из 11, `spawn EPERM` в `child_process.fork / WorkerHost.startRunner`. Расширенный повтор автоматически отклонён политикой `sandbox_approval=false`. [browser.json](artifacts/verification/browser.json) сохраняет результат; полного Playwright PASS нет.
 
-APK/устройство, iOS/Store signing, Windows launcher целиком, итоговые browser regressions и cloud-run отмечаются по факту в FINAL_REPORT. Наличие исходников, JS bundle, Git или Docker configuration само по себе ничего из этого не подтверждает. Внешняя авторизация GitHub/Cloud остаётся действием владельца.
+Предыдущий связанный Playwright run был прерван по запросу пользователя: шесть session/import-race проверок PASS, сквозной workflow превысил общий timeout 180 s, ещё четыре сценария не завершены. Сохранённый trace подтверждает 119.09 s ожидания прогноза и 25.97 s ожидания закупки; approval/export выполнены, общий лимит исчерпан далее в UI. Для длинного теста выделено 360 s при сохранении отдельных job/assertion limits. [Старый прерванный прогон](artifacts/verification/browser-interrupted.json) не считается PASS.
+
+CUA workflow имеет ограниченный объём: скачивание подтверждено download event и HTTP 200, но bytes отдельно не проверялись; offline injection, stale approval race, analyst role и HGB chart не повторялись. В рассчитанном плане нет дефицита, поэтому отдельный checkbox подтверждения дефицита не требовался. Нет полного visual regression/accessibility audit. После CUA проверки её browser/API/worker/preview остановлены.
+
+Первая Android debug build после успешного Expo prebuild завершилась ошибкой foojay plugin `JvmVendorSpec.IBM_SEMERU` на JDK21/Gradle9; [исходный результат](artifacts/verification/android-build-initial-failed.json) сохранён. Resolver 1.0.0 устранил эту ошибку; следующая попытка дошла до CMake. Повторный запуск с прогретым toolchain остановлен по прямому решению пользователя. [android-build.json](artifacts/verification/android-build.json) фиксирует `deferred_by_user`: APK отсутствует, устройство не проверено.
+
+Codex Cloud не запускался и теперь отменён пользователем. Android APK/device, production TLS/load/SLA и реальные данные предприятия требуют собственных результатов; их нельзя выводить из Python tests, Compose configuration или Metro export.
 ## 8. Как запустить frontend
 
 Из корня, Node.js 24:
@@ -152,17 +164,18 @@ Web: `npm run build`, результат `dist/web`, preview: `npm run preview`.
 - Фиксированный синтетический сценарий; свежий реальный план требует реального адаптера и актуальных снимков. Нет оплаты, налогов, доставки, единиц кроме поддержанных kg/L в procurement.
 - p90_stress не даёт совместной гарантии 90%. В измеренном stress-сценарии филиала 3 при 200000 ₸ остаётся один дефицитный ингредиент.
 - Web cookie secure=false допустим только локально; для HTTPS задать COOKIE_SECURE=true и конкретные ALLOWED_ORIGINS. TLS, мониторинг, нагрузка и production-backup проверяются отдельно.
-- GitHub/private remote и действующая cloud environment не подтверждаются наличием Git или скриптов. На момент подготовки handoff `main` существует, `origin` ещё не настроен; авторизацию выполняет владелец. Не записывать токены в проект.
+- PRIVATE origin подтверждён: `https://github.com/bltangenss/asboljam-diploma`; push main до `24d2dde` прошёл. Cloud environment не подтверждается наличием remote или скриптов. Не записывать токены в проект.
+- Историческая блокировка `.git/index.lock` снята пользователем через полный доступ к рабочей среде; локальные коммиты снова создаются. Итоговый hash и push фиксируются после завершения доставки.
 - Windows-проверки не доказывают Linux/macOS/Android/iOS совместимость. Подробный перечень NOT TESTED сохранять в progress.
 
-## 19. Следующий этап разработки и перенос в облако
+## 19. Следующий этап разработки и статус Cloud
 
-1. Сохранить текущую историю; проверить актуальные `git status`, `git log -5 --oneline`, `git remote -v`, `gh auth status`. Если вход нужен, владелец выполняет `gh auth login`; агент не обходит вход и не запрашивает пароль. Пользователь разрешил только PRIVATE `asboljam` либо `asboljam-diploma`; push без force, после проверки секретов.
-2. После подтверждённого push выбрать этот приватный репозиторий в cloud environment, runtime Python 3.13 и Node.js 24. Setup command: `bash scripts/cloud_setup.sh`. В настройках задать `LOKY_MAX_CPU_COUNT=1`, `PLAYWRIGHT_CHANNEL=chromium`; приложение не использует OpenAI API, API key не требуется. Настройки runtime и custom setup поддержаны официальной [документацией cloud environments](https://learn.chatgpt.com/docs/environments/cloud-environment).
-3. Setup устанавливает зависимости и Chromium. Он запускается отдельно: его временные `export` не считаются настройками agent phase. При необходимости отключить mobile install: `ASBOLJAM_SETUP_MOBILE=0`; одновременно отключить его verify. Secrets cloud доступны setup, а не agent phase; сеть agent по умолчанию выключена. Не рассчитывать на сохранение API ключей или на доступ к локальному Windows-диску. [Официальные правила среды и approvals](https://learn.chatgpt.com/docs/agent-approvals-security).
-4. Первая cloud-задача: прочитать AGENTS/handoff/progress, выполнить `bash scripts/cloud_verify.sh`, записать фактический результат и продолжить незаконченный пункт. Скрипты сейчас подготовлены; фактическая cloud connection/checkout/verification должна быть подтверждена отдельным запуском.
-5. Сверить итоговые runtime/UI/native результаты с FINAL_REPORT, продолжить непроверенные платформы и эксплуатационные сценарии. Offline adapter уже готов; live REAL ingestion требует реальных правил provenance/доступа и данных предприятия. Не переименовывать synthetic в real и не менять весь стек ради переноса.
+Пользователь отменил Codex Cloud и возобновил полностью локальную разработку. Продолжать существующий PRIVATE repository `bltangenss/asboljam-diploma`, branch `main`; актуальный список выполненного и оставшегося — [PROGRESS](templates/PROGRESS.md). Основной CUA workflow уже проверен; полный Playwright suite требует снятия ограничения на subprocess. Android debug APK отложен пользователем. Синхронизировать отчёты, выполнить финальную проверку секретов, обычные commit/push и создать проверенный source ZIP. Не повторять успешные тяжёлые проверки без связанных изменений.
 
+Финальный `releases/AsBoljam_Final.zip` создаётся после финального commit из чистого Git checkout. `python scripts/package_release.py` по умолчанию требует чистый checkout и упаковывает точные committed blobs. Явный `--working-tree` проверяет снимок tracked/untracked nonignored файлов и фиксирует `source_commit: null`, `base_commit: HEAD`, `includes_uncommitted_changes: true`; это не commit/push. Оба режима проверяют CRC и SHA256 исходных файлов после записи, исключают секреты/БД/dependencies/caches и не перезаписывают существующие ZIP/sidecar. Фактические число файлов и SHA256 фиксируются выводом упаковщика и sidecar.
+Cloud task не создан: штатный CLI при обращении к этому репозиторию вернул `environment_repo_access_failed`. Поскольку Cloud отменён, это не блокирует локальную разработку и не требует авторизации пользователя сейчас.
+
+Скрипты для возможного будущего Linux Cloud сохранены, но там не выполнялись: Python 3.13, Node.js 24, setup `bash scripts/cloud_setup.sh`, переменные `LOKY_MAX_CPU_COUNT=1`, `PLAYWRIGHT_CHANNEL=chromium`; приложение не требует OpenAI API key. Проверки этого варианта запускаются командой `bash scripts/cloud_verify.sh` только при отдельном решении использовать соответствующую среду. [Официальная документация среды](https://learn.chatgpt.com/docs/environments/cloud-environment).
 ## 20. Условия полной готовности
 
 Для демонстрационного выпуска: чистый checkout устанавливается, миграция/seed воспроизводимы, API и настоящий worker проходят полную пользовательскую цепочку, роли/изоляция/CSRF/идемпотентность/конкурентное утверждение проверены, график/метрики/дефицит/единицы корректны, backups восстанавливаются, web build и нужные native проверки подтверждены. После изменения кода связанные проверки повторены, статусы честны, безопасный финальный ZIP читается и включает исходники/контракты/данные/lockfiles.

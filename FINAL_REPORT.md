@@ -1,4 +1,4 @@
-﻿# AsBoljam — итоговый технический отчёт
+# AsBoljam — итоговый технический отчёт
 
 Дата: 24.09.2026. Переданные пользователем материалы прочитаны и сверены; приложение создано в существующей рабочей папке без изменения оригиналов Downloads. Проект является работающим учебным MVP на **SYNTHETIC** данных. Проверки, ограничения и внешние зависимости перечислены явно; статус production ready не присваивается.
 
@@ -84,36 +84,50 @@ HttpOnly web cookies, Origin/CSRF, ограничения частоты вхо�
 
 ## Tests — TESTED
 
-Последний единый Python-прогон: **36/36 PASS**, 93.152 s (18 API + 14 engine + 4 backup). Команда: `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v`.
+| Команда / область | Подтверждённый результат |
+|---|---|
+| `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` | 59/59 PASS, 20.364 s: 19 API + 14 engine + 4 SQLite backup + 19 POS adapter + 3 research guards. [Отчёт](artifacts/verification/python.json). |
+| `python scripts/verify_postgres.py` | PostgreSQL 17.11, реальный psycopg dialect; 19/19 API tests PASS, 24.341 s, отдельная новая БД. [Отчёт](artifacts/verification/postgres.json). |
+| `python scripts/verify_runtime.py` | 77 HTTP checks PASS через nginx и отдельный worker. Собственные ограничения покрытия явно перечислены в [отчёте](artifacts/verification/runtime.json). |
+| `python scripts/verify_postgres_backup.py` | pg_dump/restore в новую БД PASS; совпали количества всех таблиц, password hashes и marker миграции. [Отчёт](artifacts/verification/postgres-backup.json). |
+| Docker Compose build/runtime | API/worker/web images собраны; PostgreSQL/API healthy; HTTP 200 для web, SPA fallback и API proxy. [Отчёт](artifacts/verification/docker-state.json). После проверки остановлено без удаления volumes. |
+| `scripts/start.ps1`, `scripts/stop.ps1` | Реальный Windows launch/stop PASS, API/web 200, после остановки порты 3000/8000 закрыты. Ветка `-Install` отдельно не запускалась. [Отчёт](artifacts/verification/windows-launcher.json). |
+| `python scripts/run_research.py` | 9 прогнозов + 36 закупочных сценариев, 35.085184 s, 36/36 constraints_valid; provenance и SHA256 сохранены. |
+| Mobile `npm run typecheck`, `npm test` | PASS, 13/13 session tests, 455.844 ms. HTTP и SecureStore имитируются; OS encryption/device не проверены. [Отчёт](artifacts/verification/mobile-source.json). |
+| `python -X utf8 -m unittest discover -s tests -p test_package_release.py -v` | Отдельные 10/10 packaging tests PASS, 3.052 s. Проверены временные fixture-архивы; финальный ZIP этим прогоном не создавался. [Отчёт](artifacts/verification/packaging-tests.json). |
+| Браузерный сценарий через Codex in-app browser / CUA | PASS в указанном объёме на реальных локальных API и отдельном worker, без mock API. Проверены login, CSV validation/commit, sales, forecast, procurement, approval, audit, download event, KK/RU, второй филиал и dashboard 360 px. [Отчёт и ограничения](artifacts/verification/browser-cua.json). |
 
-Research: `python scripts/run_research.py` — 9 прогнозов, 36 сценариев, 32.547 s, 36/36 independently constraints_valid.
+Успешные тяжёлые Python/API, Docker и research проверки выполнены до последней паузы и не повторяются без изменений связанных компонентов. Исправление `db.refresh(user, with_for_update=True)` уже входит в Python59 и PostgreSQL19 результаты. После возобновления отдельно выполнены 10 packaging tests и браузерный сценарий CUA; общий Python suite из 69 тестов заново не запускался.
 
-Mobile: `npm run typecheck` и `npm test` — PASS, 13/13 session tests; проверены refresh races, storage, idempotency/401 retry, отсутствие повторов 403/409, logout/revocation. HTTP/SecureStore в этих тестах имитируются; это не проверка ОС.
+Повторный `npm.cmd run test:e2e` заблокирован средой до запуска тестов: выполнено 0 из 11, `spawn EPERM` в `child_process.fork / WorkerHost.startRunner`. Расширенный повтор автоматически отклонён политикой `sandbox_approval=false`. Полного PASS набора Playwright нет; [browser.json](artifacts/verification/browser.json) сохраняет этот результат.
 
-Браузерная финальная регрессия после последних исправлений выполняется. Первый полный путь проходил за 36.5 s; четыре расширенных сценария также проходили отдельно. После параллельной Docker-сборки один повтор упал на timeout dashboard; этот прогон не объявляется успешным. Финальное состояние будет записано сюда после последовательного прогона.
+Отдельная проверка через CUA прошла на собранном Vite preview с `--configLoader native` и новой изолированной SQLite DB. Реальный worker создал baseline-прогноз с 28 историческими точками и без выдуманных интервалов, затем закупку с 10 ингредиентами: стоимость 87513.2 ₸ при бюджете 150000 ₸, дефицит 0. Подтверждены причина и статус утверждения, запись аудита, событие скачивания CSV, рецептуры/остатки, смена филиала, русский заголовок и отсутствие горизонтального переполнения dashboard при 360 px. Скачанные байты отдельно не исследовались; offline injection, stale approval race, analyst role, HGB chart и подтверждение дефицита в этом сценарии не проверялись. CUA не заменяет полный набор Playwright. После проверки её browser/API/worker/preview остановлены.
 
-Docker: образы построены, PostgreSQL/API healthy, web/worker запущены. PostgreSQL API-регрессия, HTTP acceptance и pg_dump/restore выполняются отдельно; результаты ожидаются.
-
+Исторический прерванный run: 6 session/import-race tests PASS, общий workflow timeout 180 s после вычислений/approval/export; ещё 4 сценария не завершены. Trace: ожидание прогноза 119.09 s, закупки 25.97 s. Для длинного сценария общий бюджет исправлен на 360 s; отдельные job и assertion limits сохранены. [Предыдущий результат](artifacts/verification/browser-interrupted.json) остаётся FAILED/interrupted.
 ## Build results
 
-`npm run build` — TypeScript и Vite 7.3.6 PASS после добавления CSV template link: 1749 модулей, JS 267.09 kB / gzip 84.63 kB, CSS 28.98 kB / gzip 7.08 kB. Docker Linux web build также прошёл. После последних auth/preview исправлений предусмотрен ещё один build.
+`npm run build` — TypeScript/Vite 7.3.6 PASS, 1749 modules, 8.19 s. JS 267880 bytes, CSS 28979 bytes; точные SHA256 output files — в [web-build.json](artifacts/verification/web-build.json). После этого web source не менялся; последняя правка касается только timeout теста.
 
-`cd apps/mobile; npm run export:android` — Metro/Hermes PASS, 588 модулей, 1.8 MB, 61.139 s. Это экспорт JS, **не APK/IPA**. Web/mobile зависимости после точечных overrides показали 0 npm vulnerabilities. Baseline Docker images используют ветки тегов; воспроизводимость образов не гарантируется неизменяемыми digest.
+`cd apps/mobile; npm run export:android` — Metro/Hermes PASS, 588 modules, 1.8 MB, 20.831 s. Это JS export, не APK. Expo prebuild прошёл без изменения package.json. Первоначальная Android debug build с JDK21/Gradle9 завершилась ошибкой совместимости foojay plugin: отсутствует `JvmVendorSpec.IBM_SEMERU`; [исходный результат](artifacts/verification/android-build-initial-failed.json) сохранён. Исправление resolver 1.0.0 прошло прежнюю точку отказа; следующая попытка дошла до CMake и завершилась кодом `0x40010004`. Повторный запуск с прогретыми SDK36/NDK27.1/CMake3.22.1 остановлен по прямому решению пользователя на `configureCMakeDebug[x86]`. [Итоговый статус](artifacts/verification/android-build.json): `deferred_by_user`; APK отсутствует, устройство не проверялось.
 
+Web/mobile npm audit после точечных overrides показал 0 vulnerabilities; это проверка lockfiles на момент запуска, не независимый security audit. Docker base image tags не закреплены immutable digest, поэтому будущий rebuild может получить другую patch-версию.
 ## Known limitations — NOT TESTED
 
 Реальное предприятие и live POS/ERP, доказанная экономия, прогноз на 7/14/30 дней, складской ledger и смена активных рецептурных версий, автоматическая отправка заказов, платежи/налоги, production TLS/нагрузка/мониторинг/SLA и независимый security audit. Worker lease после аварии — 30 минут; длительным jobs потребуется heartbeat.
 
-Не проверены APK/IPA, Android/iOS-устройство и OS SecureStore, магазинная публикация и code signing. Cloud setup/verify подготовлены, но в Codex Cloud не выполнялись. Linux контейнеры не доказывают работу всех desktop launchers. Некоторые технические labels остаются английскими; полного WCAG-аудита нет.
+Полный текущий Playwright suite заблокирован средой; отдельный CUA сценарий имеет перечисленные выше ограничения. Android APK отложен пользователем; Android/iOS-устройство и OS SecureStore, IPA, магазинная публикация и release signing не проверены. Codex Cloud отменён пользователем; cloud setup/verify сохранены, но там не выполнялись. Linux контейнеры не доказывают работу всех desktop launchers. Некоторые технические labels остаются английскими; полного WCAG-аудита нет.
 
 ## Что осталось сделать — BLOCKED / TODO
 
-GitHub CLI установлен, но вход отсутствует. Владелец выполняет `& 'C:\Program Files\GitHub CLI\gh.exe' auth login`; после этого разрешено создать PRIVATE `asboljam`/`asboljam-diploma`, добавить origin и запушить main. Remote/push/Cloud не объявлены выполненными. Пароль или токен в чат не требуется.
+GitHub CLI авторизован в штатном Windows keyring. Подтверждён существующий PRIVATE origin [bltangenss/asboljam-diploma](https://github.com/bltangenss/asboljam-diploma); обычный `git push -u origin main` до `24d2dde` прошёл. История сохранена. Codex Cloud отменён. При последней попытке штатный Cloud CLI сообщил отсутствие доступа к репозиторию; Cloud task не создан. Это не блокирует локальные вычисления.
 
-Для реального предприятия нужны обезличенный экспорт, договор схемы, единиц/валюты и процедуры доступа. Offline adapter может подготовить данные, но текущий operational importer намеренно SYNTHETIC-only. Для native release нужны целевые платформы, SDK, устройство и при signing — аккаунты владельца.
+Историческая блокировка `.git/index.lock` снята пользователем через полный доступ к рабочей среде. `git add` и локальные коммиты снова работают. Итоговый commit и результат push фиксируются после завершения доставки; [git-delivery.json](artifacts/verification/git-delivery.json) разделяет исторический и текущий результаты.
+
+Для реального предприятия нужны обезличенный экспорт, договор схемы, единиц/валюты и процедуры доступа. Offline adapter может подготовить данные, но текущий operational importer намеренно SYNTHETIC-only. Для native release нужны целевые платформы, полный SDK, устройство и при release signing — аккаунты владельца. Локальная debug APK попытка не требует Store account.
 
 ## Передача и архив
 
-`python scripts/package_release.py` упаковывает только проверенный чистый Git checkout в `releases/AsBoljam_Final.zip`. Внутри — исходники, документы, миграции, тесты, scripts, безопасные demo данные, prompts, lockfiles и Docker configuration. `RELEASE_MANIFEST.json` содержит source commit и SHA256 каждого файла; упаковщик проверяет CRC и все SHA256 после записи. Снаружи создаётся `.zip.sha256`. `.git`, `.env`, реальные credentials, БД, node_modules, .venv и caches не включаются.
+Финальный `releases/AsBoljam_Final.zip` создаётся после финального commit из чистого Git checkout. По умолчанию `python scripts/package_release.py` требует чистый checkout и упаковывает точные committed blobs. Явный `--working-tree` создаёт проверенный снимок tracked и untracked nonignored файлов с `source_commit: null`, `base_commit: HEAD` и `includes_uncommitted_changes: true`; такой архив не подтверждает commit или push. Перед записью упаковщик проверяет состав и неизменность байтов снимка и ищет секреты; существующие ZIP и sidecar не перезаписывает.
 
+В ZIP включаются исходники, документы, миграции, тесты, scripts, безопасные demo данные, prompts, lockfiles и Docker configuration. `RELEASE_MANIFEST.json` фиксирует фактический режим и SHA256 каждого исходного файла; упаковщик проверяет CRC и все эти SHA256 после записи, создаёт `.zip.sha256`. `.git`, `.env`, credentials, БД/dumps, keystores, dependencies, caches и APK/IPA исключаются. 10 fixture-тестов упаковщика прошли; фактические количество файлов, SHA256 и результат проверки финального архива фиксируются выводом упаковщика и sidecar.
 Актуальный рабочий журнал: [PROGRESS.md](PROGRESS.md). Архитектурные решения: [DECISIONS.md](DECISIONS.md).
