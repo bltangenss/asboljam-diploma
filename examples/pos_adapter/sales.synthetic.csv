@@ -1,0 +1,3 @@
+business_date;location_code;product_code;sold_portions;available_portions;was_stockout;location_open;promotion_active;price_kzt;source_origin
+30.12.2025;EXAMPLE_01;DISH_01;7;12;0;1;0;1250,10;SYNTHETIC
+31.12.2025;EXAMPLE_01;DISH_01;9;12;0;1;0;1250,10;SYNTHETIC

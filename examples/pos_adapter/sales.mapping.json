@@ -1,0 +1,22 @@
+{
+  "mapping_version": "1",
+  "kind": "daily_sales",
+  "declared_data_origin": "SYNTHETIC",
+  "declared_sales_unit": "portion",
+  "declared_currency": "KZT",
+  "date_format": "%d.%m.%Y",
+  "decimal_separator": ",",
+  "delimiter": ";",
+  "columns": {
+    "date": "business_date",
+    "branch_id": "location_code",
+    "meal_id": "product_code",
+    "units_sold": "sold_portions",
+    "available_portions": "available_portions",
+    "stockout_flag": "was_stockout",
+    "is_open": "location_open",
+    "promo": "promotion_active",
+    "price_kzt": "price_kzt",
+    "data_origin": "source_origin"
+  }
+}

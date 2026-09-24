@@ -1,0 +1,18 @@
+{
+  "mapping_version": "1",
+  "kind": "inventory_lots",
+  "declared_data_origin": "SYNTHETIC",
+  "date_format": "%Y-%m-%d",
+  "decimal_separator": ".",
+  "delimiter": ",",
+  "columns": {
+    "branch_id": "location_code",
+    "ingredient_id": "ingredient_code",
+    "lot_id": "batch_code",
+    "snapshot_date": "snapshot_date",
+    "expiry_date": "expiry_date",
+    "on_hand_qty": "quantity",
+    "unit": "unit",
+    "data_origin": "source_origin"
+  }
+}

@@ -1,0 +1,3 @@
+location_code,ingredient_code,batch_code,snapshot_date,expiry_date,quantity,unit,source_origin
+EXAMPLE_01,ING_01,LOT_01,2026-01-01,2026-01-03,1.250,kg,SYNTHETIC
+EXAMPLE_01,ING_02,LOT_02,2026-01-01,2026-01-02,2.50,L,SYNTHETIC
