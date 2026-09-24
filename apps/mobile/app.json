@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "AsBoljam",
+    "slug": "asboljam",
+    "version": "0.1.0",
+    "scheme": "asboljam",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "kz.asboljam.demo", "supportsTablet": true },
+    "android": { "package": "kz.asboljam.demo" },
+    "plugins": [["expo-secure-store", { "configureAndroidBackup": true }]]
+  }
+}
