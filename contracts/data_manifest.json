@@ -1,0 +1,1156 @@
+{
+  "schema_version": "1.0",
+  "data_origin": "SYNTHETIC",
+  "provenance": {
+    "status": "reconstructed_during_implementation_not_supplied_original",
+    "basis": [
+      "actual supplied CSV headers",
+      "data/raw/data_dictionary.csv",
+      "implemented importer validation"
+    ],
+    "generator": "scripts/generate_contracts.py",
+    "dictionary_sha256": "fad1e65911e44a69d4c16b75e6a3a5598f9b8beb9ad432b32256e647d6e99df3",
+    "importer_sha256": "75c037537f39a701780e9bf50f33f98b4bee6b5cc21c42c19bff5da007e2da32",
+    "notice": "This file was reconstructed explicitly; no original contracts/data_manifest.json was included in the supplied materials."
+  },
+  "encoding": [
+    "UTF-8",
+    "UTF-8 BOM"
+  ],
+  "separator": ",",
+  "decimal_separator": ".",
+  "date_format": "YYYY-MM-DD",
+  "identifier_policy": "Keep source IDs as strings; no synthetic ID remapping.",
+  "import": {
+    "default_mode": "reject_duplicates",
+    "all_or_nothing": true,
+    "preview_required": true,
+    "default_max_bytes": 20971520,
+    "default_max_rows": 250000,
+    "accepted_upload_type": "CSV",
+    "blank_is_not_zero": true
+  },
+  "scenario": {
+    "historical_sales_end": "2025-12-31",
+    "forecast_target": "2026-01-01",
+    "inventory_snapshot": "2026-01-01",
+    "snapshot_position": "before target-day operations"
+  },
+  "cross_field_rules": [
+    "daily_sales.units_sold <= available_portions",
+    "daily_sales.is_open == 0 implies units_sold == 0",
+    "supplier_offers.min_packs <= max_packs",
+    "inventory_lots.unit == ingredients.unit",
+    "calendar.weekday matches the ISO date (Monday=0)",
+    "One active recipe_version per organization; multiple versions require explicit future version-selection support",
+    "Foreign keys, duplicate keys, branch access and user role are rechecked on commit",
+    "Inventory expiry_date < target is excluded; equality is usable under the demo convention",
+    "Procurement chooses the exact target-date inventory snapshot; stale stock is not silently current",
+    "Gross requirement = sum(portions * net_qty_per_portion / yield_factor), once",
+    "Line cost = integer packs * pack_qty * unit_cost_kzt",
+    "Offer lead_time_days overrides supplier descriptive default; only zero-day offers are eligible"
+  ],
+  "forbidden_training_sources": [
+    "oracle_do_not_train.csv",
+    "research_only/**",
+    "branches.demand_multiplier",
+    "meals.base_daily_demand"
+  ],
+  "operational_import_order": [
+    "branches",
+    "meals",
+    "ingredients",
+    "recipes",
+    "suppliers",
+    "supplier_offers",
+    "calendar",
+    "daily_sales",
+    "inventory_lots"
+  ],
+  "files": {
+    "branches.csv": {
+      "kind": "branches",
+      "source_path": "data/raw/branches.csv",
+      "sha256": "e897461ce87365ab6d4bff85d9502bcac05b6821c194d7c3550f43e28d77bd3f",
+      "source_rows": 3,
+      "required_columns": [
+        "branch_id",
+        "branch_name",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [
+        "demand_multiplier"
+      ],
+      "allowed_columns": [
+        "branch_id",
+        "branch_name",
+        "data_origin",
+        "demand_multiplier"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "branch_id"
+      ],
+      "foreign_keys": [],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "branch_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты бөлімше идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "branch_name": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Бөлімшенің шартты атауы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_name",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "demand_multiplier": {
+          "source_dtype": "float64",
+          "source_role": "DO_NOT_TRAIN",
+          "description_kk": "Генератор параметрі; болжауға кіріс емес",
+          "required": false,
+          "storage_type": null,
+          "import_policy": "accepted_but_discarded",
+          "source_to_storage": null,
+          "training_use": "forbidden_generator_parameter"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "meals.csv": {
+      "kind": "meals",
+      "source_path": "data/raw/meals.csv",
+      "sha256": "62c1cfce98659b71336fc61502d3994527e55ab21a7c419f4a91c60f6737d21e",
+      "source_rows": 12,
+      "required_columns": [
+        "meal_id",
+        "meal_name",
+        "base_price_kzt",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [
+        "base_daily_demand"
+      ],
+      "allowed_columns": [
+        "meal_id",
+        "meal_name",
+        "base_price_kzt",
+        "data_origin",
+        "base_daily_demand"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "meal_id"
+      ],
+      "foreign_keys": [],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "meal_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Тағам идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.meal_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "meal_name": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Тағамның шартты атауы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.meal_name",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "base_price_kzt": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты базалық баға, теңге",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.base_price_kzt",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "base_daily_demand": {
+          "source_dtype": "int64",
+          "source_role": "DO_NOT_TRAIN",
+          "description_kk": "Генератордың жасырын параметрі; модельге берілмейді",
+          "required": false,
+          "storage_type": null,
+          "import_policy": "accepted_but_discarded",
+          "source_to_storage": null,
+          "training_use": "forbidden_generator_parameter"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "ingredients.csv": {
+      "kind": "ingredients",
+      "source_path": "data/raw/ingredients.csv",
+      "sha256": "e23b30ae373818d2940409b45d8c3e505714436b1f1a6d00111ca3627be42207",
+      "source_rows": 10,
+      "required_columns": [
+        "ingredient_id",
+        "ingredient_name",
+        "unit",
+        "reference_cost_kzt",
+        "shelf_life_days",
+        "yield_factor",
+        "storage_capacity",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "ingredient_id",
+        "ingredient_name",
+        "unit",
+        "reference_cost_kzt",
+        "shelf_life_days",
+        "yield_factor",
+        "storage_capacity",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "ingredient_id"
+      ],
+      "foreign_keys": [],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "ingredient_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Ингредиент идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.ingredient_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "ingredient_name": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Ингредиент атауы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.ingredient_name",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "unit": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Базалық өлшем: kg немесе L",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.unit",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "kg",
+            "L"
+          ]
+        },
+        "reference_cost_kzt": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Базалық бірліктің шартты құны, теңге",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.reference_cost_kzt",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "shelf_life_days": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Үлгілік параметр; қауіпсіздік нұсқаулығы емес",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.shelf_life_days",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "yield_factor": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Таза мөлшер / жалпы мөлшер, 0 < eta <= 1",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.yield_factor",
+          "training_use": "not_used_by_current_forecasting_features",
+          "exclusive_minimum": "0",
+          "maximum": "1",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "storage_capacity": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Ингредиенттің шартты сақтау шегі, базалық бірлік",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.storage_capacity",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "recipes.csv": {
+      "kind": "recipes",
+      "source_path": "data/raw/recipes.csv",
+      "sha256": "cf44bd505c3b9c7988cde04eaf262d88bc9c05d339d4c2974aede413391b5ab6",
+      "source_rows": 48,
+      "required_columns": [
+        "meal_id",
+        "ingredient_id",
+        "net_qty_per_portion",
+        "recipe_version",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "meal_id",
+        "ingredient_id",
+        "net_qty_per_portion",
+        "recipe_version",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "meal_id",
+        "ingredient_id",
+        "recipe_version"
+      ],
+      "foreign_keys": [
+        {
+          "field": "meal_id",
+          "target_file": "meals.csv",
+          "target_field": "meal_id"
+        },
+        {
+          "field": "ingredient_id",
+          "target_file": "ingredients.csv",
+          "target_field": "ingredient_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "meal_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Тағам идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.meal_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "ingredient_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Ингредиент идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.ingredient_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "net_qty_per_portion": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Бір порциядағы таза мөлшер; жалпы мөлшер үшін шығымға бөлу",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.net_qty_per_portion",
+          "training_use": "not_used_by_current_forecasting_features",
+          "exclusive_minimum": "0",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "recipe_version": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Рецепттің шартты нұсқасы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.recipe_version",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "suppliers.csv": {
+      "kind": "suppliers",
+      "source_path": "data/raw/suppliers.csv",
+      "sha256": "f189799fe3cdf07cb44238296d32e87ea92db54200ec1c958c1f5ca8f39da9a4",
+      "source_rows": 3,
+      "required_columns": [
+        "supplier_id",
+        "supplier_name",
+        "lead_time_days",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "supplier_id",
+        "supplier_name",
+        "lead_time_days",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "supplier_id"
+      ],
+      "foreign_keys": [],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "supplier_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жеткізуші идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.supplier_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "supplier_name": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Жеткізушінің шартты атауы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.supplier_name",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "lead_time_days": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жеткізу мерзімі, күн; 0 — сол күні",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.lead_time_days",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "supplier_offers.csv": {
+      "kind": "supplier_offers",
+      "source_path": "data/raw/supplier_offers.csv",
+      "sha256": "e4ff462698c2b85f40c8aecdc9dce100821820d4679a2e30aca23e510b5daa3f",
+      "source_rows": 30,
+      "required_columns": [
+        "supplier_id",
+        "ingredient_id",
+        "pack_qty",
+        "unit_cost_kzt",
+        "min_packs",
+        "max_packs",
+        "lead_time_days",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "supplier_id",
+        "ingredient_id",
+        "pack_qty",
+        "unit_cost_kzt",
+        "min_packs",
+        "max_packs",
+        "lead_time_days",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "supplier_id",
+        "ingredient_id"
+      ],
+      "foreign_keys": [
+        {
+          "field": "ingredient_id",
+          "target_file": "ingredients.csv",
+          "target_field": "ingredient_id"
+        },
+        {
+          "field": "supplier_id",
+          "target_file": "suppliers.csv",
+          "target_field": "supplier_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "supplier_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жеткізуші идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.supplier_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "ingredient_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Ингредиент идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.ingredient_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "pack_qty": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Бір қаптамадағы базалық мөлшер",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.pack_qty",
+          "training_use": "not_used_by_current_forecasting_features",
+          "exclusive_minimum": "0",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "unit_cost_kzt": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Базалық бірліктің сатып алу бағасы, теңге",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.unit_cost_kzt",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "min_packs": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Белсенді тапсырыстағы ең аз қаптама саны",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.min_packs",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "max_packs": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Бір ұсыныс бойынша қаптама санының шегі",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.max_packs",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "lead_time_days": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жеткізу мерзімі, күн; 0 — сол күні",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.lead_time_days",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "calendar.csv": {
+      "kind": "calendar",
+      "source_path": "data/raw/calendar.csv",
+      "sha256": "dcc553b9a196845341b5e325de9e67abe3638cf9ab9ca3cdb65c2f4c498d5875",
+      "source_rows": 2193,
+      "required_columns": [
+        "date",
+        "branch_id",
+        "weekday",
+        "temperature_forecast_c",
+        "synthetic_event",
+        "is_open",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "date",
+        "branch_id",
+        "weekday",
+        "temperature_forecast_c",
+        "synthetic_event",
+        "is_open",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "date",
+        "branch_id"
+      ],
+      "foreign_keys": [
+        {
+          "field": "branch_id",
+          "target_file": "branches.csv",
+          "target_field": "branch_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "date": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Бақылау күні, YYYY-MM-DD",
+          "required": true,
+          "storage_type": "iso_date_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.date",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "branch_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты бөлімше идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "weekday": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Апта күні: дүйсенбі 0 ... жексенбі 6",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.weekday",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "temperature_forecast_c": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Алдыңғы күні белгілі деп жорамалданған синтетикалық ауа райы болжамы",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.temperature_forecast_c",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000"
+        },
+        "synthetic_event": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Үлгілік оқиға; ресми мереке күнтізбесі емес",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.synthetic_event",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "is_open": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жұмыс күні 1, жабық 0",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.is_open",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "daily_sales.csv": {
+      "kind": "daily_sales",
+      "source_path": "data/raw/daily_sales.csv",
+      "sha256": "88f1264c92ec6789a27831b8eb83af556740e20f384c32e13c8114fe9d19b5b1",
+      "source_rows": 26316,
+      "required_columns": [
+        "date",
+        "branch_id",
+        "meal_id",
+        "units_sold",
+        "available_portions",
+        "stockout_flag",
+        "is_open",
+        "promo",
+        "price_kzt",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "date",
+        "branch_id",
+        "meal_id",
+        "units_sold",
+        "available_portions",
+        "stockout_flag",
+        "is_open",
+        "promo",
+        "price_kzt",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "date",
+        "branch_id",
+        "meal_id"
+      ],
+      "foreign_keys": [
+        {
+          "field": "branch_id",
+          "target_file": "branches.csv",
+          "target_field": "branch_id"
+        },
+        {
+          "field": "meal_id",
+          "target_file": "meals.csv",
+          "target_field": "meal_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "date": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Бақылау күні, YYYY-MM-DD",
+          "required": true,
+          "storage_type": "iso_date_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.date",
+          "training_use": "date_or_entity_key"
+        },
+        "branch_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты бөлімше идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_id",
+          "training_use": "date_or_entity_key",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "meal_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Тағам идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.meal_id",
+          "training_use": "date_or_entity_key",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "units_sold": {
+          "source_dtype": "int64",
+          "source_role": "target",
+          "description_kk": "Нақты бақыланған сатылымның имитациясы; мақсатты айнымалы",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.units_sold",
+          "training_use": "observed_sales_target_and_strictly_past_lags",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "available_portions": {
+          "source_dtype": "int64",
+          "source_role": "audit_only_current_day",
+          "description_kk": "Дайын қолжетімді порциялар; болашақ күннің кіріс белгісі емес",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.available_portions",
+          "training_use": "not_used_by_current_forecasting_features",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "stockout_flag": {
+          "source_dtype": "int64",
+          "source_role": "audit_only_current_day",
+          "description_kk": "Сұраныс қолжетімділіктен асты; талдау белгісі, ағымдағы күнге кіріс емес",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.stockout_flag",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "is_open": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Жұмыс күні 1, жабық 0",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.is_open",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "promo": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Алдын ала жоспарланған үлгілік акция белгісі",
+          "required": true,
+          "storage_type": "integer",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.promo",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "price_kzt": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Сол күндегі шартты сату бағасы, теңге",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.price_kzt",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    },
+    "inventory_lots.csv": {
+      "kind": "inventory_lots",
+      "source_path": "data/raw/inventory_lots.csv",
+      "sha256": "4b807006f7ee4c45d283f403945d88684250291f8e6ed96f8b0812c0d3d5d6be",
+      "source_rows": 60,
+      "required_columns": [
+        "branch_id",
+        "ingredient_id",
+        "lot_id",
+        "snapshot_date",
+        "expiry_date",
+        "on_hand_qty",
+        "unit",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "branch_id",
+        "ingredient_id",
+        "lot_id",
+        "snapshot_date",
+        "expiry_date",
+        "on_hand_qty",
+        "unit",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "branch_id",
+        "ingredient_id",
+        "lot_id",
+        "snapshot_date"
+      ],
+      "foreign_keys": [
+        {
+          "field": "branch_id",
+          "target_file": "branches.csv",
+          "target_field": "branch_id"
+        },
+        {
+          "field": "ingredient_id",
+          "target_file": "ingredients.csv",
+          "target_field": "ingredient_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "branch_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты бөлімше идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "ingredient_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Ингредиент идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.ingredient_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "lot_id": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Қойма партиясының коды",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.lot_id",
+          "training_use": "not_used_by_current_forecasting_features",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "snapshot_date": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Қор кесіндісінің күні",
+          "required": true,
+          "storage_type": "iso_date_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.snapshot_date",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "expiry_date": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Соңғы пайдалануға болатын күн, үлгілік шарт",
+          "required": true,
+          "storage_type": "iso_date_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.expiry_date",
+          "training_use": "not_used_by_current_forecasting_features"
+        },
+        "on_hand_qty": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Партияның қолдағы мөлшері, базалық бірлік",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.on_hand_qty",
+          "training_use": "not_used_by_current_forecasting_features",
+          "absolute_maximum": "1000000000000",
+          "minimum": "0"
+        },
+        "unit": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Базалық өлшем: kg немесе L",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.unit",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "kg",
+            "L"
+          ]
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "not_used_by_current_forecasting_features",
+          "enum": [
+            "SYNTHETIC"
+          ]
+        }
+      }
+    }
+  }
+}

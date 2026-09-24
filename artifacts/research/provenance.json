@@ -1,0 +1,75 @@
+{
+  "created_at": "2026-09-24T07:48:51.945821+00:00",
+  "data_origin": "SYNTHETIC",
+  "mode": "LIVE_COMPUTE",
+  "seed": 42,
+  "forecast_origin": "2025-12-31",
+  "forecast_target": "2026-01-01",
+  "inventory_snapshot": "2026-01-01",
+  "branches": [
+    "1",
+    "2",
+    "3"
+  ],
+  "models": [
+    "seasonal_naive_7",
+    "rolling_mean_28",
+    "hist_gradient_boosting"
+  ],
+  "input_files": {
+    "daily_sales.csv": {
+      "sha256": "88f1264c92ec6789a27831b8eb83af556740e20f384c32e13c8114fe9d19b5b1",
+      "rows": 26316
+    },
+    "ingredients.csv": {
+      "sha256": "e23b30ae373818d2940409b45d8c3e505714436b1f1a6d00111ca3627be42207",
+      "rows": 10
+    },
+    "recipes.csv": {
+      "sha256": "cf44bd505c3b9c7988cde04eaf262d88bc9c05d339d4c2974aede413391b5ab6",
+      "rows": 48
+    },
+    "inventory_lots.csv": {
+      "sha256": "4b807006f7ee4c45d283f403945d88684250291f8e6ed96f8b0812c0d3d5d6be",
+      "rows": 60
+    },
+    "supplier_offers.csv": {
+      "sha256": "e4ff462698c2b85f40c8aecdc9dce100821820d4679a2e30aca23e510b5daa3f",
+      "rows": 30
+    },
+    "suppliers.csv": {
+      "sha256": "f189799fe3cdf07cb44238296d32e87ea92db54200ec1c958c1f5ca8f39da9a4",
+      "rows": 3
+    }
+  },
+  "engine_sha256": "e3484678ac2584a8888d07c502075b29037b833ec5219e7dfdd59f88b6349754",
+  "script_sha256": "05cdb4ff883d44282372b80d18a8161535c61970525a7fb1d2b61a616259c78e",
+  "runtime_versions": {
+    "python": "3.13.9",
+    "numpy": "2.4.2",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.8.0",
+    "threadpoolctl": "3.6.0"
+  },
+  "forecast_runs": 9,
+  "procurement_runs": 36,
+  "duration_seconds": 32.546982,
+  "metric_units": {
+    "mae": "portions",
+    "rmse": "portions",
+    "bias": "portions, predicted minus observed",
+    "wape": "fraction; null for zero observed sales",
+    "coverage": "fraction",
+    "crossing_rate": "fraction of raw quantile triplets"
+  },
+  "protocol": "28 identical one-step test days; HGB fit frozen before test; previous test sales are legal past lags. Final HGB refit through origin.",
+  "interpretation": [
+    "Synthetic demonstration; not external validation or measured savings at a real enterprise.",
+    "Observed sales are potentially stockout-censored; they are not latent demand.",
+    "Baselines have no uncertainty intervals. HGB p10-p90 is an 80% nominal central interval.",
+    "Summed marginal p90 is a stress heuristic, not a joint 90% availability guarantee.",
+    "Ingredient shortages/excesses retain their kg/L units; unlike units are never summed.",
+    "No shipping/tax data exist; purchase costs cover base unit prices times pack quantities only.",
+    "Budgets are declared synthetic scenarios. Metrics are measured; no superiority is assumed."
+  ]
+}

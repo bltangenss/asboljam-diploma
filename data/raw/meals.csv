@@ -1,0 +1,13 @@
+﻿meal_id,meal_name,base_price_kzt,base_daily_demand,data_origin
+1,Rice_beef,2300,32,SYNTHETIC
+2,Chicken_rice,1900,42,SYNTHETIC
+3,Beef_soup,1600,28,SYNTHETIC
+4,Chicken_soup,1400,34,SYNTHETIC
+5,Vegetable_stew,1200,19,SYNTHETIC
+6,Pasta_beef,2000,29,SYNTHETIC
+7,Potato_chicken,1800,35,SYNTHETIC
+8,Tomato_salad,1000,22,SYNTHETIC
+9,Pancakes,1100,31,SYNTHETIC
+10,Milk_porridge,900,26,SYNTHETIC
+11,Beef_pastry,800,45,SYNTHETIC
+12,Vegetable_rice,1300,25,SYNTHETIC

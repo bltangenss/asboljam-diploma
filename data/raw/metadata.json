@@ -1,0 +1,19 @@
+{
+  "origin": "SYNTHETIC",
+  "seed": 42,
+  "date_from": "2024-01-01",
+  "date_to": "2025-12-31",
+  "rows": {
+    "branches": 3,
+    "meals": 12,
+    "ingredients": 10,
+    "recipes": 48,
+    "suppliers": 3,
+    "supplier_offers": 30,
+    "inventory_lots": 60,
+    "daily_sales": 26316,
+    "calendar": 2193,
+    "oracle_do_not_train": 26316
+  },
+  "warning": "Not observations from a real enterprise. Prices, recipes, events and shelf life are illustrative; not food-safety instructions. Never train with oracle data."
+}

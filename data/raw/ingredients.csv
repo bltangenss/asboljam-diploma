@@ -1,0 +1,11 @@
+﻿ingredient_id,ingredient_name,unit,reference_cost_kzt,shelf_life_days,yield_factor,storage_capacity,data_origin
+1,rice,kg,700,180,1.0,150,SYNTHETIC
+2,beef,kg,3600,3,0.9,80,SYNTHETIC
+3,chicken,kg,1900,3,0.88,100,SYNTHETIC
+4,potato,kg,280,21,0.82,120,SYNTHETIC
+5,onion,kg,220,30,0.9,80,SYNTHETIC
+6,carrot,kg,260,21,0.88,80,SYNTHETIC
+7,flour,kg,420,180,1.0,100,SYNTHETIC
+8,milk,L,650,4,1.0,100,SYNTHETIC
+9,tomato,kg,1100,5,0.95,70,SYNTHETIC
+10,oil,L,850,180,1.0,50,SYNTHETIC

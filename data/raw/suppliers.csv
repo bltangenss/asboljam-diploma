@@ -1,0 +1,4 @@
+﻿supplier_id,supplier_name,lead_time_days,data_origin
+1,Demo_local_A,0,SYNTHETIC
+2,Demo_local_B,0,SYNTHETIC
+3,Demo_next_day_C,1,SYNTHETIC

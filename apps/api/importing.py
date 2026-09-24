@@ -1,0 +1,176 @@
+"""Strict, allowlisted CSV parser. Generator fields are discarded at the boundary."""
+import csv
+import io
+import json
+import os
+import re
+from datetime import date
+from decimal import Decimal, InvalidOperation
+from sqlalchemy import select
+from .db import Record
+
+SCHEMAS = {
+    'branches': 'branch_id branch_name data_origin',
+    'meals': 'meal_id meal_name base_price_kzt data_origin',
+    'ingredients': 'ingredient_id ingredient_name unit reference_cost_kzt shelf_life_days yield_factor storage_capacity data_origin',
+    'recipes': 'meal_id ingredient_id net_qty_per_portion recipe_version data_origin',
+    'suppliers': 'supplier_id supplier_name lead_time_days data_origin',
+    'supplier_offers': 'supplier_id ingredient_id pack_qty unit_cost_kzt min_packs max_packs lead_time_days data_origin',
+    'calendar': 'date branch_id weekday temperature_forecast_c synthetic_event is_open data_origin',
+    'daily_sales': 'date branch_id meal_id units_sold available_portions stockout_flag is_open promo price_kzt data_origin',
+    'inventory_lots': 'branch_id ingredient_id lot_id snapshot_date expiry_date on_hand_qty unit data_origin',
+}
+KEYS = {
+    'branches': ['branch_id'], 'meals': ['meal_id'], 'ingredients': ['ingredient_id'],
+    'recipes': ['meal_id', 'ingredient_id', 'recipe_version'], 'suppliers': ['supplier_id'],
+    'supplier_offers': ['supplier_id', 'ingredient_id'], 'calendar': ['date', 'branch_id'],
+    'daily_sales': ['date', 'branch_id', 'meal_id'], 'inventory_lots': ['branch_id', 'ingredient_id', 'lot_id', 'snapshot_date'],
+}
+IGNORED = {'branches': {'demand_multiplier'}, 'meals': {'base_daily_demand'}}
+INT_FIELDS = set('shelf_life_days lead_time_days min_packs max_packs weekday synthetic_event is_open units_sold available_portions stockout_flag promo'.split())
+DECIMAL_FIELDS = set('base_price_kzt reference_cost_kzt yield_factor storage_capacity net_qty_per_portion pack_qty unit_cost_kzt temperature_forecast_c price_kzt on_hand_qty'.split())
+FLAGS = {'synthetic_event','is_open','stockout_flag','promo'}
+FK = {'branch_id': 'branches', 'meal_id': 'meals', 'ingredient_id': 'ingredients', 'supplier_id': 'suppliers'}
+MAX_BYTES = int(os.environ.get('IMPORT_MAX_BYTES', 20 * 1024 * 1024))
+MAX_ROWS = int(os.environ.get('IMPORT_MAX_ROWS', 250000))
+
+def natural_key(kind, row):
+    return json.dumps([str(row[x]) for x in KEYS[kind]], separators=(',', ':'))
+
+def rows_for(db, org, kind, branch=None):
+    query = select(Record).where(Record.organization_id == org, Record.kind == kind)
+    if branch is not None:
+        query = query.where(Record.branch_id == str(branch))
+    return [r.data for r in db.scalars(query)]
+
+def validate_rows(db, org, kind, rows, allowed_branches=None):
+    errors = []
+    existing = set(db.scalars(select(Record.natural_key).where(Record.organization_id == org, Record.kind == kind)))
+    references = {field: {r[field] for r in rows_for(db, org, target)} for field, target in FK.items()}
+    ingredients = {r['ingredient_id']: r for r in rows_for(db, org, 'ingredients')}
+    seen = set()
+    for index, row in enumerate(rows, 2):
+        def err(field, code, message):
+            errors.append({'row_number': index, 'field': field, 'code': code, 'message': message})
+        key = natural_key(kind, row)
+        if key in seen or key in existing:
+            err(','.join(KEYS[kind]), 'DUPLICATE_KEY', 'Қайталанған кілт: импорт қабылданбайды.')
+        seen.add(key)
+        branch = row.get('branch_id')
+        if allowed_branches is not None and branch is not None and branch not in allowed_branches:
+            err('branch_id', 'BRANCH_FORBIDDEN', 'Бөлімшеге рұқсат жоқ.')
+        for field, target in FK.items():
+            if field in row and kind != target and row[field] not in references[field]:
+                err(field, 'UNKNOWN_REFERENCE', 'Анықтамалық идентификатор табылмады.')
+        if kind == 'inventory_lots' and row['ingredient_id'] in ingredients:
+            if row['unit'] != ingredients[row['ingredient_id']]['unit']:
+                err('unit', 'UNIT_MISMATCH', 'Ингредиент өлшем бірлігі сәйкес емес.')
+        if kind == 'recipes':
+            active_versions = {r['recipe_version'] for r in rows_for(db, org, 'recipes')}
+            if active_versions and row['recipe_version'] not in active_versions:
+                err('recipe_version', 'RECIPE_VERSION_CONFLICT', 'MVP бір белсенді рецепт нұсқасын қолдайды.')
+        if len(errors) >= 500:
+            break
+    if kind == 'recipes' and len({r['recipe_version'] for r in rows}) > 1:
+        errors.append({'row_number': 1, 'field': 'recipe_version', 'code': 'RECIPE_VERSION_CONFLICT', 'message': 'Бір файлда бір рецепт нұсқасы қажет.'})
+    return errors
+
+def parse_csv(kind, text):
+    errors, rows = [], []
+    def err(index, field, code, message):
+        errors.append({'row_number': index, 'field': field, 'code': code, 'message': message})
+    if kind not in SCHEMAS:
+        return [], [{'row_number': 1, 'field': 'kind', 'code': 'UNSUPPORTED_KIND', 'message': 'Рұқсат етілмеген файл түрі.'}]
+    if len(text.encode('utf-8')) > MAX_BYTES:
+        return [], [{'row_number': 1, 'field': 'file', 'code': 'FILE_TOO_LARGE', 'message': 'Файл өлшемі шектен асты.'}]
+    reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff')), strict=True)
+    required = set(SCHEMAS[kind].split())
+    fields = reader.fieldnames or []
+    if len(fields) != len(set(fields)) or set(fields) - required - IGNORED.get(kind, set()) or required - set(fields):
+        return [], [{'row_number': 1, 'field': 'header', 'code': 'INVALID_COLUMNS', 'message': 'CSV бағандары схемаға сәйкес емес.', 'expected': SCHEMAS[kind].split()}]
+    try:
+        for index, raw in enumerate(reader, 2):
+            if index > MAX_ROWS + 1:
+                err(index, 'file', 'TOO_MANY_ROWS', 'Жол саны шектен асты.'); break
+            start_errors = len(errors)
+            row = {}
+            if None in raw:
+                err(index, 'row', 'EXTRA_COLUMNS', 'Артық бағандар бар.'); continue
+            for field in required:
+                value = (raw.get(field) or '').strip()
+                if not value:
+                    err(index, field, 'MISSING_VALUE', 'Міндетті мән жоқ.'); continue
+                try:
+                    if field in INT_FIELDS:
+                        if not re.fullmatch(r'\d+', value):
+                            raise ValueError()
+                        value = int(value)
+                        if value > 1000000000:
+                            raise ValueError()
+                        if field in FLAGS and value not in (0, 1):
+                            raise ValueError()
+                        if field == 'weekday' and not 0 <= value <= 6:
+                            raise ValueError()
+                    elif field in DECIMAL_FIELDS:
+                        number = Decimal(value)
+                        if not number.is_finite() or (number < 0 and field != 'temperature_forecast_c') or abs(number) > Decimal('1000000000000'):
+                            raise ValueError()
+                        if field in {'yield_factor','pack_qty','net_qty_per_portion'} and number <= 0:
+                            raise ValueError()
+                        if field == 'yield_factor' and number > 1:
+                            raise ValueError()
+                        value = str(number)
+                    elif field in {'date','snapshot_date','expiry_date'}:
+                        if date.fromisoformat(value).isoformat() != value:
+                            raise ValueError()
+                    elif field.endswith('_id'):
+                        if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', value):
+                            raise ValueError()
+                    elif field == 'unit' and value not in {'kg','L'}:
+                        raise ValueError()
+                    elif field == 'data_origin' and value != 'SYNTHETIC':
+                        raise ValueError()
+                    elif len(value) > 255:
+                        raise ValueError()
+                    row[field] = value
+                except (ValueError, InvalidOperation):
+                    err(index, field, 'INVALID_VALUE', 'Мәннің түрі немесе ауқымы жарамсыз.')
+            if len(errors) == start_errors:
+                if kind == 'daily_sales':
+                    if row['units_sold'] > row['available_portions']:
+                        err(index, 'units_sold', 'SALES_EXCEED_AVAILABLE', 'Сатылым қолжетімді порциядан көп.')
+                    if not row['is_open'] and row['units_sold']:
+                        err(index, 'is_open', 'CLOSED_WITH_SALES', 'Жабық күнде сатылым бар.')
+                if kind == 'supplier_offers' and row['min_packs'] > row['max_packs']:
+                    err(index, 'min_packs', 'MOQ_EXCEEDS_MAX', 'Ең аз қаптама ең көп мәннен артық.')
+                if kind == 'calendar' and date.fromisoformat(row['date']).weekday() != row['weekday']:
+                    err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні датаға сәйкес емес.')
+                if len(errors) == start_errors:
+                    rows.append(row)
+            if len(errors) >= 500:
+                break
+    except csv.Error:
+        err(reader.line_num, 'file', 'INVALID_CSV', 'CSV құрылымы жарамсыз.')
+    if not rows and not errors:
+        err(2, 'file', 'EMPTY_FILE', 'CSV бос.')
+    return rows, errors
+
+def insert_rows(db, org, kind, rows):
+    db.add_all([Record(organization_id=org, kind=kind, natural_key=natural_key(kind,r), branch_id=r.get('branch_id'), data=r) for r in rows])
+
+def safe_csv(rows):
+    output = io.StringIO(newline='')
+    if not rows:
+        return '\ufeff'
+    fields = list(dict.fromkeys(k for r in rows for k in r if not isinstance(r[k], (dict,list))))
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction='ignore')
+    writer.writeheader()
+    for row in rows:
+        clean = {}
+        for key in fields:
+            value = row.get(key, '')
+            if isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '\t', '\r', '\n')):
+                value = "'" + value
+            clean[key] = value
+        writer.writerow(clean)
+    return '\ufeff' + output.getvalue()

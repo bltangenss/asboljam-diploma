@@ -1,0 +1,44 @@
+﻿# Credentials and private local data
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.db
+backups/
+# Dependencies, builds, and generated caches
+node_modules/
+.venv/
+venv/
+.next/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.expo/
+*.log
+*.tsbuildinfo
+# Local editor and operating system state
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+# Browser traces may contain session credentials
+test-results/
+playwright-report/
+# Release archives are delivered separately from source control
+releases/
+AsBoljam_Final.zip
