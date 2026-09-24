@@ -1,5 +1,6 @@
 """API integration tests: real SQLite, real worker, actual import/approval transactions."""
 import json
+import os
 import csv
 import io
 import tempfile
@@ -11,7 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func,select
 from apps.api.db import Audit,Job,Plan,Record,User
 from apps.api.main import create_app
-from apps.api.importing import parse_csv,safe_csv
+from apps.api.importing import SCHEMAS,parse_csv,safe_csv
 from apps.api.security import password_hash
 from apps.worker.main import run_once
 from scripts.seed_demo import seed
@@ -23,8 +24,9 @@ class ApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         Path('.cache').mkdir(exist_ok=True)
-        cls.temp=tempfile.TemporaryDirectory(dir='.cache',prefix='api-tests-')
-        cls.url='sqlite:///'+(Path(cls.temp.name).resolve()/'test.sqlite').as_posix()
+        external_url=os.environ.get('ASBOLJAM_TEST_DATABASE_URL')
+        cls.temp=None if external_url else tempfile.TemporaryDirectory(dir='.cache',prefix='api-tests-')
+        cls.url=external_url or ('sqlite:///'+(Path(cls.temp.name).resolve()/'test.sqlite').as_posix())
         cls.app=create_app(cls.url)
         cls.factory=cls.app.state.sessions
         seed(cls.factory,PASSWORD)
@@ -42,7 +44,7 @@ class ApiTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.state.engine.dispose()
-        cls.temp.cleanup()
+        if cls.temp is not None: cls.temp.cleanup()
     def client_for(self,email='admin@asboljam.local'):
         token,csrf=self.tokens[email]
         client=TestClient(self.app)
@@ -248,5 +250,19 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(counts.get('EXPIRING_LOTS',0),sum(1 for r in lots if '2026-01-01'<=r['expiry_date']<='2026-01-03'))
             self.assertTrue(all(item['message'] for item in result['warnings']))
             self.assertEqual(result['as_of'],'2025-12-31')
+    def test_import_templates_are_canonical_and_role_scoped(self):
+        c=self.client_for()
+        for kind,schema in SCHEMAS.items():
+            response=c.get('/api/v1/imports/template/'+kind)
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(response.text.lstrip('\ufeff').splitlines(),[','.join(schema.split())])
+            self.assertIn(kind+'-template.csv',response.headers['content-disposition'])
+            self.assertNotIn('demand_multiplier',response.text)
+            self.assertNotIn('base_daily_demand',response.text)
+        self.assertEqual(c.get('/api/v1/imports/template/oracle_do_not_train').status_code,400)
+        self.assertEqual(self.client_for('warehouse@test.local').get('/api/v1/imports/template/daily_sales').status_code,403)
+        self.assertEqual(self.client_for('warehouse@test.local').get('/api/v1/imports/template/inventory_lots').status_code,200)
+        self.assertEqual(self.client_for('analyst@test.local').get('/api/v1/imports/template/recipes').status_code,403)
+        self.assertEqual(self.client_for('analyst@test.local').get('/api/v1/imports/template/daily_sales').status_code,200)
 if __name__=='__main__':
     unittest.main()

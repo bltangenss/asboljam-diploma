@@ -282,6 +282,15 @@ def create_app(database_url=None):
         last_plan=plans[0] if plans else None
         return {**META,'branch_id':branch_id,'as_of':last_date,'sold_portions':sum(r['units_sold'] for r in latest),'revenue':str(sum((Decimal(r['price_kzt'])*r['units_sold'] for r in latest),Decimal(0))),'total_shortages':last_plan.result.get('shortage_count',0) if last_plan else None,'procurement_cost':last_plan.result.get('total_cost') if last_plan else None,'history':[{'date':d,'units_sold':history[d]} for d in sorted(history)[-28:]],'top_meals':[{'meal_id':k,'meal_name':names.get(k,k),'units_sold':v['units_sold'],'revenue':str(v['revenue'])} for k,v in sorted(top.items(),key=lambda item:-item[1]['units_sold'])],'warnings':warnings,'latest_plans':[plan_json(p) for p in plans],'latest_forecast':forecast_json(forecasts[0]) if forecasts else None}
 
+    @app.get('/api/v1/imports/template/{kind}')
+    def import_template(kind:str,user=Depends(current)):
+        if kind not in SCHEMAS: fail('UNSUPPORTED_KIND','Unsupported CSV kind.',400)
+        roles(user,'admin','manager','analyst','warehouse')
+        if user.role=='warehouse' and kind!='inventory_lots': roles(user,'admin','manager','analyst')
+        if kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
+        content='\ufeff'+','.join(SCHEMAS[kind].split())+'\r\n'
+        return Response(content,media_type='text/csv; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="{kind}-template.csv"'})
+
     @app.post('/api/v1/imports/preview')
     def import_preview(data:ImportInput,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst','warehouse')

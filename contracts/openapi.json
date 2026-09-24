@@ -1486,6 +1486,43 @@
         }
       }
     },
+    "/api/v1/imports/template/{kind}": {
+      "get": {
+        "summary": "Import Template",
+        "operationId": "import_template_api_v1_imports_template__kind__get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imports/preview": {
       "post": {
         "summary": "Import Preview",
