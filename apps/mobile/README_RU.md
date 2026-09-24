@@ -27,16 +27,27 @@ npm.cmd test
 - Для внешнего API используйте HTTPS. Пример HTTP предназначен для локальной разработки.
 - Native-сборки используют отдельные токены; настройки браузерных cookies сюда не переносятся.
 
-После установки Android Studio, SDK, JDK и настройки устройства/эмулятора:
+После установки Android Studio, SDK и JDK 17/21 соберите development APK из корня репозитория:
 
 ```powershell
-npm.cmd run android
+.\scripts\build_android_debug.ps1 -Architecture x86
+```
+
+`x86` предназначен для совместимого эмулятора. Для телефона выберите ABI устройства, например `-Architecture arm64-v8a`; успешная x86-сборка не доказывает сборку других ABI. Скрипт использует один worker, сохраняет Gradle/Expo caches в `.cache` и допускает явные `-JavaHome`, `-AndroidSdk`, `-GradleUserHome`. При первом запуске нужны сеть и свободное место для Gradle, JDK toolchain, Android SDK/NDK и зависимостей. Путь SDK должен быть доступен на запись, если недостающие компоненты будут загружаться автоматически; лицензии Android SDK должны быть приняты владельцем.
+
+Скрипт передаёт `scripts/android-gradle.init.gradle`: только устаревший Foojay resolver заменяется на 1.0.0 для совместимости с Gradle 9. Установленные npm-пакеты и глобальные Gradle-настройки не редактируются. Причина — удалённое поле IBM_SEMERU, на которое ссылается версия 0.5.0 из RN Gradle plugin; [исправление Foojay](https://github.com/gradle/foojay-toolchains/blob/main/CHANGELOG.md). Прямой `npm run android` обходит этот init script и в закреплённом наборе зависимостей может снова получить ту же ошибку.
+
+После успешной сборки и подключения собственного тестового устройства/эмулятора:
+
+```powershell
+adb install apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+Set-Location apps/mobile
 npm.cmd start
 ```
 
-Первая команда действительно собирает и устанавливает development build. Последующая разработка JavaScript использует `start`; изменение native-зависимостей требует пересборки. Для локального `npm.cmd run ios` нужна macOS с Xcode. Облачная сборка, signing, аккаунты разработчика и публикация не выполнялись.
+Установка не перезаписывает существующее приложение автоматически: сначала проверьте его наличие и данные. Debug development client требует запущенный Metro для JavaScript приложения. Изменение native-зависимостей требует пересборки. Для локального `npm.cmd run ios` нужна macOS с Xcode. Облачная сборка, release signing, аккаунты разработчика и публикация не выполнялись.
 
-QR-код dev-сервера, TypeScript и JavaScript-тесты не являются проверенным APK/IPA. На момент реализации native-сборка и тестирование на устройстве/эмуляторе не выполнялись.
+QR-код dev-сервера, TypeScript и JavaScript-тесты не доказывают наличие APK/IPA. Фактический результат native-сборки и проверки устройства находится в [VERIFICATION_RU.md](VERIFICATION_RU.md).
 
 ## Серверный контракт и сессия
 

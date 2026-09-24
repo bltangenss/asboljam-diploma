@@ -1,0 +1,14 @@
+// RN 0.83.10 requests Foojay 0.5.0, which refers to IBM_SEMERU removed in Gradle 9.
+// Pin the compatible resolver for this invocation, including composite plugin builds.
+// Do not patch installed npm packages or global Gradle configuration.
+// https://github.com/gradle/foojay-toolchains/blob/main/CHANGELOG.md
+beforeSettings { settings ->
+    settings.pluginManagement.resolutionStrategy.eachPlugin { request ->
+        if (request.requested.id.id in [
+            'org.gradle.toolchains.foojay-resolver-convention',
+            'org.gradle.toolchains.foojay-resolver'
+        ] && request.requested.version?.startsWith('0.')) {
+            request.useVersion('1.0.0')
+        }
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "recorded_at_utc": "2026-09-24T17:43:25.8306191Z",
+  "status": "deferred_by_user",
+  "architecture_attempted": "x86",
+  "variant": "debug development client; requires Metro for app JavaScript",
+  "apk_created": false,
+  "device_tested": false,
+  "completed_prerequisites": [
+    "Expo prebuild",
+    "Gradle 9 download",
+    "Foojay resolver 1.0.0 compatibility override",
+    "JDK 17 toolchain download",
+    "Android SDK platform 36",
+    "NDK 27.1.12297006",
+    "CMake 3.22.1"
+  ],
+  "previous_attempt": "android-build-interrupted.json",
+  "current_attempt": "Stopped at the user's request while configureCMakeDebug[x86] was running; no APK was produced.",
+  "resume_command": "powershell -NoProfile -File scripts/build_android_debug.ps1 -JavaHome 'C:\\Program Files\\Java\\jdk-21' -AndroidSdk '.cache/android-sdk' -Architecture x86",
+  "limits": "No emulator, physical device, OS SecureStore, ARM ABI, release signing or Store publication was tested."
+}

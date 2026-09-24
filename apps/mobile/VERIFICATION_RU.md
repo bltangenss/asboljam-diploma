@@ -5,11 +5,12 @@
 | Проверка | Фактический результат |
 |---|---|
 | `npm.cmd run typecheck` | PASS после установки Expo SDK 55 и после обновления вложенной uuid |
-| `npm.cmd test` | 13/13 PASS; последняя длительность Node-тестов 286 ms |
+| `npm.cmd test` | 13/13 PASS; последняя длительность Node-тестов 455.844 ms |
 | Генерация идентификатора проектом `xcode` | PASS: 24 шестнадцатеричных символа с uuid 11.1.1 |
 | `npm.cmd install --offline=false --no-fund` после override | Завершено, встроенный npm audit: 0 vulnerabilities |
-| `npm.cmd run export:android` | PASS: Metro/Hermes JS bundle, 588 modules, 1.8 MB, 61.139 s; no APK |
-| Android development build / эмулятор / телефон | NOT TESTED |
+| `npm.cmd run export:android` | PASS: Metro/Hermes JS bundle, 588 modules, 1.8 MB, 20.831 s; no APK |
+| Android debug APK | Первоначальный сбой Foojay 0.5.0/Gradle 9 исправлен resolver 1.0.0. Следующая попытка дошла до CMake, но завершилась с кодом `0x40010004`; сохранён `android-build-interrupted.json`. Повторный запуск с прогретым SDK/NDK/CMake остановлен по прямому решению пользователя. APK отсутствует; работа отложена |
+| Android эмулятор / телефон | NOT TESTED |
 | iOS development build / симулятор / устройство | NOT TESTED |
 | APK/IPA и Store release | Не создавались и не публиковались |
 

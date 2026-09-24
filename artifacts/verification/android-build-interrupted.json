@@ -1,0 +1,17 @@
+{
+  "started_at_utc": "2026-09-24T11:04:46.1631774Z",
+  "status": "failed",
+  "architecture": "x86",
+  "variant": "debug development client; requires Metro for app JavaScript",
+  "device_tested": false,
+  "gradle_init_script": "scripts/android-gradle.init.gradle",
+  "foojay_resolver_override": "1.0.0 for pre-1.0 requests; Gradle 9 compatibility",
+  "java_major": 21,
+  "free_disk_gib_before": 49.29,
+  "phase": "gradle_assemble_debug",
+  "prebuild_exit_code": 0,
+  "gradle_exit_code": 1073807364,
+  "error": "Gradle build failed; inspect .cache/logs/android-build.log.",
+  "finished_at_utc": "2026-09-24T15:42:13.3142651Z",
+  "elapsed_seconds": 16647.151
+}

@@ -1,0 +1,11 @@
+{
+    "started_at_utc":  "2026-09-24T10:37:10.0973682Z",
+    "status":  "failed",
+    "architecture":  "x86",
+    "variant":  "debug development client; requires Metro for app JavaScript",
+    "device_tested":  false,
+    "java_major":  21,
+    "free_disk_gib_before":  50.28,
+    "phase":  "gradle_assemble_debug",
+    "finished_at_utc":  "2026-09-24T10:51:24.6385300Z"
+}

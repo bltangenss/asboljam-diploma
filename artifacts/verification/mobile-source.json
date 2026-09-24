@@ -1,0 +1,27 @@
+{
+  "scope": "Previously executed final mobile source checks; not rerun during resumed task",
+  "typecheck": "passed",
+  "session_tests": {
+    "status": "passed",
+    "count": 13,
+    "duration_ms": 455.844
+  },
+  "metro_android_export": {
+    "status": "passed",
+    "modules": 588,
+    "bundle_seconds": 20.831,
+    "bundles": [
+      {
+        "path": ".cache/mobile-export/_expo/static/js/android/index-a0fb14828036bc5380ff9bd884a51447.hbc",
+        "bytes": 1761925,
+        "sha256": "99f32db0e1584044291755bf41c9b49398dc181c638ac96aa0a7ae0620f5fb08"
+      }
+    ]
+  },
+  "native_apk_and_device": "See separate android-build.json; JS export is not an APK",
+  "commands": [
+    "npm run typecheck",
+    "npm test",
+    "EXPO_NO_TELEMETRY=1 EXPO_OFFLINE=1 npm run export:android"
+  ]
+}
