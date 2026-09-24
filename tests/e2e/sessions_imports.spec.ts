@@ -9,20 +9,23 @@ function deferred() {
   const promise = new Promise<void>(done => {resolve=done});
   return {promise, resolve};
 }
+async function settleBrowser(page:Page) {
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+}
 async function installApi(page:Page, intercept?:(route:Route,path:string)=>Promise<boolean>) {
-  const auth = {authenticated:true, generation:1};
+  const auth = {authenticated:true, generation:1, user};
   await page.route('**/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1','');
     const reply = (json:unknown,status=200) => route.fulfill({status,json});
     if (intercept && await intercept(route,path)) return;
     if (path === '/session/login') {
       auth.authenticated=true; auth.generation++;
-      await reply({user,csrf_token:'fake-browser-csrf-'+auth.generation}); return;
+      await reply({user:auth.user,csrf_token:'fake-browser-csrf-'+auth.generation}); return;
     }
     if (!auth.authenticated) {
       await reply({detail:{code:'AUTH_REQUIRED',message:'Please sign in'}},401); return;
     }
-    if (path === '/session/me') {await reply({user,csrf_token:'fake-browser-csrf-'+auth.generation}); return}
+    if (path === '/session/me') {await reply({user:auth.user,csrf_token:'fake-browser-csrf-'+auth.generation}); return}
     if (path === '/session/logout') {auth.authenticated=false; await reply({status:'logged_out'}); return}
     if (path === '/branches') {await reply({...pageData,items:[{branch_id:'1',branch_name:'Test branch'}],total:1}); return}
     if (path === '/dashboard') {await reply(dashboard); return}
@@ -70,9 +73,35 @@ test('a delayed 401 from an old session cannot sign out the new login',async({pa
   await page.locator('.sidebar').getByRole('button',{name:'Қойма',exact:true}).click();
   await signInAgain(page);
   const completed=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/sales');
-  release.resolve(); await completed;
+  release.resolve(); await completed; await settleBrowser(page);
   await expectDashboard(page);
   await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test('a delayed branch lookup cannot replace branches after signing in again',async({page})=>{
+  const started=deferred(),release=deferred();
+  let newSession=false,oldCompleted=0;
+  const auth=await installApi(page,async(route,path)=>{
+    if(path!=='/branches')return false;
+    if(!newSession) {
+      started.resolve();await release.promise;
+      await route.fulfill({json:{...pageData,items:[{branch_id:'1',branch_name:'OLD_BRANCH'}],total:1}});
+      oldCompleted++;return true;
+    }
+    await route.fulfill({json:{...pageData,items:[{branch_id:'2',branch_name:'NEW_BRANCH'}],total:1}});
+    return true;
+  });
+  await page.goto('/');await expectDashboard(page);await started.promise;
+  auth.authenticated=false;
+  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
+  auth.user={...user,branch_ids:['2']};newSession=true;
+  await signInAgain(page);
+  const branch=page.getByLabel('Бөлімше',{exact:true});
+  await expect(branch).toHaveValue('2');
+  release.resolve();await expect.poll(()=>oldCompleted).toBeGreaterThan(0);await settleBrowser(page);
+  await expect(branch).toHaveValue('2');
+  await expect(branch.locator('option')).toHaveText(['NEW_BRANCH']);
 });
 
 for (const change of ['file','schema'] as const) {
@@ -104,7 +133,7 @@ for (const change of ['file','schema'] as const) {
     await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
     await expect(page.locator('tbody')).toContainText('NEW_PREVIEW');
     const oldFinished=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/imports/preview');
-    release.resolve(); await oldFinished;
+    release.resolve(); await oldFinished; await settleBrowser(page);
     await expect(page.locator('tbody')).toContainText('NEW_PREVIEW');
     await expect(page.getByText('OLD_PREVIEW',{exact:true})).toHaveCount(0);
     await page.getByRole('button',{name:'Импорттау',exact:true}).click();

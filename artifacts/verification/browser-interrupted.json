@@ -1,0 +1,15 @@
+{
+    "status":  "interrupted_after_failure_at_user_request",
+    "server":  "Vite production preview",
+    "total_scheduled":  11,
+    "passed_observed":  6,
+    "failed_observed":  1,
+    "remaining_not_completed":  4,
+    "failed_test":  "login -\u003e CSV validation/commit -\u003e sales -\u003e forecast -\u003e procurement -\u003e approval -\u003e export",
+    "failed_duration_console":  "3.2m",
+    "diagnosis":  "Playwright whole-test timeout 180000 ms; trace records forecast wait 119.09 s and procurement wait 25.97 s. Approval/export completed before total UI/screenshot budget expired.",
+    "full_json_report_written":  false,
+    "local_api_worker_web_stopped":  true,
+    "ports_3000_8000_listeners_after_cleanup":  0,
+    "resumed_correction":  "Only the full workflow test timeout increased to 360000 ms; individual job/assertion limits preserved. Final retry uses a fresh isolated SQLite database."
+}

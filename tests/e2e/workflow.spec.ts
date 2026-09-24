@@ -19,6 +19,8 @@ async function ensureForecast(page:Page,headers:Record<string,string>,branch='1'
  return completed.json();
 }
 test('login → CSV validation/commit → sales → forecast → procurement → approval → export',async({page})=>{
+ // Two real worker jobs each allow 120 seconds; include UI and screenshot overhead.
+ test.setTimeout(360000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы'})).toBeVisible();

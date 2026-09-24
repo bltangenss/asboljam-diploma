@@ -1,0 +1,12 @@
+{
+  "recorded_at_utc": "2026-09-24T11:04:59.915711+00:00",
+  "command": "npm.cmd run test:e2e",
+  "status": "environment_blocked",
+  "planned_tests": 11,
+  "executed_tests": 0,
+  "error": "spawn EPERM at child_process.fork / WorkerHost.startRunner",
+  "elevated_retry": "Automatically rejected: granular policy sandbox_approval=false",
+  "related_ui_check": "browser-cua.json",
+  "previous_partial_run": "browser-interrupted.json",
+  "note": "No full-suite PASS is claimed. Existing API, engine, build and research successes were not repeated."
+}

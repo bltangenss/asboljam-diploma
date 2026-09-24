@@ -1,0 +1,53 @@
+{
+  "recorded_at_utc": "2026-09-24T11:04:59.913666+00:00",
+  "status": "passed_for_listed_scope",
+  "method": "Codex in-app browser UI through supported CUA locators, real local FastAPI and separate worker",
+  "environment": "Windows; built Vite preview with --configLoader native; dedicated ignored SQLite database seeded by prepare_e2e.py",
+  "mock_api": false,
+  "checks": {
+    "login": true,
+    "dashboard_real_metrics": true,
+    "invalid_csv_preview_and_disabled_commit": true,
+    "valid_csv_preview_and_transactional_commit": true,
+    "sales_meal_filter_rows": 28,
+    "real_worker_seasonal_forecast": true,
+    "observed_chart_points": 28,
+    "baseline_interval_count": 0,
+    "real_worker_procurement": true,
+    "ingredient_rows": 10,
+    "nan_cells": 0,
+    "empty_approval_reason_disabled": true,
+    "approval_with_reason": true,
+    "approved_status_visible": true,
+    "csv_download_event": true,
+    "audit_contains_decision_reason": true,
+    "recipe_rows": 48,
+    "inventory_rows": 20,
+    "branch_2_context": true,
+    "russian_dashboard_heading": true,
+    "dashboard_360px_no_horizontal_overflow": true,
+    "logout_returns_login": true,
+    "captured_console_error_count": 0
+  },
+  "forecast_id": "59cf4d10fd8d4904af7faaecd1162e13",
+  "plan_id": "075d3b8a0e9d4a839362adaa3df056ac",
+  "procurement": {
+    "budget_kzt": "150000",
+    "cost_kzt": "87513.2",
+    "shortage_ingredients": 0
+  },
+  "limits": [
+    "This is a separate UI workflow check, not the full eleven-test Playwright suite.",
+    "CSV download event and API HTTP 200 were observed; downloaded bytes were not independently inspected in this run.",
+    "Offline/network injection, stale approval race, analyst role and HGB chart were not repeated in this CUA run.",
+    "No shortage acknowledgment checkbox was required by this zero-shortage plan.",
+    "Captured console logs are not a complete browser exception or accessibility audit.",
+    "Viewport screenshot includes the mobile navigation state; no full-page visual regression baseline comparison."
+  ],
+  "cleanup": "Test browser closed; API, worker and preview sessions stopped. Dedicated test database retained ignored.",
+  "cleanup_port_check": {
+    "command": "netstat -ano -p tcp (ports 3000/8000 filtered)",
+    "matching_connections": 0,
+    "exit_code": 0
+  }
+}
