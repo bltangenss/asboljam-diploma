@@ -315,6 +315,8 @@ def create_app(database_url=None):
             changed=db.execute(update(ImportBatch).where(ImportBatch.id==batch_id,ImportBatch.status=='preview').values(status='committed')).rowcount
             if not changed: fail('ALREADY_COMMITTED','Импорт орындалған.',409)
             insert_rows(db,user.organization_id,batch.kind,batch.rows)
+            if batch.kind=='branches':
+                user.branch_ids=sorted(set(user.branch_ids) | {r['branch_id'] for r in batch.rows})
             for branch in {r.get('branch_id') for r in batch.rows}:
                 audit(db,user,'import.committed',batch.id,branch,{'kind':batch.kind,'row_count':sum(1 for r in batch.rows if r.get('branch_id')==branch)})
             db.commit()

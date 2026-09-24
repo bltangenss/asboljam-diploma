@@ -264,5 +264,21 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client_for('warehouse@test.local').get('/api/v1/imports/template/inventory_lots').status_code,200)
         self.assertEqual(self.client_for('analyst@test.local').get('/api/v1/imports/template/recipes').status_code,403)
         self.assertEqual(self.client_for('analyst@test.local').get('/api/v1/imports/template/daily_sales').status_code,200)
+    def test_admin_new_branch_import_grants_only_creator_access(self):
+        c=self.client_for()
+        branch='new_test_branch'
+        csv_text='branch_id,branch_name,data_origin\n'+branch+',New test branch,SYNTHETIC\n'
+        before=set(c.get('/api/v1/session/me').json()['user']['branch_ids'])
+        preview=c.post('/api/v1/imports/preview',json={'kind':'branches','csv_text':csv_text}).json()
+        self.assertTrue(preview['valid'],preview)
+        committed=c.post('/api/v1/imports/'+preview['id']+'/commit')
+        self.assertEqual(committed.status_code,200,committed.text)
+        self.assertEqual(set(c.get('/api/v1/session/me').json()['user']['branch_ids']),before | {branch})
+        self.assertIn(branch,{r['branch_id'] for r in c.get('/api/v1/branches').json()['items']})
+        self.assertEqual(c.get('/api/v1/dashboard?branch_id='+branch).status_code,200)
+        manager=self.client_for('manager@test.local')
+        self.assertNotIn(branch,{r['branch_id'] for r in manager.get('/api/v1/branches').json()['items']})
+        self.assertEqual(manager.get('/api/v1/dashboard?branch_id='+branch).status_code,403)
+        self.assertEqual(self.client_for('foreign@test.local').get('/api/v1/dashboard?branch_id='+branch).status_code,403)
 if __name__=='__main__':
     unittest.main()

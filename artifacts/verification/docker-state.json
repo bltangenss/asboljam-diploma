@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-09-24T08:53:55.247274+00:00",
+  "project": "asboljam-verification",
+  "services": [
+    {
+      "Service": "api",
+      "State": "running",
+      "Health": "healthy",
+      "Image": "asboljam-verification-api",
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 8000,
+          "PublishedPort": 8010,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:ca0adeedded691af5d54bfd946a902693a6253828abf305f55d57d4ea8ea29e4"
+    },
+    {
+      "Service": "postgres",
+      "State": "running",
+      "Health": "healthy",
+      "Image": "postgres:17-alpine",
+      "Publishers": [
+        {
+          "URL": "",
+          "TargetPort": 5432,
+          "PublishedPort": 0,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:aa90e97ee862e558111d34cfb8b2c4bec768c2b039fb791341686928560263b3"
+    },
+    {
+      "Service": "web",
+      "State": "running",
+      "Health": "",
+      "Image": "asboljam-verification-web",
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 80,
+          "PublishedPort": 3010,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:bd22f2429b515e5771476d658fe1429e8d0eda2a8db974052fd4343a37b387b6"
+    },
+    {
+      "Service": "worker",
+      "State": "running",
+      "Health": "",
+      "Image": "asboljam-verification-worker",
+      "Publishers": [
+        {
+          "URL": "",
+          "TargetPort": 8000,
+          "PublishedPort": 0,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:aa0a45632f690ab6a8ac115f6dd16edbe6776b0f3007b12a4fdd44cc862542b9"
+    }
+  ],
+  "http_checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 444,
+      "content_type": "text/html"
+    },
+    {
+      "path": "/dashboard",
+      "status": 200,
+      "bytes": 444,
+      "content_type": "text/html"
+    },
+    {
+      "path": "/api/v1/health",
+      "status": 200,
+      "bytes": 70,
+      "content_type": "application/json"
+    }
+  ],
+  "status": "passed"
+}

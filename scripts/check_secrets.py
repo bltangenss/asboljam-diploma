@@ -1,11 +1,11 @@
-﻿"""Check candidate Git files for credential formats and known local secret values.
+"""Check candidate Git files for credential formats and known local secret values.
 Prints paths and categories only, never matching secret text. Not a complete security audit.
 """
 import argparse,json,re,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def main():
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--staged',action='store_true');args=parser.parse_args()
+ parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--staged',action='store_true');parser.add_argument('--no-report',action='store_true',help='Do not write the report artifact');args=parser.parse_args()
  command=['git','diff','--cached','--name-only','--diff-filter=ACMR','-z'] if args.staged else ['git','ls-files','--cached','--others','--exclude-standard','-z']
  names=subprocess.check_output(command,cwd=ROOT).decode().split('\0');names=[n for n in names if n]
  secrets=[]
@@ -30,6 +30,7 @@ def main():
   for kind,pattern in patterns:
    if re.search(pattern,data):findings.append({'file':name,'category':kind})
  report={'checked_files':len(names),'scope':'staged' if args.staged else 'git-candidates','findings':findings,'limits':'Known local values and common high-confidence credential formats; not a comprehensive secret audit.'}
- out=ROOT/'artifacts/security-scan.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(report,indent=2),encoding='utf-8')
+ if not args.no_report:
+  out=ROOT/'artifacts/security-scan.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(report,indent=2),encoding='utf-8')
  print(json.dumps(report,indent=2));return bool(findings)
 if __name__=='__main__':raise SystemExit(main())

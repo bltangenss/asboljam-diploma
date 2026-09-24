@@ -187,7 +187,7 @@ function AppContent() {
         </>)}
         {apiUnavailable && button(t('Сессияны қайта тексеру', 'Проверить сохранённую сессию'), () => { setApiUnavailable(false); setError(''); session.restore().catch(report); }, busy, true)}
       </> : <>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.branches}>{(branches.length ? branches : user.branch_ids.map(id => ({ branch_id: id, branch_name: `${t("???????", "??????")} ${id}` }))).map(item => <Pressable key={item.branch_id} accessibilityRole="button" accessibilityState={{ selected: item.branch_id === branch }} disabled={busy} style={[styles.chip, item.branch_id === branch && styles.chipActive]} onPress={() => { resetView(); setBranch(item.branch_id); }}><Text style={item.branch_id === branch ? styles.chipActiveText : styles.chipText}>{item.branch_name}</Text></Pressable>)}</ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.branches}>{(branches.length ? branches : user.branch_ids.map(id => ({ branch_id: id, branch_name: `${t("Бөлімше", "Филиал")} ${id}` }))).map(item => <Pressable key={item.branch_id} accessibilityRole="button" accessibilityState={{ selected: item.branch_id === branch }} disabled={busy} style={[styles.chip, item.branch_id === branch && styles.chipActive]} onPress={() => { if (item.branch_id !== branch) { resetView(); setBranch(item.branch_id); } }}><Text style={item.branch_id === branch ? styles.chipActiveText : styles.chipText}>{item.branch_name}</Text></Pressable>)}</ScrollView>
         <View style={styles.titleRow}><Text style={styles.pageTitle}>{t(tabs.find(item => item.id === tab)!.kk, tabs.find(item => item.id === tab)!.ru)}</Text>{tab !== 'more' && button(t('Жаңарту', 'Обновить'), () => { void load(); }, loading || busy || network.isConnected === false, true)}</View>
         {!!loadedAt && <Text style={styles.meta}>{t('Серверден алынды', 'Получено с сервера')}: {loadedAt}{offline ? t(' · ескірген деректер', ' · данные могут устареть') : ''}</Text>}
         {detail && button(t('← Тізімге', '← К списку'), () => { resetView(); }, busy, true)}
@@ -226,7 +226,7 @@ function AppContent() {
         </>}
       </>}
     </ScrollView>
-    {user && <View style={styles.tabs}>{tabs.map(item => <Pressable accessibilityRole="tab" accessibilityState={{ selected: item.id === tab }} key={item.id} onPress={() => { if (!busy) { resetView(); setTab(item.id); } }} style={[styles.tab, item.id === tab && styles.tabActive]}><Text style={[styles.tabMark, item.id === tab && styles.tabTextActive]}>{item.mark}</Text><Text style={[styles.tabText, item.id === tab && styles.tabTextActive]}>{t(item.kk, item.ru)}</Text></Pressable>)}</View>}
+    {user && <View style={styles.tabs}>{tabs.map(item => <Pressable accessibilityRole="tab" accessibilityState={{ selected: item.id === tab }} key={item.id} onPress={() => { if (!busy && (item.id !== tab || detail)) { resetView(); setTab(item.id); } }} style={[styles.tab, item.id === tab && styles.tabActive]}><Text style={[styles.tabMark, item.id === tab && styles.tabTextActive]}>{item.mark}</Text><Text style={[styles.tabText, item.id === tab && styles.tabTextActive]}>{t(item.kk, item.ru)}</Text></Pressable>)}</View>}
   </SafeAreaView>;
 }
 export default function App() { return <SafeAreaProvider><AppContent/></SafeAreaProvider>; }

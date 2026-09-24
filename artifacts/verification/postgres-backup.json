@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-09-24T08:50:19.949688+00:00",
+  "status": "passed",
+  "project": "asboljam-verification",
+  "source_database": "asboljam",
+  "restored_database": "asboljam_restored_5a0580bd8f66",
+  "backup_file": "backups/asboljam_restored_5a0580bd8f66.dump",
+  "backup_bytes": 505217,
+  "backup_sha256": "d5328ed681ec05ff41d97fad0c486067c4911c1522f4b9059efa7dfcaf1f5b0a",
+  "table_counts": {
+    "audit_events": 16,
+    "auth_sessions": 4,
+    "forecasts": 1,
+    "idempotency_keys": 1,
+    "import_batches": 2,
+    "jobs": 2,
+    "login_attempts": 28,
+    "operational_records": 28676,
+    "plans": 1,
+    "refresh_tokens": 0,
+    "schema_migrations": 1,
+    "users": 4
+  },
+  "table_counts_match": true,
+  "password_hashes_match": true,
+  "migration_restored": true
+}

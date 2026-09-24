@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-09-24T08:45:59.584749+00:00",
+  "project": "asboljam-verification",
+  "checks": [
+    {
+      "check": "explicit_seed",
+      "status": "passed"
+    },
+    {
+      "check": "postgresql_dialect_and_seed_counts",
+      "status": "passed"
+    },
+    {
+      "check": "full_api_suite_on_postgresql",
+      "status": "passed"
+    }
+  ],
+  "status": "passed",
+  "postgres_version": "PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+  "api_database_dialect": "postgresql",
+  "operational_row_counts": {
+    "branches": 3,
+    "calendar": 2193,
+    "daily_sales": 26316,
+    "ingredients": 10,
+    "inventory_lots": 60,
+    "meals": 12,
+    "recipes": 48,
+    "supplier_offers": 30,
+    "suppliers": 3
+  },
+  "api_test_database": "asboljam_test_55946cc9e537",
+  "api_test_output": "Container asboljam-verification-api-run-f988ee047994 Creating \n Container asboljam-verification-api-run-f988ee047994 Created \n/usr/local/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n  from starlette.testclient import TestClient as TestClient  # noqa\ntest_approval_idempotency_shortage_and_audit (test_api.ApiTests.test_approval_idempotency_shortage_and_audit) ... ok\ntest_auth_origin_csrf_and_limit (test_api.ApiTests.test_auth_origin_csrf_and_limit) ... ok\ntest_branch_and_organization_isolation (test_api.ApiTests.test_branch_and_organization_isolation) ... ok\ntest_concurrent_approval_creates_single_decision (test_api.ApiTests.test_concurrent_approval_creates_single_decision) ... ok\ntest_concurrent_same_idempotency_key_replays (test_api.ApiTests.test_concurrent_same_idempotency_key_replays) ... ok\ntest_csv_numeric_blank_fk_and_unit_validation (test_api.ApiTests.test_csv_numeric_blank_fk_and_unit_validation) ... ok\ntest_dashboard_warning_counts_follow_branch_snapshot (test_api.ApiTests.test_dashboard_warning_counts_follow_branch_snapshot) ... ok\ntest_empty_purchase_export_retains_shortage_summary (test_api.ApiTests.test_empty_purchase_export_retains_shortage_summary) ... ok\ntest_export_injection_and_generator_exclusion (test_api.ApiTests.test_export_injection_and_generator_exclusion) ... ok\ntest_full_worker_forecast_procurement_and_export (test_api.ApiTests.test_full_worker_forecast_procurement_and_export) ... ok\ntest_import_preview_rechecks_scope_and_duplicates_at_commit (test_api.ApiTests.test_import_preview_rechecks_scope_and_duplicates_at_commit) ... ok\ntest_import_templates_are_canonical_and_role_scoped (test_api.ApiTests.test_import_templates_are_canonical_and_role_scoped) ... ok\ntest_import_transaction_duplicates_and_oracle (test_api.ApiTests.test_import_transaction_duplicates_and_oracle) ... ok\ntest_native_refresh_rotation_and_reuse_revocation (test_api.ApiTests.test_native_refresh_rotation_and_reuse_revocation) ... ok\ntest_openapi_contract_matches (test_api.ApiTests.test_openapi_contract_matches) ... ok\ntest_roles (test_api.ApiTests.test_roles) ... ok\ntest_sales_filter_and_full_filtered_export (test_api.ApiTests.test_sales_filter_and_full_filtered_export) ... ok\ntest_session_logout_revokes_cookie (test_api.ApiTests.test_session_logout_revokes_cookie) ... ok\n\n----------------------------------------------------------------------\nRan 18 tests in 33.274s\n\nOK",
+  "api_test_count": 18,
+  "api_test_elapsed_seconds": 33.274,
+  "api_test_command": "python -X utf8 -m unittest discover -s tests -p test_api.py -v (ASBOLJAM_TEST_DATABASE_URL=fresh PostgreSQL database)",
+  "docker_server_version": "29.8.0",
+  "runtime_versions": {
+    "python": "3.13.15",
+    "fastapi": "0.141.1",
+    "sqlalchemy": "2.0.48",
+    "psycopg": "3.3.3",
+    "numpy": "2.4.2",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.8.0"
+  },
+  "services": [
+    {
+      "Service": "api",
+      "State": "running",
+      "Health": "healthy",
+      "Image": "asboljam-verification-api",
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 8000,
+          "PublishedPort": 8010,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:ca0adeedded691af5d54bfd946a902693a6253828abf305f55d57d4ea8ea29e4"
+    },
+    {
+      "Service": "postgres",
+      "State": "running",
+      "Health": "healthy",
+      "Image": "postgres:17-alpine",
+      "Publishers": [
+        {
+          "URL": "",
+          "TargetPort": 5432,
+          "PublishedPort": 0,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:aa90e97ee862e558111d34cfb8b2c4bec768c2b039fb791341686928560263b3"
+    },
+    {
+      "Service": "web",
+      "State": "running",
+      "Health": "",
+      "Image": "asboljam-verification-web",
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 80,
+          "PublishedPort": 3010,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:a0ec1304c38f33502af2651f082ff4ecf2fabec03b69b234e83fc41fe31220fe"
+    },
+    {
+      "Service": "worker",
+      "State": "running",
+      "Health": "",
+      "Image": "asboljam-verification-worker",
+      "Publishers": [
+        {
+          "URL": "",
+          "TargetPort": 8000,
+          "PublishedPort": 0,
+          "Protocol": "tcp"
+        }
+      ],
+      "image_id": "sha256:aa0a45632f690ab6a8ac115f6dd16edbe6776b0f3007b12a4fdd44cc862542b9"
+    }
+  ],
+  "elapsed_seconds": 85.959
+}

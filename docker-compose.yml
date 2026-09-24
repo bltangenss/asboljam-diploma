@@ -1,0 +1,59 @@
+name: asboljam
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: asboljam
+      POSTGRES_USER: asboljam
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a URL-safe POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asboljam -d asboljam"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+    environment: &backend_environment
+      DATABASE_URL: postgresql+psycopg://asboljam:${POSTGRES_PASSWORD:?Set a URL-safe POSTGRES_PASSWORD in .env}@postgres:5432/asboljam
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-AsBoljam Demo}
+      LOKY_MAX_CPU_COUNT: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  worker:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+    command: ["python", "-m", "apps.worker.main"]
+    environment: *backend_environment
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.web
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres_data:

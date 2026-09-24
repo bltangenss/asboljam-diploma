@@ -1,0 +1,482 @@
+{
+  "schema_version": "1.0",
+  "provenance": {
+    "status": "reconstructed_from_implemented_routes_not_supplied_original",
+    "source": "apps/web/src/App.tsx",
+    "generator": "scripts/generate_contracts.py",
+    "notice": "Route/state inventory is implementation handoff, not a claim every viewport/state has an end-to-end test."
+  },
+  "shared_context": {
+    "locales": [
+      "kk",
+      "ru"
+    ],
+    "default_locale": "kk",
+    "currency": "KZT",
+    "branch_scoped": true,
+    "data_origin": "SYNTHETIC",
+    "scenario_date": "2026-01-01",
+    "last_sales_date": "2025-12-31",
+    "no_silent_mock_fallback": true
+  },
+  "navigation": {
+    "desktop": "fixed sidebar",
+    "mobile": "drawer and bottom bar",
+    "mobile_primary_routes": [
+      "/dashboard",
+      "/forecasts",
+      "/procurement",
+      "/inventory"
+    ],
+    "root_route": "/dashboard",
+    "unknown_route": "read-only settings fallback in current app"
+  },
+  "role_rules": {
+    "approval": [
+      "admin",
+      "manager"
+    ],
+    "forecast_and_procurement": [
+      "admin",
+      "manager",
+      "analyst"
+    ],
+    "reference_import": [
+      "admin"
+    ],
+    "warehouse_import": [
+      "inventory_lots"
+    ],
+    "scope_enforcement": "API enforces role, organization and branch on every request"
+  },
+  "screens": [
+    {
+      "id": "login",
+      "route": "/login",
+      "component": "apps/web/src/App.tsx:Login",
+      "title_kk": "Кіру",
+      "read_roles": [
+        "unauthenticated"
+      ],
+      "api": [
+        "POST /session/login",
+        "GET /session/me"
+      ],
+      "controls_and_data": [
+        "email",
+        "password",
+        "show_password",
+        "locale"
+      ],
+      "states": [
+        "idle",
+        "submitting",
+        "invalid_credentials",
+        "API_error"
+      ]
+    },
+    {
+      "id": "dashboard",
+      "route": "/dashboard",
+      "component": "apps/web/src/Dashboard.tsx:Dashboard",
+      "title_kk": "Шолу",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /dashboard"
+      ],
+      "controls_and_data": [
+        "branch",
+        "historical_as_of",
+        "sales_chart",
+        "latest_plans"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "sales",
+      "route": "/sales",
+      "component": "apps/web/src/DataPages.tsx:Sales",
+      "title_kk": "Сатылым",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /sales",
+        "GET /meals",
+        "GET /exports/daily_sales"
+      ],
+      "controls_and_data": [
+        "date_range",
+        "meal",
+        "pagination",
+        "CSV_export"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "imports",
+      "route": "/imports",
+      "component": "apps/web/src/DataPages.tsx:Imports",
+      "title_kk": "Дерек импорттау",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst",
+        "warehouse"
+      ],
+      "api": [
+        "POST /imports/preview",
+        "POST /imports/{id}/commit"
+      ],
+      "controls_and_data": [
+        "CSV_file",
+        "kind",
+        "preview",
+        "commit"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "validation_errors",
+        "preview_ready",
+        "committed",
+        "duplicate_rejected"
+      ]
+    },
+    {
+      "id": "forecasts",
+      "route": "/forecasts",
+      "component": "apps/web/src/Planning.tsx:Forecasts",
+      "title_kk": "Болжам",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /forecasts",
+        "POST /forecasts",
+        "GET /runs/{id}"
+      ],
+      "controls_and_data": [
+        "model",
+        "one_day_target",
+        "calculate"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "queued",
+        "running",
+        "failed",
+        "succeeded"
+      ]
+    },
+    {
+      "id": "forecast_detail",
+      "route": "/forecasts/:id",
+      "component": "apps/web/src/Planning.tsx:Forecasts",
+      "title_kk": "Болжам нәтижесі",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /forecasts/{id}",
+        "GET /sales"
+      ],
+      "controls_and_data": [
+        "prediction_table",
+        "dated_actual_history_chart",
+        "meal_selector",
+        "one_day_prediction_and_real_quantiles",
+        "metrics",
+        "model_card",
+        "create_procurement"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "baseline_without_intervals",
+        "quantile_prediction"
+      ]
+    },
+    {
+      "id": "procurement",
+      "route": "/procurement",
+      "component": "apps/web/src/Planning.tsx:Procurement",
+      "title_kk": "Сатып алу",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /plans",
+        "GET /forecasts",
+        "POST /procurement",
+        "GET /runs/{id}"
+      ],
+      "controls_and_data": [
+        "forecast",
+        "budget",
+        "point_or_quantile_strategy",
+        "calculate"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "queued",
+        "running",
+        "failed",
+        "succeeded"
+      ]
+    },
+    {
+      "id": "plan_detail",
+      "route": "/procurement/:id",
+      "component": "apps/web/src/Planning.tsx:Procurement",
+      "title_kk": "Сатып алу жоспары",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /plans/{id}",
+        "POST /plans/{id}/approve",
+        "POST /plans/{id}/reject",
+        "GET /plans/{id}/export"
+      ],
+      "controls_and_data": [
+        "requirements",
+        "supplier_lines",
+        "shortage_warning",
+        "version",
+        "decision_reason",
+        "shortage_acknowledgement"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "ready",
+        "approved",
+        "rejected",
+        "shortage",
+        "approval_dialog",
+        "stale_version",
+        "idempotency_conflict"
+      ]
+    },
+    {
+      "id": "inventory",
+      "route": "/inventory",
+      "component": "apps/web/src/DataPages.tsx:Reference",
+      "title_kk": "Қойма",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst",
+        "warehouse"
+      ],
+      "api": [
+        "GET /inventory"
+      ],
+      "controls_and_data": [
+        "snapshot_date",
+        "lot",
+        "expiry",
+        "quantity",
+        "unit"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "expired",
+        "expiring_soon"
+      ]
+    },
+    {
+      "id": "recipes",
+      "route": "/recipes",
+      "component": "apps/web/src/DataPages.tsx:Reference",
+      "title_kk": "Рецепттер",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /recipes"
+      ],
+      "controls_and_data": [
+        "meal",
+        "ingredient",
+        "net_qty_per_portion",
+        "yield_factor",
+        "recipe_version"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "suppliers",
+      "route": "/suppliers",
+      "component": "apps/web/src/DataPages.tsx:Reference",
+      "title_kk": "Жеткізушілер",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /suppliers"
+      ],
+      "controls_and_data": [
+        "pack_qty",
+        "unit_cost_kzt",
+        "min_packs",
+        "max_packs",
+        "lead_time_days"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "reports",
+      "route": "/reports",
+      "component": "apps/web/src/DataPages.tsx:Reports",
+      "title_kk": "Есептер",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /forecasts"
+      ],
+      "controls_and_data": [
+        "forecast_run_list",
+        "link_to_run_metrics"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "settings",
+      "route": "/settings",
+      "component": "apps/web/src/DataPages.tsx:Reference",
+      "title_kk": "Баптаулар",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst",
+        "warehouse"
+      ],
+      "api": [
+        "GET /settings"
+      ],
+      "controls_and_data": [
+        "organization",
+        "locale",
+        "role",
+        "branch_access"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden",
+        "read_only"
+      ]
+    },
+    {
+      "id": "audit",
+      "route": "/audit",
+      "component": "apps/web/src/DataPages.tsx:Reference",
+      "title_kk": "Аудит журналы",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst"
+      ],
+      "api": [
+        "GET /audit"
+      ],
+      "controls_and_data": [
+        "actor",
+        "time",
+        "action",
+        "entity",
+        "reason"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    }
+  ],
+  "known_scope": [
+    "One-day forecasting only",
+    "No actual supplier dispatch",
+    "Settings organization view is read-only",
+    "Forecast chart compares 28 dated actual observations with a separate one-day target; baselines have no fabricated uncertainty interval",
+    "Reports links to stored run metrics; reproducible research CSVs are under artifacts/research"
+  ]
+}

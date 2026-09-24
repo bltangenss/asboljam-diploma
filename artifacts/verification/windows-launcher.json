@@ -1,0 +1,11 @@
+{
+  "api": {
+    "status": 200
+  },
+  "web": {
+    "status": 200
+  },
+  "launcher": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1",
+  "install_flag_executed": false,
+  "startup": "PASS"
+}

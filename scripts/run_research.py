@@ -51,6 +51,11 @@ def run(data_dir: Path, output: Path, branches: list[str] | None = None) -> dict
         path = data_dir / f"{name}.csv"
         with path.open(encoding="utf-8-sig", newline="") as handle:
             loaded[name] = list(csv.DictReader(handle))
+        if not loaded[name] or any(row.get("data_origin") != "SYNTHETIC" for row in loaded[name]):
+            raise ValueError(
+                f"{name}.csv must contain only explicitly SYNTHETIC records. "
+                "REAL, mixed, missing-origin and empty inputs cannot produce synthetic research artifacts."
+            )
         source_hashes[path.name] = {"sha256": file_hash(path), "rows": len(loaded[name])}
     available = sorted({row["branch_id"] for row in loaded["daily_sales"]})
     branches = branches or available

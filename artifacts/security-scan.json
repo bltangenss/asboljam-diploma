@@ -1,0 +1,6 @@
+{
+  "checked_files": 6,
+  "scope": "staged",
+  "findings": [],
+  "limits": "Known local values and common high-confidence credential formats; not a comprehensive secret audit."
+}
