@@ -1,0 +1,23 @@
+{
+  "command": "python -X utf8 -m unittest discover -s tests -p test_package_release.py -v",
+  "status": "passed",
+  "exit_code": 0,
+  "tests": 10,
+  "passed": 10,
+  "test_seconds": 3.052,
+  "scope": "Focused packaging tests only. The full 69-test Python suite was not rerun.",
+  "fixtures": "Fabricated temporary files and mocked read-only Git responses; no Git metadata writes.",
+  "archive_scope": "Temporary fixture archives only; this test run did not create the final project ZIP.",
+  "coverage": [
+    "Default release uses exact committed blobs, not live worktree bytes",
+    "Default mode refuses a dirty tree",
+    "Explicit working-tree snapshot includes untracked source and records source_commit=null",
+    "Snapshot rejects changes to file list or bytes",
+    "Case-insensitive private-directory, database-sidecar and keystore exclusions",
+    "Secret scanning of archived buffers without echoing matching values",
+    "Existing ZIP and SHA256 sidecar are not overwritten",
+    "Committed symlinks and submodules are rejected",
+    "Binary Git blob framing and object identity are checked",
+    "Fixture ZIP CRC and every archived source-file SHA256 are verified"
+  ]
+}
