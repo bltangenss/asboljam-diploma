@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-24T08:53:55.247274+00:00",
+  "timestamp": "2026-09-24T10:01:36.218827+00:00",
   "project": "asboljam-verification",
   "services": [
     {
@@ -15,7 +15,7 @@
           "Protocol": "tcp"
         }
       ],
-      "image_id": "sha256:ca0adeedded691af5d54bfd946a902693a6253828abf305f55d57d4ea8ea29e4"
+      "image_id": "sha256:640d5dbd8e7acfc05deea1ce26dbf8f95756b39a9cd79ee1f4abe5e043c5cf14"
     },
     {
       "Service": "postgres",
@@ -60,7 +60,7 @@
           "Protocol": "tcp"
         }
       ],
-      "image_id": "sha256:aa0a45632f690ab6a8ac115f6dd16edbe6776b0f3007b12a4fdd44cc862542b9"
+      "image_id": "sha256:cbc156f5c7bcf494d0328073b2f05d717f8409ced854fe7877d8a705c995f077"
     }
   ],
   "http_checks": [

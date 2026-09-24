@@ -7,5 +7,10 @@
   },
   "launcher": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1",
   "install_flag_executed": false,
-  "startup": "PASS"
+  "startup": "PASS",
+  "stop": "PASS",
+  "ports_closed": {
+    "3000": true,
+    "8000": true
+  }
 }

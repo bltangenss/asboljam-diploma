@@ -1,0 +1,23 @@
+{
+  "at": "2026-09-24T10:08:07.002852+00:00",
+  "command": "npm run build",
+  "status": "passed",
+  "typescript": "passed",
+  "vite_version": "7.3.6",
+  "modules": 1749,
+  "vite_seconds": 8.19,
+  "files": {
+    "index.html": {
+      "bytes": 444,
+      "sha256": "44e8d5d2d738dd6fd5d4315559479035a4922a4e636dccc16256d2085fe821ed"
+    },
+    "assets/index-CjEd2bK1.js": {
+      "bytes": 267880,
+      "sha256": "13f4661edd6c504fef2ae088934c1a89e2019c6826106eb9fa5344cb03b9f019"
+    },
+    "assets/index-CZBbyk-Y.css": {
+      "bytes": 28979,
+      "sha256": "a3cad09a893cbc1331b218c3aa198700f31b021bebeebe2f5fa796a303c67204"
+    }
+  }
+}

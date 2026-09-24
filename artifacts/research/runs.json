@@ -193,7 +193,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 4.028403,
+        "evaluation_seconds": 5.30582,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -204,7 +204,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 4.355468,
+        "elapsed_seconds": 5.611645,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -407,7 +407,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 4.028403,
+        "evaluation_seconds": 5.30582,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -418,7 +418,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 0.143603,
+        "elapsed_seconds": 0.226811,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -621,7 +621,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 4.028403,
+        "evaluation_seconds": 5.30582,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -632,7 +632,7 @@
         "final_fit_start": "2024-01-29",
         "final_fit_end": "2025-12-31",
         "prediction_raw_crossing_rate": 0.0,
-        "elapsed_seconds": 3.912705,
+        "elapsed_seconds": 4.191172,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -835,7 +835,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.706028,
+        "evaluation_seconds": 5.003796,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -846,7 +846,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 3.860104,
+        "elapsed_seconds": 5.262369,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -1049,7 +1049,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.706028,
+        "evaluation_seconds": 5.003796,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -1060,7 +1060,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 0.114736,
+        "elapsed_seconds": 0.217835,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -1263,7 +1263,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.706028,
+        "evaluation_seconds": 5.003796,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -1274,7 +1274,7 @@
         "final_fit_start": "2024-01-29",
         "final_fit_end": "2025-12-31",
         "prediction_raw_crossing_rate": 0.0,
-        "elapsed_seconds": 3.530099,
+        "elapsed_seconds": 5.241113,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -1477,7 +1477,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.646655,
+        "evaluation_seconds": 4.802827,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -1488,7 +1488,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 3.793159,
+        "elapsed_seconds": 4.972762,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -1691,7 +1691,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.646655,
+        "evaluation_seconds": 4.802827,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -1702,7 +1702,7 @@
         "final_fit_start": null,
         "final_fit_end": null,
         "prediction_raw_crossing_rate": null,
-        "elapsed_seconds": 0.175887,
+        "elapsed_seconds": 0.134545,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -1905,7 +1905,7 @@
         "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
         "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
         "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
-        "evaluation_seconds": 3.646655,
+        "evaluation_seconds": 4.802827,
         "model_parameters": {
           "max_iter": 70,
           "max_leaf_nodes": 15,
@@ -1916,7 +1916,7 @@
         "final_fit_start": "2024-01-29",
         "final_fit_end": "2025-12-31",
         "prediction_raw_crossing_rate": 0.0,
-        "elapsed_seconds": 6.263201,
+        "elapsed_seconds": 3.713644,
         "mode": "LIVE_COMPUTE",
         "hash_fields": [
           "meal_id",
@@ -2180,7 +2180,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.060481,
+        "elapsed_seconds": 0.083717,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -2651,7 +2651,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.37402,
+        "elapsed_seconds": 0.609823,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -3078,7 +3078,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.049824,
+        "elapsed_seconds": 0.100029,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -3339,7 +3339,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.060715,
+        "elapsed_seconds": 0.037972,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -3768,7 +3768,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.810292,
+        "elapsed_seconds": 0.719505,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -4195,7 +4195,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.063841,
+        "elapsed_seconds": 0.103299,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -4456,7 +4456,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.028993,
+        "elapsed_seconds": 0.044574,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -4913,7 +4913,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.606511,
+        "elapsed_seconds": 0.641263,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -5368,7 +5368,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.068256,
+        "elapsed_seconds": 0.108138,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -5795,7 +5795,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.078922,
+        "elapsed_seconds": 0.093034,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -6196,7 +6196,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.057463,
+        "elapsed_seconds": 0.078678,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -6541,7 +6541,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.028137,
+        "elapsed_seconds": 0.024864,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -6802,7 +6802,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.027792,
+        "elapsed_seconds": 0.058156,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -7229,7 +7229,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.050541,
+        "elapsed_seconds": 0.106371,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -7656,7 +7656,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.060649,
+        "elapsed_seconds": 0.070562,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -7917,7 +7917,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.025674,
+        "elapsed_seconds": 0.047535,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -8358,7 +8358,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.044138,
+        "elapsed_seconds": 0.28926,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -8799,7 +8799,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.05266,
+        "elapsed_seconds": 0.086628,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -9060,7 +9060,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.038885,
+        "elapsed_seconds": 0.035409,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -9501,7 +9501,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.069915,
+        "elapsed_seconds": 0.107243,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -9942,7 +9942,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.092448,
+        "elapsed_seconds": 0.130803,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -10383,7 +10383,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.055494,
+        "elapsed_seconds": 0.113438,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -10784,7 +10784,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.059445,
+        "elapsed_seconds": 0.128187,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -11129,7 +11129,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.017877,
+        "elapsed_seconds": 0.047988,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -11390,7 +11390,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.058071,
+        "elapsed_seconds": 0.037101,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -11819,7 +11819,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.68658,
+        "elapsed_seconds": 0.404395,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -12274,7 +12274,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.107753,
+        "elapsed_seconds": 0.097304,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -12535,7 +12535,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.033931,
+        "elapsed_seconds": 0.035165,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -12964,7 +12964,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.261282,
+        "elapsed_seconds": 0.255437,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -13405,7 +13405,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.084385,
+        "elapsed_seconds": 0.063192,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -13666,7 +13666,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.059551,
+        "elapsed_seconds": 0.024858,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -14109,7 +14109,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.494169,
+        "elapsed_seconds": 0.076191,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -14578,7 +14578,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.085894,
+        "elapsed_seconds": 0.039668,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -15019,7 +15019,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.16104,
+        "elapsed_seconds": 0.036203,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -15505,7 +15505,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 1.112268,
+        "elapsed_seconds": 0.304206,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
@@ -15850,7 +15850,7 @@
           "scikit-learn": "1.8.0",
           "threadpoolctl": "3.6.0"
         },
-        "elapsed_seconds": 0.02741,
+        "elapsed_seconds": 0.014237,
         "mode": "LIVE_COMPUTE",
         "snapshot_date": "2026-01-01",
         "capacity_basis": "Usable beginning inventory plus received purchases, before preparation.",
