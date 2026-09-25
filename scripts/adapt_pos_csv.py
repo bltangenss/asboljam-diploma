@@ -121,6 +121,22 @@ def _value(field: str, value: str, mapping: dict) -> str:
 def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
     """Return canonical rows and a non-sensitive report. Invalid input returns no rows."""
     kind, columns, origin = _configuration(mapping)
+    quality = {
+        "rows_seen": 0,
+        "valid_rows": 0,
+        "missing_values": 0,
+        "duplicate_key_rows": 0,
+        "units": [],
+        "distinct_branch_count": 0,
+        "distinct_entity_count": 0,
+        "stockout_rows": 0,
+        "promo_rows": 0,
+        "closed_rows": 0,
+        "reference_check": {
+            "status": "not_run",
+            "reason": "Canonical reference files and organization scope are checked only at application commit.",
+        },
+    }
     report = {
         "adapter_version": "1", "kind": kind, "data_origin": origin,
         "source_sha256": hashlib.sha256(source).hexdigest(),
@@ -131,7 +147,7 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
         "import_performed": False, "foreign_keys_checked": False, "enterprise_compatibility_verified": False,
         "warnings": ["No enterprise connector, source authorization, PII audit, foreign-key or database validation is certified.",
                      "REAL records cannot be uploaded to the current SYNTHETIC-only application importer."],
-        "source_rows": 0, "output_rows": 0, "valid": False, "errors": [],
+        "source_rows": 0, "output_rows": 0, "valid": False, "errors": [], "quality": quality,
     }
     errors = report["errors"]
     if len(source) > MAX_BYTES:
@@ -148,11 +164,15 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
         if len(fields) != len(set(fields)) or set(fields) != set(columns.values()):
             errors.append(_problem(1, "header", "UNMAPPED_MISSING_OR_DUPLICATE_COLUMNS")); return [], report
         rows, seen = [], set()
+        branch_ids, entity_ids = set(), set()
+        units = {"portion"} if kind == "daily_sales" else set()
         for row_number, raw in enumerate(reader, 2):
             report["source_rows"] += 1
+            quality["rows_seen"] += 1
             if report["source_rows"] > MAX_ROWS:
                 errors.append(_problem(row_number, "file", "TOO_MANY_ROWS")); break
             if None in raw or any(value is None for value in raw.values()):
+                quality["missing_values"] += sum(value is None for value in raw.values())
                 errors.append(_problem(row_number, "row", "COLUMN_COUNT_MISMATCH"))
                 if len(errors) >= MAX_ERRORS:
                     errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED")); break
@@ -160,6 +180,8 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
             row, before = {}, len(errors)
             for field in SCHEMAS[kind]:
                 value = origin if field == "data_origin" and field not in columns else raw[columns[field]].strip()
+                if value == "":
+                    quality["missing_values"] += 1
                 try:
                     row[field] = _value(field, value, mapping)
                 except (ValueError, InvalidOperation) as exc:
@@ -171,14 +193,28 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
             if len(errors) == before:
                 key = tuple(row[field] for field in KEYS[kind])
                 if key in seen:
+                    quality["duplicate_key_rows"] += 1
                     errors.append(_problem(row_number, "key", "DUPLICATE_KEY"))
                 seen.add(key)
                 if kind == "daily_sales":
+                    branch_ids.add(row["branch_id"])
+                    entity_ids.add(row["meal_id"])
+                    if row["stockout_flag"] == "1":
+                        quality["stockout_rows"] += 1
+                    if row["promo"] == "1":
+                        quality["promo_rows"] += 1
+                    if row["is_open"] == "0":
+                        quality["closed_rows"] += 1
                     if int(row["units_sold"]) > int(row["available_portions"]):
                         errors.append(_problem(row_number, "units_sold", "SALES_EXCEED_AVAILABLE"))
                     if row["is_open"] == "0" and int(row["units_sold"]):
                         errors.append(_problem(row_number, "is_open", "CLOSED_WITH_SALES"))
+                else:
+                    branch_ids.add(row["branch_id"])
+                    entity_ids.add(row["ingredient_id"])
+                    units.add(row["unit"])
                 if len(errors) == before:
+                    quality["valid_rows"] += 1
                     rows.append(row)
             if len(errors) >= MAX_ERRORS:
                 errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED")); break
@@ -187,8 +223,14 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
     except csv.Error:
         errors.append(_problem(reader.line_num, "file", "INVALID_CSV"))
     if errors:
+        quality["units"] = sorted(units)
+        quality["distinct_branch_count"] = len(branch_ids)
+        quality["distinct_entity_count"] = len(entity_ids)
         return [], report
     report.update(valid=True, output_rows=len(rows))
+    quality["units"] = sorted(units)
+    quality["distinct_branch_count"] = len(branch_ids)
+    quality["distinct_entity_count"] = len(entity_ids)
     dates = [row["date" if kind == "daily_sales" else "snapshot_date"] for row in rows]
     report.update(date_from=min(dates), date_to=max(dates))
     return rows, report

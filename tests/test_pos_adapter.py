@@ -20,9 +20,11 @@ def mapping(kind="daily_sales", origin="REAL"):
 
 
 def sales(**changes):
-    return dict(date="2025-12-31", branch_id="001", meal_id="0009", units_sold="7",
-                available_portions="12", stockout_flag="0", is_open="1", promo="0",
-                price_kzt="1250.10", data_origin="REAL", **changes)
+    row = dict(date="2025-12-31", branch_id="001", meal_id="0009", units_sold="7",
+               available_portions="12", stockout_flag="0", is_open="1", promo="0",
+               price_kzt="1250.10", data_origin="REAL")
+    row.update(changes)
+    return row
 
 
 def stock():
@@ -57,6 +59,43 @@ class PosAdapterTests(unittest.TestCase):
         self.assertFalse(report["foreign_keys_checked"])
         self.assertFalse(report["enterprise_compatibility_verified"])
         self.assertFalse(report["import_performed"])
+
+    def test_dry_run_quality_summary_is_aggregate_and_non_sensitive(self):
+        second = sales(date="2026-01-01", branch_id="002", meal_id="0010",
+                       stockout_flag="1", promo="1")
+        rows, report = adapter.adapt(payload(sales(), second), mapping())
+        self.assertTrue(report["valid"])
+        self.assertEqual(report["date_from"], "2025-12-31")
+        self.assertEqual(report["date_to"], "2026-01-01")
+        self.assertEqual(report["quality"], {
+            "rows_seen": 2,
+            "valid_rows": 2,
+            "missing_values": 0,
+            "duplicate_key_rows": 0,
+            "units": ["portion"],
+            "distinct_branch_count": 2,
+            "distinct_entity_count": 2,
+            "stockout_rows": 1,
+            "promo_rows": 1,
+            "closed_rows": 0,
+            "reference_check": {
+                "status": "not_run",
+                "reason": "Canonical reference files and organization scope are checked only at application commit.",
+            },
+        })
+        self.assertNotIn("001", json.dumps(report))
+        self.assertNotIn("0010", json.dumps(report))
+
+    def test_dry_run_reports_missing_and_duplicate_rows_without_partial_output(self):
+        duplicate = sales()
+        rows, report = adapter.adapt(payload(sales(), duplicate), mapping())
+        self.assertEqual(rows, [])
+        self.assertEqual(report["quality"]["duplicate_key_rows"], 1)
+        missing = sales(price_kzt="")
+        rows, report = adapter.adapt(payload(missing), mapping())
+        self.assertEqual(rows, [])
+        self.assertGreaterEqual(report["quality"]["missing_values"], 1)
+        self.assertEqual(report["quality"]["valid_rows"], 0)
 
     def test_origin_conflict_never_relabels_real_as_synthetic(self):
         rows, report = adapter.adapt(payload(sales()), mapping(origin="SYNTHETIC"))

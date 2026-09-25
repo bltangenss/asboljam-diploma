@@ -71,7 +71,7 @@ npm run dev
 | `tests`, `scripts`, `artifacts` | Проверки, команды воспроизведения и измеренные результаты |
 | `docs`, `templates` | Аудит материалов, решения, журнал прогресса |
 
-План перехода к коммерческому пилоту и последовательные промпты для дальнейшей разработки находятся в [docs/commercial_prompts/README_RU.md](docs/commercial_prompts/README_RU.md). Это план работ, а не заявление о production-ready статусе или подключении реального бизнеса.
+План перехода к коммерческому пилоту и последовательные промпты для дальнейшей разработки находятся в [docs/commercial_prompts/README_RU.md](docs/commercial_prompts/README_RU.md). Договор данных и discovery-чеклист первого пилота — в [docs/commercial/DATA_CONTRACT_RU.md](docs/commercial/DATA_CONTRACT_RU.md) и [docs/commercial/DISCOVERY_CHECKLIST_RU.md](docs/commercial/DISCOVERY_CHECKLIST_RU.md). Это план работ, а не заявление о production-ready статусе или подключении реального бизнеса.
 
 Стек сохраняет React/Vite и custom DB worker. Next.js/Alembic/Redis/Celery не требуются. Операционные записи валидируются и хранятся JSON с ключами/изоляцией; это MVP, не полноценная ERP. Подробнее: [решения](templates/DECISIONS.md), [БД](database/README.md), [аудит источников](docs/SOURCE_REVIEW_RU.md).
 

@@ -1,0 +1,42 @@
+{
+  "stage": "commercial_stage_1_discovery_and_data_contract",
+  "status": "passed",
+  "tests": {
+    "command": "python -X utf8 -m unittest discover -s tests -p test_pos_adapter.py -v",
+    "count": 21,
+    "passed": 21,
+    "failed": 0
+  },
+  "dry_run_fixtures": {
+    "sales": {
+      "command": "python -X utf8 scripts/adapt_pos_csv.py --source examples/pos_adapter/sales.synthetic.csv --mapping examples/pos_adapter/sales.mapping.json",
+      "status": "passed",
+      "rows": 2,
+      "date_from": "2025-12-30",
+      "date_to": "2025-12-31",
+      "origin": "SYNTHETIC",
+      "database_write": false
+    },
+    "inventory": {
+      "command": "python -X utf8 scripts/adapt_pos_csv.py --source examples/pos_adapter/inventory.synthetic.csv --mapping examples/pos_adapter/inventory.mapping.json",
+      "status": "passed",
+      "rows": 2,
+      "date_from": "2026-01-01",
+      "date_to": "2026-01-01",
+      "units": ["L", "kg"],
+      "origin": "SYNTHETIC",
+      "database_write": false
+    }
+  },
+  "changed_scope": [
+    "scripts/adapt_pos_csv.py aggregate quality summary",
+    "tests/test_pos_adapter.py",
+    "docs/commercial/DATA_CONTRACT_RU.md",
+    "docs/commercial/DISCOVERY_CHECKLIST_RU.md",
+    "docs/commercial/POS_MAPPING_PROFILE_RU.md"
+  ],
+  "limitations": [
+    "REAL source authorization, foreign keys, organization scope and application commit are not certified by offline dry-run.",
+    "No customer or enterprise file was used; fixtures are synthetic."
+  ]
+}

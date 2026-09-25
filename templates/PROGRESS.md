@@ -23,6 +23,7 @@
 
 - При текущем возобновлении пользователь установил порог: остановить работу и спросить о продолжении при **10% использованного лимита Codex** (90% остаётся). Перед Android-сборкой расход составлял 2%. Это лимит аккаунта, а не оценка готовности проекта.
 - Создан пакет промптов для коммерческого развития в `docs/commercial_prompts/`: главный контекст и пять этапов от discovery/data contract до пилота и коммерческой приёмки. Это план следующей работы; реальные данные, multi-tenant production rollout и платный пилот ещё не выполнены.
+- Этап 1 коммерческого плана начат локально: добавлены [договор данных](../docs/commercial/DATA_CONTRACT_RU.md), discovery-чеклист, пример POS mapping и безопасная aggregate quality summary в offline dry-run адаптера. Реальный источник, ссылки на справочники и application commit для `REAL` остаются вне текущей границы.
 - После решения пользователя продолжить APK выполнены `scripts/build_android_debug.ps1 -Architecture x86` и `scripts/build_android_debug.ps1 -Architecture arm64-v8a`. [Текущий статус](../artifacts/verification/android-build.json): `passed` для arm64-v8a; APK скопирован в `releases/AsBoljam_Debug_arm64-v8a.apk`. x86-вариант сохранён как `releases/AsBoljam_Debug_x86.apk`.
 - Синхронизация документации после Android APK. Финальный source ZIP остаётся `releases/AsBoljam_Final.zip`; APK не включается в source ZIP.
 
@@ -58,6 +59,8 @@
 | APK integrity/signature | Для обоих APK ZIP CRC PASS, AndroidManifest present, 8 dex files; `apksigner verify --verbose --print-certs` PASS via APK Signature Scheme v2, debug certificate |
 | `python -X utf8 -m unittest discover -s tests -p test_package_release.py -v` | Отдельные 10/10 PASS, 3.052 s; временные fixture-архивы, финальный ZIP не создан; [packaging-tests.json](../artifacts/verification/packaging-tests.json) |
 | Codex in-app browser / CUA с реальным API и отдельным worker | PASS в перечисленном объёме: login → CSV validation/commit → sales → baseline forecast → procurement → approval → audit/download event; recipes/inventory, второй филиал, RU, dashboard 360 px, logout; [browser-cua.json](../artifacts/verification/browser-cua.json) |
+| `python -X utf8 -m unittest discover -s tests -p test_pos_adapter.py -v` | 21/21 PASS после добавления aggregate quality summary; [commercial-stage1.json](../artifacts/verification/commercial-stage1.json) |
+| Offline dry-run sales/inventory fixtures | Оба synthetic fixture PASS, диапазон дат, origin, units и `database_write=false` зафиксированы в [commercial-stage1.json](../artifacts/verification/commercial-stage1.json) |
 | `python scripts/generate_contracts.py` | Manifest/design contracts синхронизированы с фактическим кодом |
 | `python scripts/check_secrets.py` | Последняя проверка 154 candidate files, 0 findings; финальная проверка перед ZIP отдельно |
 
