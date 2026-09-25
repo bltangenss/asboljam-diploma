@@ -22,6 +22,7 @@
 ## IN PROGRESS
 
 - При текущем возобновлении пользователь установил порог: остановить работу и спросить о продолжении при **10% использованного лимита Codex** (90% остаётся). Перед Android-сборкой расход составлял 2%. Это лимит аккаунта, а не оценка готовности проекта.
+- Создан пакет промптов для коммерческого развития в `docs/commercial_prompts/`: главный контекст и пять этапов от discovery/data contract до пилота и коммерческой приёмки. Это план следующей работы; реальные данные, multi-tenant production rollout и платный пилот ещё не выполнены.
 - После решения пользователя продолжить APK выполнены `scripts/build_android_debug.ps1 -Architecture x86` и `scripts/build_android_debug.ps1 -Architecture arm64-v8a`. [Текущий статус](../artifacts/verification/android-build.json): `passed` для arm64-v8a; APK скопирован в `releases/AsBoljam_Debug_arm64-v8a.apk`. x86-вариант сохранён как `releases/AsBoljam_Debug_x86.apk`.
 - Синхронизация документации после Android APK. Финальный source ZIP остаётся `releases/AsBoljam_Final.zip`; APK не включается в source ZIP.
 
