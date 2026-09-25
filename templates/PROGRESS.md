@@ -1,6 +1,6 @@
 # AsBoljam — журнал прогресса
 
-Состояние: 24.09.2026, локальная работа возобновлена по прямому запросу пользователя. Codex Cloud отменён. Проект и Git history сохранены; текущее продолжение начинается с `24d2dde` в `main`, origin — PRIVATE `bltangenss/asboljam-diploma`.
+Состояние: 25.09.2026, локальная работа возобновлена по прямому запросу пользователя. Codex Cloud отменён. Проект и Git history сохранены; текущее продолжение идёт в `main`, origin — PRIVATE `bltangenss/asboljam-diploma`.
 
 ## DONE
 
@@ -17,17 +17,17 @@
 | G — regression/security | Python59, PostgreSQL19 и отдельные packaging10 PASS; реальный CUA workflow PASS в описанном объёме; CLI Playwright 0/11 заблокирован средой |
 | H — Docker/deployment | Linux images и четыре сервиса проверены, 77 HTTP checks и отдельный pg_dump/restore PASS; production rollout не заявлен |
 | I — enterprise adapter | Offline POS CSV mapping и 19 tests готовы; реальные данные/договор источника отсутствуют, importer SYNTHETIC-only |
-| J — native | Expo55 client, typecheck, 13 session tests и Android JS export PASS; debug APK отложен пользователем, APK не создан |
+| J — native | Expo55 client, typecheck, 13 session tests, Android JS export и локальный x86 debug APK PASS; устройство/Store release не проверялись |
 
 ## IN PROGRESS
 
-- При текущем возобновлении пользователь установил порог: остановить работу и спросить о продолжении при **10% использованного лимита Codex** (90% остаётся). Перед началом расход составлял 0%; после проверки состояния — 1%. Это лимит аккаунта, а не оценка готовности проекта.
-- Предыдущая длительная Android-попытка завершилась с кодом `1073807364` (`0x40010004`) без APK; отчёт сохранён в `artifacts/verification/android-build-interrupted.json`. SDK36, NDK27.1 и CMake3.22.1 уже находятся в кэше. Повторный запуск дошёл до `configureCMakeDebug[x86]` и остановлен по прямому решению пользователя; мобильное приложение оставлено на потом. [Текущий статус](../artifacts/verification/android-build.json): `deferred_by_user`, APK отсутствует.
-- Синхронизация документации и подготовка проверяемого ZIP. Финальный `releases/AsBoljam_Final.zip` создаётся после финального commit из чистого Git checkout; секреты не включаются.
+- При текущем возобновлении пользователь установил порог: остановить работу и спросить о продолжении при **10% использованного лимита Codex** (90% остаётся). Перед Android-сборкой расход составлял 2%. Это лимит аккаунта, а не оценка готовности проекта.
+- После решения пользователя продолжить APK выполнен `powershell -NoProfile -File scripts/build_android_debug.ps1 -JavaHome 'C:\Program Files\Java\jdk-21' -AndroidSdk '.cache/android-sdk' -Architecture x86`. [Текущий статус](../artifacts/verification/android-build.json): `passed`; создан debug development APK `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`, скопирован в `releases/AsBoljam_Debug_x86.apk`.
+- Синхронизация документации после Android APK. Финальный source ZIP остаётся `releases/AsBoljam_Final.zip`; APK не включается в source ZIP.
 
 ## TODO
 
-Выполнить финальную проверку секретов, создать ZIP и проверить release manifest/CRC/SHA256. Сделать commit и обычный push. Повторить полный Playwright suite после устранения запрета запуска его subprocess. Android debug APK возобновлять только по новому решению пользователя. Не повторять уже прошедшие тяжёлые проверки без изменений соответствующего кода.
+Сделать commit и обычный push обновлённого Android-отчёта. Повторить полный Playwright suite после устранения запрета запуска его subprocess. При необходимости собрать 64-bit `x86_64`/`arm64-v8a` APK отдельно; текущий APK — локальный debug development build под `x86`. Не повторять уже прошедшие тяжёлые проверки без изменений соответствующего кода.
 
 Упаковщик по умолчанию берёт точные blobs чистого Git checkout. Явный `--working-tree` проверяет снимок tracked/untracked nonignored файлов и записывает `source_commit: null`, `base_commit: HEAD`, `includes_uncommitted_changes: true`; он не создаёт commit и не доказывает push. Фактические количество файлов и SHA256 финального архива фиксируются выводом упаковщика и sidecar после финального commit.
 
@@ -52,6 +52,8 @@
 | `python scripts/run_research.py` | 9 forecasts/36 plans, 35.085184 s, все constraints_valid; код/данные SHA сохранены |
 | Mobile `npm run typecheck`, `npm test` | PASS, 13/13, 455.844 ms; [mobile-source.json](../artifacts/verification/mobile-source.json) |
 | Mobile `npm run export:android` | Metro/Hermes PASS, 588 modules, 20.831 s; это JS export, не APK |
+| `scripts/build_android_debug.ps1 -Architecture x86` | PASS, Gradle `:app:assembleDebug` за 4m04s, APK 60911179 bytes, SHA256 `73a0e4c3a56fe7d2c95ea830771f8c4b4f9dc820502a4953f404d4af220e82b2`; [android-build.json](../artifacts/verification/android-build.json) |
+| APK integrity/signature | ZIP CRC PASS, ABI `x86`, AndroidManifest present, 8 dex files; `apksigner verify --verbose --print-certs` PASS via APK Signature Scheme v2, debug certificate |
 | `python -X utf8 -m unittest discover -s tests -p test_package_release.py -v` | Отдельные 10/10 PASS, 3.052 s; временные fixture-архивы, финальный ZIP не создан; [packaging-tests.json](../artifacts/verification/packaging-tests.json) |
 | Codex in-app browser / CUA с реальным API и отдельным worker | PASS в перечисленном объёме: login → CSV validation/commit → sales → baseline forecast → procurement → approval → audit/download event; recipes/inventory, второй филиал, RU, dashboard 360 px, logout; [browser-cua.json](../artifacts/verification/browser-cua.json) |
 | `python scripts/generate_contracts.py` | Manifest/design contracts синхронизированы с фактическим кодом |
@@ -63,7 +65,7 @@ CUA использовал собранный Vite preview с `--configLoader na
 
 ## NOT TESTED
 
-Полный текущий Playwright suite не выполнен из-за ограничения среды. В CUA не повторялись offline/network injection, stale approval race, analyst role и HGB chart; при нулевом дефиците не требовался deficit acknowledgement. Наблюдались download event и HTTP 200, но скачанные CSV bytes отдельно не проверялись. Снимок dashboard 360 px не является полным visual regression или accessibility audit. APK installation/Android/iOS device/OS SecureStore, IPA/release signing/Store publishing, production TLS/load/SLA/monitoring и независимый security audit не проверены. Cloud setup/verify именно в Codex Cloud не запускались; Cloud отменён. Windows launcher install branch и Linux desktop launchers целиком не проверялись. Production PostgreSQL restore отдельно от выполненного локального Docker restore не заявляется.
+Полный текущий Playwright suite не выполнен из-за ограничения среды. В CUA не повторялись offline/network injection, stale approval race, analyst role и HGB chart; при нулевом дефиците не требовался deficit acknowledgement. Наблюдались download event и HTTP 200, но скачанные CSV bytes отдельно не проверялись. Снимок dashboard 360 px не является полным visual regression или accessibility audit. APK installation на устройство, Android/iOS device runtime, OS SecureStore, IPA/release signing/Store publishing, production TLS/load/SLA/monitoring и независимый security audit не проверены. `adb devices` не показал подключённых устройств. Cloud setup/verify именно в Codex Cloud не запускались; Cloud отменён. Windows launcher install branch и Linux desktop launchers целиком не проверялись. Production PostgreSQL restore отдельно от выполненного локального Docker restore не заявляется.
 
 ## История последней остановки и возобновления
 
