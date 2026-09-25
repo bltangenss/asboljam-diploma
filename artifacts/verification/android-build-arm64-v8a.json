@@ -1,0 +1,37 @@
+{
+    "started_at_utc":  "2026-09-25T09:51:23.5672002Z",
+    "status":  "passed",
+    "architecture":  "arm64-v8a",
+    "variant":  "debug development client; requires Metro for app JavaScript",
+    "device_tested":  false,
+    "gradle_init_script":  "scripts/android-gradle.init.gradle",
+    "foojay_resolver_override":  "1.0.0 for pre-1.0 requests; Gradle 9 compatibility",
+    "java_major":  21,
+    "free_disk_gib_before":  50.56,
+    "phase":  "apk_created",
+    "prebuild_exit_code":  0,
+    "gradle_exit_code":  0,
+    "apk":  "apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk",
+    "release_copy":  "releases/AsBoljam_Debug_arm64-v8a.apk",
+    "bytes":  59830847,
+    "sha256":  "fd9e925e090e05e2285351c02e86564bc2aa5b23bde47887af27b51e85f0f82d",
+    "release_copy_sha256":  "fd9e925e090e05e2285351c02e86564bc2aa5b23bde47887af27b51e85f0f82d",
+    "apk_abis":  [
+                     "arm64-v8a"
+                 ],
+    "zip_crc_check":  "passed",
+    "android_manifest_present":  true,
+    "dex_file_count":  8,
+    "entry_count":  1273,
+    "signature_check":  {
+                            "tool":  "apksigner verify --verbose --print-certs",
+                            "status":  "passed",
+                            "v2_scheme":  true,
+                            "certificate":  "Android Debug",
+                            "certificate_sha256":  "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+                        },
+    "adb_devices":  [],
+    "device_note":  "No Android device or emulator was attached during verification; install/runtime behavior remains untested.",
+    "finished_at_utc":  "2026-09-25T09:56:43.2246783Z",
+    "elapsed_seconds":  319.657
+}

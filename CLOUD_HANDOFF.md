@@ -35,7 +35,7 @@ Next.js, Tailwind, Alembic, Redis и Celery не используются. Ра�
 - Версионированные решения менеджера, явное подтверждение дефицита, идемпотентность, конкурентное утверждение, аудит, экспорт потребностей и строк закупки.
 - SQLite online backup/restore с контрольной суммой и проверкой целостности; воспроизводимый исследовательский скрипт.
 - Компонент `ForecastChart.tsx`: выбор блюда, 28 датированных фактических продаж, отдельная точка следующего дня и только реальные квантильные интервалы.
-- Исходники native-клиента, SecureStore и проверки сессий; локальный Android x86 debug development APK собран. Это не подписанный release APK/IPA и не проверка устройства.
+- Исходники native-клиента, SecureStore и проверки сессий; локальные Android x86 и arm64-v8a debug development APK собраны. Это не подписанный release APK/IPA и не проверка устройства.
 
 ## 5. Что только специфицировано или ещё отсутствует
 
@@ -50,7 +50,7 @@ Next.js, Tailwind, Alembic, Redis и Celery не используются. Ра�
 - Внешний HTTP через nginx и отдельный worker: 77 проверок PASS. Это отдельное свидетельство от проверки фактического PostgreSQL dialect.
 - pg_dump/pg_restore: восстановление в новую БД PASS; совпали количества всех таблиц, password hashes и marker миграции. Полный хеш содержимого всех таблиц не сравнивался.
 - Linux Docker images построены; проверены API/PostgreSQL health, web/worker и HTTP 200 для SPA fallback/API proxy. После проверки контейнеры остановлены без удаления volumes.
-- Web TypeScript/Vite build PASS: 1749 modules, 8.19 s. Mobile typecheck и 13 session tests PASS; Metro/Hermes Android JS export PASS (588 modules, 20.831 s). После решения пользователя продолжить APK собран Android x86 debug development APK: 60911179 bytes, SHA256 `73a0e4c3a56fe7d2c95ea830771f8c4b4f9dc820502a4953f404d4af220e82b2`.
+- Web TypeScript/Vite build PASS: 1749 modules, 8.19 s. Mobile typecheck и 13 session tests PASS; Metro/Hermes Android JS export PASS (588 modules, 20.831 s). После решения пользователя продолжить APK собраны Android debug development APK: x86 — 60911179 bytes, SHA256 `73a0e4c3a56fe7d2c95ea830771f8c4b4f9dc820502a4953f404d4af220e82b2`; arm64-v8a — 59830847 bytes, SHA256 `fd9e925e090e05e2285351c02e86564bc2aa5b23bde47887af27b51e85f0f82d`.
 - Research: 9 прогнозов и 36 закупочных сценариев, 35.085184 s, сохранены provenance и SHA256.
 - Windows start/stop реально выполнены: API/web 200, после остановки порты закрыты. Ветка `-Install` launcher отдельно не запускалась; зависимости устанавливались самостоятельными командами.
 - После возобновления: отдельные 10/10 packaging tests PASS, 3.052 s; общий Python suite из 69 тестов повторно не запускался. Проверены временные fixture-архивы, финальный ZIP не создан. [Отчёт](artifacts/verification/packaging-tests.json).
@@ -65,9 +65,9 @@ Next.js, Tailwind, Alembic, Redis и Celery не используются. Ра�
 
 CUA workflow имеет ограниченный объём: скачивание подтверждено download event и HTTP 200, но bytes отдельно не проверялись; offline injection, stale approval race, analyst role и HGB chart не повторялись. В рассчитанном плане нет дефицита, поэтому отдельный checkbox подтверждения дефицита не требовался. Нет полного visual regression/accessibility audit. После CUA проверки её browser/API/worker/preview остановлены.
 
-Первая Android debug build после успешного Expo prebuild завершилась ошибкой foojay plugin `JvmVendorSpec.IBM_SEMERU` на JDK21/Gradle9; [исходный результат](artifacts/verification/android-build-initial-failed.json) сохранён. Resolver 1.0.0 устранил эту ошибку; следующая попытка дошла до CMake и ранее была остановлена пользователем. 25.09.2026 build возобновлён: `scripts/build_android_debug.ps1 -Architecture x86` завершился PASS, Gradle `:app:assembleDebug` выполнился за 4m04s. [android-build.json](artifacts/verification/android-build.json) фиксирует `passed`; APK находится в `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`, копия для передачи — `releases/AsBoljam_Debug_x86.apk`. Устройство не проверено.
+Первая Android debug build после успешного Expo prebuild завершилась ошибкой foojay plugin `JvmVendorSpec.IBM_SEMERU` на JDK21/Gradle9; [исходный результат](artifacts/verification/android-build-initial-failed.json) сохранён. Resolver 1.0.0 устранил эту ошибку; следующая попытка дошла до CMake и ранее была остановлена пользователем. 25.09.2026 build возобновлён: `scripts/build_android_debug.ps1 -Architecture x86` завершился PASS за 4m04s, затем `scripts/build_android_debug.ps1 -Architecture arm64-v8a` завершился PASS за 4m54s. [android-build.json](artifacts/verification/android-build.json) фиксирует актуальный arm64-v8a result; x86 сохранён в [android-build-x86.json](artifacts/verification/android-build-x86.json). Копии для передачи: `releases/AsBoljam_Debug_arm64-v8a.apk` и `releases/AsBoljam_Debug_x86.apk`. Устройство не проверено.
 
-Codex Cloud не запускался и теперь отменён пользователем. Android device runtime, 64-bit/release APK, production TLS/load/SLA и реальные данные предприятия требуют собственных результатов; их нельзя выводить из Python tests, Compose configuration, Metro export или x86 debug APK.
+Codex Cloud не запускался и теперь отменён пользователем. Android device runtime, release APK, production TLS/load/SLA и реальные данные предприятия требуют собственных результатов; их нельзя выводить из Python tests, Compose configuration, Metro export или debug APK.
 ## 8. Как запустить frontend
 
 Из корня, Node.js 24:
@@ -143,7 +143,7 @@ npm test
 
 ## 14. Как выполнить build
 
-Web: `npm run build`, результат `dist/web`, preview: `npm run preview`. Native TypeScript check не создаёт APK/IPA. Локальный debug APK собирается командой `powershell -NoProfile -File scripts/build_android_debug.ps1 -JavaHome 'C:\Program Files\Java\jdk-21' -AndroidSdk '.cache/android-sdk' -Architecture x86`; результат development build требует Metro для JavaScript. Android device или macOS/Xcode, release signing и Store publication проверяются отдельно. Docker image build: `docker compose build` после подготовки окружения. Нельзя объявлять native/cloud deployment по успешному web build.
+Web: `npm run build`, результат `dist/web`, preview: `npm run preview`. Native TypeScript check не создаёт APK/IPA. Локальный debug APK собирается командой `powershell -NoProfile -File scripts/build_android_debug.ps1 -JavaHome 'C:\Program Files\Java\jdk-21' -AndroidSdk '.cache/android-sdk' -Architecture arm64-v8a`; для x86-эмулятора заменить architecture на `x86`. Результат development build требует Metro для JavaScript. Android device или macOS/Xcode, release signing и Store publication проверяются отдельно. Docker image build: `docker compose build` после подготовки окружения. Нельзя объявлять native/cloud deployment по успешному web build.
 
 ## 15. Demo datasets
 
@@ -170,7 +170,7 @@ Web: `npm run build`, результат `dist/web`, preview: `npm run preview`.
 
 ## 19. Следующий этап разработки и статус Cloud
 
-Пользователь отменил Codex Cloud и возобновил полностью локальную разработку. Продолжать существующий PRIVATE repository `bltangenss/asboljam-diploma`, branch `main`; актуальный список выполненного и оставшегося — [PROGRESS](templates/PROGRESS.md). Основной CUA workflow уже проверен; полный Playwright suite требует снятия ограничения на subprocess. Android x86 debug APK собран; следующий native шаг — устройство или отдельная 64-bit/release сборка, если потребуется. Не повторять успешные тяжёлые проверки без связанных изменений.
+Пользователь отменил Codex Cloud и возобновил полностью локальную разработку. Продолжать существующий PRIVATE repository `bltangenss/asboljam-diploma`, branch `main`; актуальный список выполненного и оставшегося — [PROGRESS](templates/PROGRESS.md). Основной CUA workflow уже проверен; полный Playwright suite требует снятия ограничения на subprocess. Android x86 и arm64-v8a debug APK собраны; следующий native шаг — установка на устройство/эмулятор или отдельная release-сборка, если потребуется. Не повторять успешные тяжёлые проверки без связанных изменений.
 
 Финальный `releases/AsBoljam_Final.zip` создаётся после финального commit из чистого Git checkout. `python scripts/package_release.py` по умолчанию требует чистый checkout и упаковывает точные committed blobs. Явный `--working-tree` проверяет снимок tracked/untracked nonignored файлов и фиксирует `source_commit: null`, `base_commit: HEAD`, `includes_uncommitted_changes: true`; это не commit/push. Оба режима проверяют CRC и SHA256 исходных файлов после записи, исключают секреты/БД/dependencies/caches и не перезаписывают существующие ZIP/sidecar. Фактические число файлов и SHA256 фиксируются выводом упаковщика и sidecar.
 Cloud task не создан: штатный CLI при обращении к этому репозиторию вернул `environment_repo_access_failed`. Поскольку Cloud отменён, это не блокирует локальную разработку и не требует авторизации пользователя сейчас.
