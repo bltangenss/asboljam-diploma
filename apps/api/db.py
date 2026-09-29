@@ -75,6 +75,58 @@ class ImportBatch(Base):
     errors: Mapped[list] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(32), default='preview')
     created_at: Mapped[str] = mapped_column(String(64), default=now)
+class ImportEvidence(Base):
+    __tablename__ = 'import_evidence'
+    batch_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), index=True)
+    actor_id: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32))
+    contract_version: Mapped[str] = mapped_column(String(32), default='app-import-v1', server_default='app-import-v1')
+    source: Mapped[dict] = mapped_column(JSON)
+    received_text_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    canonical_rows_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    summary: Mapped[dict] = mapped_column(JSON)
+    expected_state: Mapped[dict] = mapped_column(JSON)
+    mode: Mapped[str] = mapped_column(String(16), default='append', server_default='append')
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    corrects_batch_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    committed_at: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    receipt: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    __table_args__ = (CheckConstraint("mode IN ('append', 'correction')", name='ck_import_evidence_mode'),)
+class RecordRevision(Base):
+    __tablename__ = 'record_revisions'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32))
+    natural_key: Mapped[str] = mapped_column(String(255))
+    branch_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    record_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    before_data: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    after_data: Mapped[dict] = mapped_column(JSON)
+    before_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    after_sha256: Mapped[str] = mapped_column(String(64))
+    batch_id: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint('revision >= 1', name='ck_record_revision_positive'),
+        UniqueConstraint('organization_id', 'kind', 'natural_key', 'revision', name='uq_record_revision'),
+        Index('ix_record_revision_scope', 'organization_id', 'kind', 'branch_id'),
+        Index('ix_record_revision_batch', 'organization_id', 'batch_id'),
+    )
+class ImportReceipt(Base):
+    __tablename__ = 'import_receipts'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    key: Mapped[str] = mapped_column(String(128))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    batch_id: Mapped[str] = mapped_column(String(64))
+    response: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_import_receipt_key'),)
 class Job(Base):
     __tablename__ = 'jobs'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

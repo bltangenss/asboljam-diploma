@@ -15,7 +15,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
 
 from apps.api.db import Base, Organization, make_engine, migrate
-from apps.api.migrations import LEGACY_TABLE_NAMES, MigrationError, _initial_schema
+from apps.api.migrations import IMPORT_TABLE_NAMES, LEGACY_TABLE_NAMES, VERSIONS, MigrationError, _initial_schema
 from database_fixture import isolated_database_url
 from scripts.backup_db import copy_database
 
@@ -71,12 +71,12 @@ class TenantMigrationTests(unittest.TestCase):
                     connection.execute(Base.metadata.tables[name].insert(), rows)
         self.assertNotIn('organizations', inspect(self.engine).get_table_names())
 
-    def test_fresh_database_applies_both_versions_without_inventing_a_tenant(self):
-        self.assertEqual(migrate(self.engine), ('0001', '0002'))
-        self.assertEqual(self.versions(), ['0001', '0002'])
+    def test_fresh_database_applies_current_versions_without_inventing_a_tenant(self):
+        self.assertEqual(migrate(self.engine), VERSIONS)
+        self.assertEqual(self.versions(), list(VERSIONS))
         self.assertEqual(self.organizations(), [])
         self.assertEqual(set(inspect(self.engine).get_table_names()),
-                         set(LEGACY_TABLE_NAMES) | {'organizations', 'schema_migrations'})
+                         set(LEGACY_TABLE_NAMES) | set(IMPORT_TABLE_NAMES) | {'organizations', 'schema_migrations'})
 
     def test_0001_table_allowlist_excludes_new_models(self):
         self.legacy_schema(populated=False)
@@ -88,9 +88,9 @@ class TenantMigrationTests(unittest.TestCase):
         self.legacy_schema()
         before = self.legacy_snapshot()
         self.assertTrue(all(before[name] for name in LEGACY_TABLE_NAMES))
-        self.assertEqual(migrate(self.engine), ('0002',))
+        self.assertEqual(migrate(self.engine), VERSIONS[1:])
         self.assertEqual(self.legacy_snapshot(), before)
-        self.assertEqual(self.versions(), ['0001', '0002'])
+        self.assertEqual(self.versions(), list(VERSIONS))
         rows = {row['id']: row for row in self.organizations()}
         self.assertEqual(set(rows), {'demo', 'users-only', 'records-only', 'imports-only',
                                     'jobs-only', 'forecasts-only', 'plans-only', 'audit-only', 'idempotency-only'})
@@ -132,14 +132,14 @@ class TenantMigrationTests(unittest.TestCase):
         self.assertEqual(self.versions(), ['0001'])
         self.assertNotIn('organizations', inspect(self.engine).get_table_names())
         self.assertEqual(self.legacy_snapshot(), before)
-        self.assertEqual(migrate(self.engine), ('0002',))
+        self.assertEqual(migrate(self.engine), VERSIONS[1:])
 
     def test_fresh_failure_rolls_back_even_initial_ddl(self):
         with patch('apps.api.migrations._backfill_organizations', side_effect=RuntimeError('Simulated failure')):
             with self.assertRaises(RuntimeError):
                 migrate(self.engine)
         self.assertEqual(inspect(self.engine).get_table_names(), [])
-        self.assertEqual(migrate(self.engine), ('0001', '0002'))
+        self.assertEqual(migrate(self.engine), VERSIONS)
 
     def test_future_version_refused_without_modifying_legacy_database(self):
         self.legacy_schema()
@@ -184,9 +184,9 @@ class TenantMigrationTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=3) as pool:
             futures = [pool.submit(start) for _ in range(3)]
             outcomes = [future.result(timeout=20) for future in futures]
-        self.assertEqual(outcomes.count(('0002',)), 1)
+        self.assertEqual(outcomes.count(VERSIONS[1:]), 1)
         self.assertEqual(outcomes.count(()), 2)
-        self.assertEqual(self.versions(), ['0001', '0002'])
+        self.assertEqual(self.versions(), list(VERSIONS))
         self.assertEqual(self.legacy_snapshot(), before)
         self.assertEqual(len(self.organizations()), 9)
 
@@ -205,9 +205,9 @@ class TenantMigrationTests(unittest.TestCase):
             backup = copy_database(sqlite_path, backup_path)
             self.assertEqual(backup['integrity_check'], 'ok')
             self.assertEqual(backup['foreign_key_check'], 'ok')
-            self.assertEqual(migrate(sqlite_engine), ('0002',))
+            self.assertEqual(migrate(sqlite_engine), VERSIONS[1:])
             self.assertEqual(self.legacy_snapshot(), before)
-            self.assertEqual(self.versions(), ['0001', '0002'])
+            self.assertEqual(self.versions(), list(VERSIONS))
 
             restore_path = Path(self.temp.name) / 'restored.sqlite'
             restored = copy_database(backup_path, restore_path, 'restore')
@@ -218,7 +218,7 @@ class TenantMigrationTests(unittest.TestCase):
             self.assertEqual(self.versions(), ['0001'])
             self.assertNotIn('organizations', inspect(restored_engine).get_table_names())
             self.assertEqual(self.legacy_snapshot(), before)
-            self.assertEqual(migrate(restored_engine), ('0002',))
+            self.assertEqual(migrate(restored_engine), VERSIONS[1:])
             self.assertEqual(self.legacy_snapshot(), before)
             self.assertEqual(len(self.organizations()), 9)
         finally:

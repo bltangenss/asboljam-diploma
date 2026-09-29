@@ -1,5 +1,6 @@
 """Durable database job worker. Run separately: python -m apps.worker.main."""
 import argparse
+from copy import deepcopy
 import hashlib
 import json
 import time
@@ -50,6 +51,12 @@ def access_error(db, job, actor):
 
 def snapshot_error(job):
     """The API builds immutable scoped snapshots; reject mismatched branch/origin."""
+    lineage=job.snapshot.get('input_lineage')
+    if lineage is not None:
+        if not isinstance(lineage,dict):
+            return 'JOB_INPUT_INVALID'
+        if lineage.get('organization_id')!=job.organization_id:
+            return 'JOB_SCOPE_INVALID'
     kinds = ('sales', 'meals') if job.kind == 'forecast' else (
         'ingredients', 'recipes', 'inventory_lots', 'supplier_offers', 'suppliers')
     for kind in kinds:
@@ -148,6 +155,9 @@ def run_once(factory):
         result['input_snapshot_sha256'] = hashlib.sha256(
             json.dumps(snapshot, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         result['data_origin'] = 'SYNTHETIC'
+        # Copy the enqueue-time lineage, even if a correction landed during compute.
+        # Freshness is derived when reading/approving, never relabelled at publication.
+        result['input_lineage'] = deepcopy(snapshot.get('input_lineage'))
         finish(factory, job_id, claim_time, result=result)
     except Exception as exc:
         code = 'JOB_INPUT_INVALID' if isinstance(exc, ValueError) else 'JOB_CALCULATION_FAILED'

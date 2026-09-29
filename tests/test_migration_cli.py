@@ -44,7 +44,7 @@ class MigrationCliTests(unittest.TestCase):
             'ALLOWED_ORIGINS': 'https://app.example.org', 'COOKIE_SECURE': 'true',
         })
         self.assertEqual(code, 0)
-        self.assertIn('0001 and 0002', output)
+        self.assertIn('0001, 0002, 0003', output)
         self.assertNotIn(url, output)
         make.assert_called_once_with(url)
         operation.assert_called_once_with(engine)

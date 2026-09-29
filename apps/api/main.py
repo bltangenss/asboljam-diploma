@@ -18,10 +18,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import object_session
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
 from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
+from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
+from .lineage import capture_lineage, input_freshness, input_provenance
 from .security import password_hash, token_hash, verify_password
 from .tenants import organization_active, organization_json
 
@@ -44,9 +47,17 @@ class Refresh(StrictModel):
 class PasswordChange(StrictModel):
     current_password: str = Field(min_length=1, max_length=1024)
     new_password: str = Field(min_length=12, max_length=1024)
+class ImportSource(StrictModel):
+    source_id: str = Field(default='manual_csv', pattern=r'^[A-Za-z0-9_.:-]{1,64}$')
+    mapping_version: str = Field(default='canonical-v1', pattern=r'^[A-Za-z0-9_.:-]{1,64}$')
+    declared_original_sha256: str | None = Field(default=None, pattern=r'^[a-fA-F0-9]{64}$')
 class ImportInput(StrictModel):
     kind: str = Field(max_length=32)
     csv_text: str
+    mode: Literal['append','correction'] = 'append'
+    reason: str | None = Field(default=None, max_length=1000)
+    corrects_batch_id: str | None = Field(default=None, pattern=r'^[A-Za-z0-9_-]{1,64}$')
+    source: ImportSource | None = None
 class ForecastInput(StrictModel):
     branch_id: str
     origin: date = date(2025,12,31)
@@ -105,10 +116,18 @@ class SettingsResponse(BaseModel):
 
 def user_json(user):
     return {key: getattr(user,key) for key in ('id','email','role','organization_id','branch_ids','active')}
-def plan_json(plan):
-    return {**plan.result, **META, 'id':plan.id,'run_id':plan.id,'branch_id':plan.branch_id,'forecast_id':plan.forecast_id,'version':plan.version,'status':plan.status,'created_at':plan.created_at}
-def forecast_json(forecast):
-    return {**forecast.result, **META, 'id':forecast.id,'run_id':forecast.id,'branch_id':forecast.branch_id,'created_at':forecast.created_at}
+def plan_json(plan, freshness_cache=None):
+    lineage=plan.result.get('input_lineage')
+    result={key:value for key,value in plan.result.items() if key!='input_lineage'}
+    return {**result, **META, 'id':plan.id,'run_id':plan.id,'branch_id':plan.branch_id,'forecast_id':plan.forecast_id,'version':plan.version,'status':plan.status,'created_at':plan.created_at,
+            'input_freshness':input_freshness(object_session(plan),plan.organization_id,lineage,state_cache=freshness_cache),
+            'input_provenance':input_provenance(plan.organization_id,lineage)}
+def forecast_json(forecast, freshness_cache=None):
+    lineage=forecast.result.get('input_lineage')
+    result={key:value for key,value in forecast.result.items() if key!='input_lineage'}
+    return {**result, **META, 'id':forecast.id,'run_id':forecast.id,'branch_id':forecast.branch_id,'created_at':forecast.created_at,
+            'input_freshness':input_freshness(object_session(forecast),forecast.organization_id,lineage,state_cache=freshness_cache),
+            'input_provenance':input_provenance(forecast.organization_id,lineage)}
 
 def create_app(database_url=None):
     runtime_settings = load_settings(database_url)
@@ -123,6 +142,9 @@ def create_app(database_url=None):
     secure = runtime_settings.cookie_secure
     app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'])
 
+    @app.exception_handler(ImportProblem)
+    async def import_problem(request:Request,exc:ImportProblem):
+        return JSONResponse(status_code=exc.status,content={'detail':{'code':exc.code,'message':exc.message}})
     @app.exception_handler(RequestValidationError)
     async def safe_credential_validation(request, exc):
         if request.url.path == '/api/v1/account/password':
@@ -383,34 +405,25 @@ def create_app(database_url=None):
         if user.role=='warehouse' and data.kind!='inventory_lots': roles(user,'admin','manager')
         if data.kind not in SCHEMAS: fail('UNSUPPORTED_KIND','Рұқсат етілмеген файл түрі.')
         if data.kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
-        rows,errors=parse_csv(data.kind,data.csv_text)
-        if not errors: errors=validate_rows(db,user.organization_id,data.kind,rows,user.branch_ids if data.kind!='branches' else None)
-        batch=ImportBatch(id=uid(),organization_id=user.organization_id,actor_id=user.id,kind=data.kind,rows=rows,errors=errors)
-        db.add(batch);db.commit()
-        return {'id':batch.id,'kind':data.kind,'row_count':len(rows),'valid':not errors,'errors':errors,'preview':rows[:10],**META}
+        result=preview_import(db,user,**data.model_dump())
+        db.commit()
+        return result
+    @app.get('/api/v1/imports')
+    def import_history(limit:int=Query(50,ge=1,le=200),cursor:int=Query(0,ge=0),user=Depends(current),db=Depends(get_db)):
+        return list_batches(db,user,limit,cursor)
+    @app.get('/api/v1/imports/{batch_id}')
+    def import_detail(batch_id:str,user=Depends(current),db=Depends(get_db)):
+        batch,evidence=get_batch(db,user,batch_id)
+        return batch_view(db,user,batch,evidence)
     @app.post('/api/v1/imports/{batch_id}/commit')
-    def import_commit(batch_id:str,user=Depends(current),db=Depends(get_db)):
+    def import_commit(batch_id:str,idempotency_key:str|None=Header(None),user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','warehouse')
-        batch=db.get(ImportBatch,batch_id)
-        if not batch or batch.organization_id!=user.organization_id or batch.actor_id!=user.id: fail('NOT_FOUND','Импорт табылмады.',404)
-        if user.role=='warehouse' and batch.kind!='inventory_lots': roles(user,'admin','manager')
-        if batch.kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
-        if batch.status!='preview': fail('ALREADY_COMMITTED','Импорт орындалған.',409)
-        errors=batch.errors or validate_rows(db,user.organization_id,batch.kind,batch.rows,user.branch_ids if batch.kind!='branches' else None)
-        if errors: fail('IMPORT_INVALID','Қателері бар импорт қабылданбайды.',422)
         try:
-            changed=db.execute(update(ImportBatch).where(ImportBatch.id==batch_id,ImportBatch.status=='preview').values(status='committed')).rowcount
-            if not changed: fail('ALREADY_COMMITTED','Импорт орындалған.',409)
-            insert_rows(db,user.organization_id,batch.kind,batch.rows)
-            if batch.kind=='branches':
-                db.refresh(user,with_for_update=True)
-                user.branch_ids=sorted(set(user.branch_ids) | {r['branch_id'] for r in batch.rows})
-            for branch in {r.get('branch_id') for r in batch.rows}:
-                audit(db,user,'import.committed',batch.id,branch,{'kind':batch.kind,'row_count':sum(1 for r in batch.rows if r.get('branch_id')==branch)})
+            result=commit_import(db,user,batch_id,idempotency_key)
             db.commit()
         except IntegrityError:
-            db.rollback();fail('DUPLICATE_KEY','Қайталанған кілт: импорт толық тоқтатылды.',409)
-        return {'id':batch.id,'status':'committed','row_count':len(batch.rows),**META}
+            db.rollback();fail('IMPORT_CONCURRENT_RETRY','Импортты сол кілтпен қайталаңыз.',409)
+        return result
 
     @app.post('/api/v1/forecasts',status_code=202,response_model=QueuedResponse)
     def create_forecast(data:ForecastInput,user=Depends(current),db=Depends(get_db)):
@@ -418,7 +431,11 @@ def create_app(database_url=None):
         sales=rows_for(db,user.organization_id,'daily_sales',data.branch_id)
         sales=[r for r in sales if r['date']<=data.origin.isoformat()]
         if not sales: fail('NO_SALES','Болжамға сатылым деректері қажет.',422)
-        job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload=data.model_dump(mode='json'),snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals')})
+        snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals')}
+        snapshot['input_lineage']=capture_lineage(db,user.organization_id,[
+            {'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':data.origin.isoformat()},
+            {'kind':'meals','rows':snapshot['meals']}])
+        job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload=data.model_dump(mode='json'),snapshot=snapshot)
         db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
     @app.get('/api/v1/runs/{run_id}')
@@ -434,8 +451,11 @@ def create_app(database_url=None):
     def forecast_list(branch_id:str|None=None,limit:int=Query(50,ge=1,le=200),cursor:int=Query(0,ge=0),user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
         if branch_id: branch_access(db,user,branch_id)
-        rows=list(db.scalars(select(Forecast).where(Forecast.organization_id==user.organization_id,Forecast.branch_id.in_([branch_id] if branch_id else user.branch_ids)).order_by(Forecast.created_at.desc())))
-        return {'items':[forecast_json(r) for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**META}
+        scope=(Forecast.organization_id==user.organization_id,Forecast.branch_id.in_([branch_id] if branch_id else user.branch_ids))
+        total=db.scalar(select(func.count()).select_from(Forecast).where(*scope))
+        rows=list(db.scalars(select(Forecast).where(*scope).order_by(Forecast.created_at.desc(),Forecast.id.desc()).offset(cursor).limit(limit)))
+        freshness_cache={}
+        return {'items':[forecast_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**META}
     @app.post('/api/v1/procurement',status_code=202,response_model=QueuedResponse)
     def create_procurement(data:ProcurementInput,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager');branch_access(db,user,data.branch_id)
@@ -445,6 +465,11 @@ def create_app(database_url=None):
         snapshot={'forecast_result':forecast.result,**{k:rows_for(db,user.organization_id,k,data.branch_id if k=='inventory_lots' else None) for k in ['ingredients','recipes','inventory_lots','supplier_offers','suppliers']}}
         snapshot['inventory_lots']=[r for r in snapshot['inventory_lots'] if r['snapshot_date']==forecast.result['target_date']]
         if not snapshot['inventory_lots']: fail('STALE_INVENTORY','Қойма кесіндісі мақсат күніне сәйкес емес.',422)
+        collections=[{'kind':kind,'rows':snapshot[kind],**(
+            {'branch_id':data.branch_id,'snapshot_date':forecast.result['target_date']} if kind=='inventory_lots' else {})}
+            for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers')]
+        snapshot['input_lineage']=capture_lineage(db,user.organization_id,collections,
+            inherited=forecast.result.get('input_lineage') or {})
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='procurement',payload=data.model_dump(mode='json'),snapshot=snapshot)
         db.add(job);audit(db,user,'procurement.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
@@ -452,8 +477,11 @@ def create_app(database_url=None):
     def plan_list(branch_id:str|None=None,limit:int=Query(50,ge=1,le=200),cursor:int=Query(0,ge=0),user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
         if branch_id: branch_access(db,user,branch_id)
-        rows=list(db.scalars(select(Plan).where(Plan.organization_id==user.organization_id,Plan.branch_id.in_([branch_id] if branch_id else user.branch_ids)).order_by(Plan.created_at.desc())))
-        return {'items':[plan_json(r) for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**META}
+        scope=(Plan.organization_id==user.organization_id,Plan.branch_id.in_([branch_id] if branch_id else user.branch_ids))
+        total=db.scalar(select(func.count()).select_from(Plan).where(*scope))
+        rows=list(db.scalars(select(Plan).where(*scope).order_by(Plan.created_at.desc(),Plan.id.desc()).offset(cursor).limit(limit)))
+        freshness_cache={}
+        return {'items':[plan_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**META}
     @app.get('/api/v1/plans/{plan_id}')
     def plan_detail(plan_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
@@ -471,6 +499,9 @@ def create_app(database_url=None):
         if action=='approved':
             if not plan.result.get('constraints_valid'): fail('CONSTRAINTS_INVALID','Шектеулері тексерілмеген жоспар бекітілмейді.',422)
             if plan.result.get('shortage_count',0)>0 and not data.acknowledge_shortage: fail('SHORTAGE_ACK_REQUIRED','Тапшылықты арнайы растау қажет.',422)
+            freshness=input_freshness(db,user.organization_id,plan.result.get('input_lineage'))
+            if freshness=='unknown': fail('INPUTS_UNVERIFIED','Дерек көзі тексерілмеген. Жоспарды қайта есептеңіз.',409)
+            if freshness=='changed': fail('INPUTS_CHANGED','Кіріс деректері өзгерген. Жоспарды қайта есептеңіз.',409)
         try:
             changed=db.execute(update(Plan).where(Plan.id==plan.id,Plan.version==data.expected_version,Plan.status=='ready').values(status=action,version=data.expected_version+1)).rowcount
             if not changed:

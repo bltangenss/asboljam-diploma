@@ -1,5 +1,13 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## Текущий этап — история импорта и проверяемость расчётов, 29.09.2026
+
+Работа продолжается локально. Миграция0003 добавляет provenance/receipts/revisions без переписывания прежних данных. Идентичные строки повторно не вставляются; sales/calendar/inventory исправляются явно, с причиной, версиями и атомарным commit. История следует текущим tenant/branch/role правам. Forecast/procurement сохраняют входные версии и ссылки на загрузки; перед утверждением изменённых данных нужен пересчёт. Старые утверждённые решения и экспорт сохраняются. [Runbook](docs/commercial/IMPORT_OPERATIONS_RU.md).
+
+**Проверено:** Python242 PASS; PostgreSQL runner109 PASS (108 PG + один SQLite backup case); web build; mock browser31 PASS. Live — семь успешных сценариев в общем прогоне и успешный отдельный повтор восьмого после уточнения селектора preview. Настоящие API/worker проверили correction/stale/recompute/approval/export и HGB; [точные результаты](artifacts/verification/import-platform.json). Устранены неполная CSV-validation без предупреждения и сброс введённого пароля при обновлении metadata.
+
+Основная SQLite0003 обновлена после private backup; прежние table counts совпали. Тестовые процессы остановлены, базы/volumes сохранены. Цель рынка остаётся активной: следующие участки — REAL/date policy, stock ledger, heartbeat и эксплуатация. REAL-импорт пока закрыт; APK/ZIP/research не обновлялись. Исторические результаты ниже не подменяют актуальный [PROGRESS](templates/PROGRESS.md).
+
 ## Текущий этап — организации и onboarding, 29.09.2026
 
 Миграция0002 добавляет Organization и сохраняет прежние данные; реализованы bootstrap пустой организации/первого admin и suspend/resume. API/worker запрещают доступ отсутствующей или suspended организации, unconfigured оставляет настройку аккаунта. CLI требует явной БД, поддерживаемой схемы, preflight/apply и скрытого пароля. [Runbook](docs/commercial/TENANT_OPERATIONS_RU.md).

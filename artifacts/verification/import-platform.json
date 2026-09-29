@@ -1,0 +1,198 @@
+{
+  "timestamp": "2026-09-29T11:59:09.560188+00:00",
+  "status": "passed_with_recorded_initial_failures_and_scoped_reruns",
+  "source_commit": "5b2468122d59eeeb4832484612ad24210983644b",
+  "includes_uncommitted_changes": true,
+  "scope": "Migration 0003, immutable import provenance/revisions/receipts, correction and replay, calculation lineage/freshness, web workflow and settings form preservation",
+  "data_origin": "SYNTHETIC",
+  "runtime": {
+    "python": "3.13.9",
+    "node": "v24.14.1",
+    "postgres": "PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit"
+  },
+  "python": {
+    "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+    "passed": 242,
+    "failures": 0,
+    "errors": 0,
+    "elapsed_seconds": 60.489,
+    "private_log": ".cache/import-python-final.log"
+  },
+  "postgres": {
+    "command": "python -X utf8 scripts/verify_postgres_security.py --suite test_tenant_isolation.py --suite test_worker_security.py --suite test_password_security.py --suite test_tenant_migration.py --suite test_tenant_lifecycle.py --suite test_import_migration.py --suite test_import_transactions.py --suite test_import_lineage.py --report-name postgres-import-platform.json",
+    "passed": 109,
+    "postgres_test_bodies": 108,
+    "sqlite_backup_test_bodies": 1,
+    "elapsed_seconds": 73.648,
+    "source_changed_during_run": false,
+    "report": "artifacts/verification/postgres-import-platform.json"
+  },
+  "web_build": {
+    "command": "npm.cmd run build",
+    "status": "passed",
+    "modules": 1753,
+    "vite_seconds": 4.72
+  },
+  "browser_mock": {
+    "command": "npm.cmd run test:e2e -- tests/e2e/sessions_imports.spec.ts tests/e2e/account_security.spec.ts tests/e2e/tenant_onboarding.spec.ts tests/e2e/import_history.spec.ts --reporter=line --output=.cache/import-mock-final --timeout=30000",
+    "passed": 31,
+    "reported_duration": "1.3m",
+    "api": "mocked"
+  },
+  "browser_live": {
+    "database": ".cache/import-live.sqlite",
+    "api": "separate actual FastAPI process",
+    "worker": "separate actual durable-queue worker",
+    "web": "built Vite preview",
+    "channel": "Chrome",
+    "initial_command": "npm.cmd run test:e2e -- tests/e2e/workflow.spec.ts tests/e2e/tenant_onboarding_live.spec.ts tests/e2e/import_lineage_live.spec.ts --reporter=line --output=.cache/import-live-browser",
+    "initial_passed": 7,
+    "initial_failed": 1,
+    "initial_reported_duration": "2.6m",
+    "failure": "Existing global getByText matched the preview error badge and the new import history badge; narrowed the assertion to the import-result region.",
+    "rerun_command": "npm.cmd run test:e2e -- tests/e2e/workflow.spec.ts --grep \"login → CSV\" --reporter=line --output=.cache/import-live-workflow-final",
+    "rerun_passed": 1,
+    "rerun_elapsed_seconds": 37.1,
+    "distinct_scenarios_with_success": 8,
+    "full_final_suite_rerun": false,
+    "new_scenario": "Four actual jobs: baseline forecast/procurement, correction changes freshness and blocks approval, identical reimport does not duplicate rows, recalculation links source batch, approved result/export/replay remain unchanged after another correction.",
+    "other_scenarios": [
+      "empty organization first branch",
+      "full CSV to approval/audit/export",
+      "branch/context/network/KK/RU",
+      "concurrent plan decision",
+      "HGB quantile chart and model card",
+      "user administration and analyst scope",
+      "password change revokes web/native/refresh"
+    ],
+    "mobile_screenshot": {
+      "private_path": ".cache/e2e-live/import-lineage-approved-mobile.png",
+      "sha256": "083bf42a6b7396f332dbd64341d7d52d22f5185fb857971b2ad748395327d5f3",
+      "visually_inspected": true,
+      "page_overflow": false
+    }
+  },
+  "main_sqlite_migration": {
+    "backup_sha256": "e4eba28735e171eb871a01f653dfe5a2d31dca8c5835670894a78e303ae36467",
+    "before": {
+      "counts": {
+        "audit_events": 61,
+        "auth_sessions": 19,
+        "forecasts": 9,
+        "idempotency_keys": 4,
+        "import_batches": 12,
+        "jobs": 15,
+        "login_attempts": 64,
+        "operational_records": 200725,
+        "organizations": 7,
+        "plans": 6,
+        "refresh_tokens": 0,
+        "schema_migrations": 2,
+        "users": 9
+      },
+      "versions": [
+        "0001",
+        "0002"
+      ],
+      "integrity": "ok",
+      "foreign_keys": 0
+    },
+    "after": {
+      "counts": {
+        "audit_events": 61,
+        "auth_sessions": 19,
+        "forecasts": 9,
+        "idempotency_keys": 4,
+        "import_batches": 12,
+        "import_evidence": 0,
+        "import_receipts": 0,
+        "jobs": 15,
+        "login_attempts": 64,
+        "operational_records": 200725,
+        "organizations": 7,
+        "plans": 6,
+        "record_revisions": 0,
+        "refresh_tokens": 0,
+        "schema_migrations": 3,
+        "users": 9
+      },
+      "versions": [
+        "0001",
+        "0002",
+        "0003"
+      ],
+      "integrity": "ok",
+      "foreign_keys": 0
+    },
+    "old_table_counts_equal": true
+  },
+  "initial_findings_fixed": [
+    "Existing-branch reimport must not grant an administrator a previously unauthorized branch; before-values of forbidden branches stay undisclosed.",
+    "Reference/scope validation stopped at 500 errors without exposing the unvalidated tail. Separate validation completeness/count/stop reason and overall scan status added; exact final-row boundary tested.",
+    "Initial browser mock run: 29 passed, one failed. A real settings metadata refetch unmounted password fields during initialization. Forms now survive metadata loading; deterministic delayed-branches regression added; final 31 passed.",
+    "Old integration fixtures manually constructing ready plans now capture real fixture-row lineage; manual legacy calculations remain unverified and cannot be approved."
+  ],
+  "verification_sequence": "Initial Python240 and PostgreSQL107 passed. After the reference-validation review fix, final Python242 and PostgreSQL109 passed. After the settings form fix and import copy update, final build and mock browser31 passed. Live failure was a selector-only test change and only that scenario was rerun.",
+  "cleanup": {
+    "api_worker_preview_stopped": true,
+    "ports_3000_8000_free": true,
+    "verification_postgres_container_stopped": true,
+    "databases_and_volumes_preserved": true
+  },
+  "limits": [
+    "No real business or enterprise source; operational importer remains SYNTHETIC-only. REAL/date policy remains unfinished.",
+    "No deletion, bulk rollback, reference-table correction or stock movement ledger. Compensating corrections create new revisions.",
+    "Existing legacy inputs have unknown upload source, even when their current row hash can be tracked.",
+    "Client-declared original file hashes are unverified; received text and canonical parsed-row hashes have different scopes.",
+    "No production HTTPS deployment, load/SLA measurement, independent security audit or measured business savings.",
+    "Local PostgreSQL migration/concurrency checks do not replace deployment backup restoration; pg_dump/restore was not rerun for 0003.",
+    "APK, native device runtime, research benchmark and final source ZIP were not rebuilt in this block.",
+    "Screenshots, browser traces, credentials, local databases and backups stay ignored and out of Git/release archives."
+  ],
+  "source_sha256": {
+    "apps/api/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/api/accounts.py": "53a48bf2269e194c6ccd178503bc88c9404184def3ca511dd7092796b68444c7",
+    "apps/api/config.py": "a6fb6382cd62e22350d07ae35e7e74d7f509d37508d0ee1b843df7217d52eada",
+    "apps/api/db.py": "4fc75e5a96ae33e797802d229632ed5763cc8a0d9631cbc0a2e7218267c22db6",
+    "apps/api/engine.py": "e3484678ac2584a8888d07c502075b29037b833ec5219e7dfdd59f88b6349754",
+    "apps/api/import_service.py": "44a325c45fe3e81a040b43b3315c504ca445bcb1f6d4d40acda2698f734390bc",
+    "apps/api/importing.py": "8182f87212294c33c111feff7c5c2129d54a1f70835404dc70b2d602b5ebce3d",
+    "apps/api/lineage.py": "6f8d9dc83372aef23b05d86f1339782f735cc3195dbd0460662c3cea0c10eaef",
+    "apps/api/main.py": "2fbf1898f8a9ea02aa6db1f8d4c4b59fac9f3f7629e0d386ca81d2738c877322",
+    "apps/api/migrations.py": "c07bc1c5d41b54e62b7f33b11a68e51469d28c48cad9a5a8e4dbc170e289bc66",
+    "apps/api/security.py": "d7cfffb4a93677da0f45e7dccf856a702c46ded9301b71038b33a1c48e7b7b80",
+    "apps/api/tenants.py": "240d53d2ce89c6536603d12c53e4f5ae53d0deb76cd35c881ffc5e4f79d6a53c",
+    "apps/web/src/AccountSecurity.tsx": "5bd0927d8ebd83dd8962c5bbf9202a96e6cba6cb34f1fbc95ebf850ce3e2120a",
+    "apps/web/src/App.tsx": "e30ccd8d6b38ef8534206f154981006a4218a9d945501b36b5c54c9a2ba1d8d7",
+    "apps/web/src/Dashboard.tsx": "204602d8131dc001dd01ed62d60ca89c4076c5898254a21b0539f0a2b1076466",
+    "apps/web/src/DataPages.tsx": "29677f88897ec49039711153a404c8d372323eb5138530b76e701d8cd5b64dfe",
+    "apps/web/src/ForecastChart.tsx": "4faaf676b2b7734b3b49c84b2896716956351351034a0866c4786307b402a8fa",
+    "apps/web/src/Imports.tsx": "9f2a3c7fb2c09427fa64208e3ad5bb31fc31af534d9cd6e519d323f1cc6caa5a",
+    "apps/web/src/InputProvenance.tsx": "bab63fd4d465192aba3410bb1736fe711c00246c30686f577f1dbcd1018f7afd",
+    "apps/web/src/main.tsx": "73051aa7ab77bcbbd178fb874840432fae28fd3630f1da6e43734b6db3cbe210",
+    "apps/web/src/Onboarding.tsx": "ec97ea6b5e91e8eda4b63e49d809da16bfc27b6651601942d0ae489f09fa59aa",
+    "apps/web/src/Planning.tsx": "845392364ecd77095684aece422f63ad71fb359f6a87d33796cc0692861443d4",
+    "apps/web/src/shared.tsx": "a2de1b44d9373f9140540f5489e910224c838fb69662726e990d8815fc97a16d",
+    "apps/web/src/UserAdmin.tsx": "10ebc7b84328940d5ed3e46091c257a142a1e856810b358907ca79d4db049dbc",
+    "apps/worker/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/worker/main.py": "00412585d1e844508ba20425eab22acface6ef19ab95d01204897e2de9734a15",
+    "contracts/data_manifest.json": "6c1acae43b16938bda3ca747321a72aa37a99d63fd99570bcf134177cd6b7603",
+    "contracts/openapi.json": "ecf1f589b7987949534ff2c61e87603ea38236b3bbd9fa3561066b29874f4654",
+    "database/migrate.py": "ec9a0f268071eb5edbc7c405422ebdb3edb5c3634ed34d0f0167866e48716812",
+    "database/postgres_schema.sql": "3f4e80d86279ee790eb7a94b4fa36948e5e2e75958b8486abd300a792a30f3d1",
+    "scripts/generate_contracts.py": "bdb1b5273137eccb260b599256880ed7dc0a003754ae30127673723d332f750a",
+    "scripts/prepare_e2e.py": "d365728215927c3aa9c36a59903438bf7c1890e73038894ccfc7d995430c6609",
+    "scripts/verify_postgres_security.py": "fba0d22442e07cc030c5cf82d34b710f1b6e8b79a0b535e5ee703cc60f262eb6",
+    "tests/e2e/account_security.spec.ts": "0300b19524db4c435db9694874b62360e905e38247e79e7799bbab65a5f06fa4",
+    "tests/e2e/import_history.spec.ts": "f8eacf5be3323160c2f5e2b9259fcff0e186641825f0b8b47d85516883df42e9",
+    "tests/e2e/import_lineage_live.spec.ts": "8a9214b899bf7c5190842e5f6987c17bb7e962daaf02136b20b7a0b4213716c8",
+    "tests/e2e/sessions_imports.spec.ts": "b1ad859a0c84d91dd7cbacef3dab8b4bc23ebb6cdd4929dc46cd0ac97b981280",
+    "tests/e2e/tenant_onboarding.spec.ts": "c554ccb6fd34b624081aaa375d34a5b372551c760b09de46c5e665ed76b360ed",
+    "tests/e2e/tenant_onboarding_live.spec.ts": "c626e7d67286996f34b60514c526a4985aa4dd49a30dac4950b036a95225c1cb",
+    "tests/e2e/workflow.spec.ts": "d8d04fbe305558cf0854761313f7465b121f0f4fcf24d0afebb238497761ee1e",
+    "tests/test_import_lineage.py": "38b0c953539082ca065367e5735b34f7067f0e405d7ec6b543631be68207a8e1",
+    "tests/test_import_migration.py": "c74e6b8544dfe4dc3efc67690b58aa3fa3b5e3615878ef5b885956bacaed2175",
+    "tests/test_import_parser.py": "4b77ed8e55932f8d1d6560a42456c7e081e6efb04da1f052e7a0ce19db81d102",
+    "tests/test_import_transactions.py": "951b612efd04fe89ca81a05e0c606d3ca8fb32598f562f19576fdabade662450"
+  }
+}

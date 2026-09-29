@@ -167,7 +167,7 @@
     {
       "id": "imports",
       "route": "/imports",
-      "component": "apps/web/src/DataPages.tsx:Imports",
+      "component": "apps/web/src/Imports.tsx",
       "title_kk": "Дерек импорттау",
       "read_roles": [
         "admin",
@@ -177,12 +177,21 @@
       ],
       "api": [
         "POST /imports/preview",
-        "POST /imports/{id}/commit"
+        "POST /imports/{id}/commit",
+        "GET /imports",
+        "GET /imports/{id}"
       ],
       "controls_and_data": [
         "CSV_file",
         "kind",
-        "preview",
+        "source",
+        "received_text_hash",
+        "counts",
+        "preview_sample",
+        "history",
+        "correction_reason",
+        "before_after",
+        "correction_acknowledgement",
         "commit"
       ],
       "states": [
@@ -192,9 +201,14 @@
         "offline_notice",
         "forbidden",
         "validation_errors",
+        "partial_scan",
         "preview_ready",
         "committed",
-        "duplicate_rejected"
+        "identical_replay",
+        "duplicate_conflict",
+        "stale_correction",
+        "recover_commit_status",
+        "batch_deep_link"
       ]
     },
     {
@@ -521,6 +535,7 @@
     "One-day forecasting only",
     "No actual supplier dispatch",
     "Settings organization view is read-only",
+    "InputProvenance.tsx shows derived freshness and scoped source batch links; historical results stay immutable, stale/unknown ready plans require recomputation before approval",
     "Forecast chart compares 28 dated actual observations with a separate one-day target; baselines have no fabricated uncertainty interval",
     "Reports links to stored run metrics; reproducible research CSVs are under artifacts/research"
   ]

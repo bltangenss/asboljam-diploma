@@ -5,7 +5,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from sqlalchemy.exc import SQLAlchemyError
 from apps.api.config import ConfigurationError,load_settings
 from apps.api.db import make_engine,migrate
-from apps.api.migrations import MigrationError
+from apps.api.migrations import MigrationError,VERSIONS
 
 def main():
     engine=None
@@ -24,7 +24,7 @@ def main():
         return 2
     finally:
         if engine is not None: engine.dispose()
-    print('Migrations 0001 and 0002 applied (or already present).')
+    print('Migrations '+', '.join(VERSIONS)+' applied (or already present).')
     return 0
 
 if __name__=='__main__':

@@ -43,17 +43,21 @@ def rows_for(db, org, kind, branch=None):
         query = query.where(Record.branch_id == str(branch))
     return [r.data for r in db.scalars(query)]
 
-def validate_rows(db, org, kind, rows, allowed_branches=None):
+def validate_rows(db, org, kind, rows, allowed_branches=None, *, allow_existing=False, report=None):
+    """Return reference/scope errors; optional metadata distinguishes an unchecked tail."""
     errors = []
+    report = report if report is not None else {}
+    report.update(rows_checked=0, complete=False, stop_reason=None, errors_truncated=False)
     existing = set(db.scalars(select(Record.natural_key).where(Record.organization_id == org, Record.kind == kind)))
     references = {field: {r[field] for r in rows_for(db, org, target)} for field, target in FK.items()}
     ingredients = {r['ingredient_id']: r for r in rows_for(db, org, 'ingredients')}
     seen = set()
     for index, row in enumerate(rows, 2):
+        report['rows_checked'] += 1
         def err(field, code, message):
             errors.append({'row_number': index, 'field': field, 'code': code, 'message': message})
         key = natural_key(kind, row)
-        if key in seen or key in existing:
+        if key in seen or (key in existing and not allow_existing):
             err(','.join(KEYS[kind]), 'DUPLICATE_KEY', 'Қайталанған кілт: импорт қабылданбайды.')
         seen.add(key)
         branch = row.get('branch_id')
@@ -69,33 +73,48 @@ def validate_rows(db, org, kind, rows, allowed_branches=None):
             active_versions = {r['recipe_version'] for r in rows_for(db, org, 'recipes')}
             if active_versions and row['recipe_version'] not in active_versions:
                 err('recipe_version', 'RECIPE_VERSION_CONFLICT', 'MVP бір белсенді рецепт нұсқасын қолдайды.')
-        if len(errors) >= 500:
+        if len(errors) >= 500 and report['rows_checked'] < len(rows):
+            report.update(stop_reason='error_limit', errors_truncated=True)
             break
+    else:
+        report['complete'] = True
     if kind == 'recipes' and len({r['recipe_version'] for r in rows}) > 1:
         errors.append({'row_number': 1, 'field': 'recipe_version', 'code': 'RECIPE_VERSION_CONFLICT', 'message': 'Бір файлда бір рецепт нұсқасы қажет.'})
     return errors
 
-def parse_csv(kind, text):
+def parse_csv(kind, text, report=None):
     errors, rows = [], []
+    report = report if report is not None else {}
+    report.update(rows_seen=0, rows_checked=0, scan_complete=False, stop_reason=None, errors_truncated=False)
     def err(index, field, code, message):
         errors.append({'row_number': index, 'field': field, 'code': code, 'message': message})
     if kind not in SCHEMAS:
+        report['stop_reason'] = 'unsupported_kind'
         return [], [{'row_number': 1, 'field': 'kind', 'code': 'UNSUPPORTED_KIND', 'message': 'Рұқсат етілмеген файл түрі.'}]
     if len(text.encode('utf-8')) > MAX_BYTES:
+        report['stop_reason'] = 'file_size_limit'
         return [], [{'row_number': 1, 'field': 'file', 'code': 'FILE_TOO_LARGE', 'message': 'Файл өлшемі шектен асты.'}]
     reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff')), strict=True)
     required = set(SCHEMAS[kind].split())
     try:
         fields = reader.fieldnames or []
         if len(fields) != len(set(fields)) or set(fields) - required - IGNORED.get(kind, set()) or required - set(fields):
+            report['stop_reason'] = 'invalid_header'
             return [], [{'row_number': 1, 'field': 'header', 'code': 'INVALID_COLUMNS', 'message': 'CSV бағандары схемаға сәйкес емес.', 'expected': SCHEMAS[kind].split()}]
         for index, raw in enumerate(reader, 2):
+            report['rows_seen'] = index - 1
             if index > MAX_ROWS + 1:
+                report['stop_reason'] = 'row_limit'
                 err(index, 'file', 'TOO_MANY_ROWS', 'Жол саны шектен асты.'); break
+            report['rows_checked'] += 1
             start_errors = len(errors)
             row = {}
             if None in raw:
-                err(index, 'row', 'EXTRA_COLUMNS', 'Артық бағандар бар.'); continue
+                err(index, 'row', 'EXTRA_COLUMNS', 'Артық бағандар бар.')
+                if len(errors) >= 500:
+                    report.update(stop_reason='error_limit', errors_truncated=True)
+                    break
+                continue
             for field in required:
                 value = (raw.get(field) or '').strip()
                 if not value:
@@ -145,11 +164,17 @@ def parse_csv(kind, text):
                     err(index, 'min_packs', 'MOQ_EXCEEDS_MAX', 'Ең аз қаптама ең көп мәннен артық.')
                 if kind == 'calendar' and date.fromisoformat(row['date']).weekday() != row['weekday']:
                     err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні датаға сәйкес емес.')
+                if len(natural_key(kind, row)) > 255:
+                    err(index, 'key', 'KEY_TOO_LONG', 'Құрама кілт сақтау шегінен асты.')
                 if len(errors) == start_errors:
                     rows.append(row)
             if len(errors) >= 500:
+                report.update(stop_reason='error_limit', errors_truncated=True)
                 break
+        else:
+            report['scan_complete'] = True
     except csv.Error:
+        report['stop_reason'] = 'invalid_csv'
         err(max(1, reader.line_num), 'file', 'INVALID_CSV', 'CSV құрылымы жарамсыз.')
     if not rows and not errors:
         err(2, 'file', 'EMPTY_FILE', 'CSV бос.')

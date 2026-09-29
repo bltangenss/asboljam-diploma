@@ -16,7 +16,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 from apps.api.db import Audit, Forecast, ImportBatch, Job, Organization, Plan, Record, User
-from apps.api.importing import SCHEMAS, insert_rows
+from apps.api.importing import SCHEMAS, insert_rows, rows_for
+from apps.api.lineage import capture_lineage
 from apps.api.main import create_app
 from apps.api.security import password_hash
 from apps.worker.main import run_once
@@ -61,7 +62,8 @@ class TenantIsolationTests(unittest.TestCase):
                     result = {'target_date': '2026-01-01', 'predictions': [{'meal_id': '1', 'point': base + int(branch), 'p10': None, 'p50': None, 'p90': None}], 'metadata': {'fixture_organization': org}, 'metrics': []}
                     db.add(Forecast(id=forecast_id, organization_id=org, branch_id=branch, result=result))
                     db.add(Job(id=f'{org}-job-{branch}', organization_id=org, branch_id=branch, actor_id=f'{org}-admin', kind='forecast', status='succeeded', payload={}, snapshot={}, result_id=forecast_id))
-                    db.add(Plan(id=f'{org}-plan-{branch}', organization_id=org, branch_id=branch, forecast_id=forecast_id, result={'target_date': '2026-01-01', 'constraints_valid': True, 'shortage_count': 0, 'total_cost': str(base), 'lines': [], 'requirements': []}))
+                    inputs = capture_lineage(db, org, [{'kind': 'inventory_lots', 'rows': rows_for(db, org, 'inventory_lots', branch), 'branch_id': branch, 'snapshot_date': '2026-01-01'}])
+                    db.add(Plan(id=f'{org}-plan-{branch}', organization_id=org, branch_id=branch, forecast_id=forecast_id, result={'target_date': '2026-01-01', 'constraints_valid': True, 'shortage_count': 0, 'total_cost': str(base), 'lines': [], 'requirements': [], 'input_lineage': inputs}))
                     db.add(Audit(id=f'{org}-audit-{branch}', organization_id=org, branch_id=branch, actor_id=f'{org}-admin', action='fixture.created', entity_id=f'{org}-plan-{branch}', details={'fixture': True}))
             insert_rows(db, 'B', 'meals', [dict(meal_id='B-private', meal_name='B-private-meal', base_price_kzt='2000', data_origin='SYNTHETIC')])
             for identifier, org, role, branches in [
@@ -161,7 +163,7 @@ class TenantIsolationTests(unittest.TestCase):
         self.assertEqual(self.count(Record), before)
         self.assertEqual(owner.post(path).status_code, 200)
         self.assertEqual(self.count(Record), before + 1)
-        self.assertEqual(owner.post(path).status_code, 409)
+        self.assertEqual(owner.post(path).status_code, 200)
 
     def test_import_branch_and_foreign_reference_fail_atomically(self):
         client = self.client_for()
@@ -171,7 +173,8 @@ class TenantIsolationTests(unittest.TestCase):
                 preview = self.preview(client, csv_text)
                 self.assertFalse(preview['valid'])
                 self.assertIn(code, {e['code'] for e in preview['errors']})
-                self.assertEqual(client.post('/api/v1/imports/' + preview['id'] + '/commit').status_code, 422)
+                self.assertEqual(client.post('/api/v1/imports/' + preview['id'] + '/commit').status_code,
+                                 404 if code == 'BRANCH_FORBIDDEN' else 422)
         self.assertEqual(self.count(Record), before)
 
     def test_same_natural_key_can_be_imported_in_independent_tenants(self):
@@ -287,7 +290,7 @@ class TenantIsolationTests(unittest.TestCase):
         self.assertEqual(manager.get('/api/v1/session/me').status_code, 401)
         fresh = self.client_for()
         committed = fresh.post('/api/v1/imports/' + preview['id'] + '/commit')
-        self.assertEqual(committed.status_code, 422, committed.text)
+        self.assertEqual(committed.status_code, 404, committed.text)
         self.assertEqual(self.count(Record), before)
 
     def test_access_change_cancels_only_pending_jobs_for_target_actor_and_tenant(self):
@@ -379,7 +382,7 @@ class TenantIsolationTests(unittest.TestCase):
         self.assertEqual(client.post('/api/v1/imports/' + preview['id'] + '/commit').status_code, 200)
         forbidden = self.preview(client, header + '2,1,new-lot,2026-01-01,2026-01-05,5,kg,SYNTHETIC\n', 'inventory_lots')
         self.assertFalse(forbidden['valid'])
-        self.assertEqual(client.post('/api/v1/imports/' + forbidden['id'] + '/commit').status_code, 422)
+        self.assertEqual(client.post('/api/v1/imports/' + forbidden['id'] + '/commit').status_code, 404)
 
     def test_user_administration_stays_inside_organization_and_grantable_branches(self):
         admin = self.client_for('A-admin')

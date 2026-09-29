@@ -116,6 +116,36 @@ test('wrong current or unchanged password keeps the session and clears sensitive
   expect(attempt).toBe(2);
 });
 
+test('finishing workspace initialization preserves a password form already being edited',async({page})=>{
+  const branchesStarted=deferred(),releaseBranches=deferred();let requests=0;
+  await installApi(page,async(route,path)=>{
+    if(path==='/branches') {
+      branchesStarted.resolve();await releaseBranches.promise;
+      await route.fulfill({json:{...empty,items:[{branch_id:'1',branch_name:'Fixture branch'}],total:1}});return true;
+    }
+    if(path==='/account/password') {
+      requests++;
+      expect(route.request().postDataJSON()).toEqual({current_password:current,new_password:replacement});
+      await route.fulfill({status:400,json:{detail:{code:'CURRENT_PASSWORD_INVALID',message:'Fixture failure'}}});return true;
+    }
+    return false;
+  });
+  await page.goto('/settings');await branchesStarted.promise;
+  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Ұйым',exact:true})})).toContainText('Fixture organization');
+  await expect(page.getByLabel('Бөлімше',{exact:true})).toBeDisabled();
+  await fillPasswords(page);
+  const refreshed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/settings');
+  releaseBranches.resolve();await refreshed;
+  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue('1');
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await expect(page.getByLabel('Қазіргі құпиясөз',{exact:true})).toHaveValue(current);
+  await expect(page.getByLabel('Жаңа құпиясөз',{exact:true})).toHaveValue(replacement);
+  await expect(page.getByLabel('Жаңа құпиясөзді қайталаңыз',{exact:true})).toHaveValue(replacement);
+  await page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true}).click();
+  await expect(page.getByRole('alert')).toHaveText('Қазіргі құпиясөз қате. Қайталап енгізіңіз.');
+  expect(requests).toBe(1);
+});
+
 test('pending password submission is unique and its success signs out after navigation',async({page})=>{
   const started=deferred(),release=deferred();let requests=0;
   await installApi(page,async(route,path)=>{

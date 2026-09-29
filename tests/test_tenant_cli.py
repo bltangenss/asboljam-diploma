@@ -119,7 +119,7 @@ class TenantCliTests(unittest.TestCase):
     def test_unapplied_or_future_schema_never_prompts_or_mutates(self):
         for query, undo in [
             ("DELETE FROM schema_migrations WHERE version='0002'", "INSERT INTO schema_migrations VALUES ('0002')"),
-            ("INSERT INTO schema_migrations VALUES ('0003')", "DELETE FROM schema_migrations WHERE version='0003'")]:
+            ("INSERT INTO schema_migrations VALUES ('9999')", "DELETE FROM schema_migrations WHERE version='9999'")]:
             with self.subTest(query=query):
                 with self.engine.begin() as connection:
                     connection.execute(text(query))

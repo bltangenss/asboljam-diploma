@@ -1595,6 +1595,94 @@
         }
       }
     },
+    "/api/v1/imports": {
+      "get": {
+        "summary": "Import History",
+        "operationId": "import_history_api_v1_imports_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/imports/{batch_id}": {
+      "get": {
+        "summary": "Import Detail",
+        "operationId": "import_detail_api_v1_imports__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imports/{batch_id}/commit": {
       "post": {
         "summary": "Import Commit",
@@ -1607,6 +1695,22 @@
             "schema": {
               "type": "string",
               "title": "Batch Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -2561,6 +2665,49 @@
           "csv_text": {
             "type": "string",
             "title": "Csv Text"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "append",
+              "correction"
+            ],
+            "title": "Mode",
+            "default": "append"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "corrects_batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrects Batch Id"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -2570,6 +2717,37 @@
           "csv_text"
         ],
         "title": "ImportInput"
+      },
+      "ImportSource": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+            "title": "Source Id",
+            "default": "manual_csv"
+          },
+          "mapping_version": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+            "title": "Mapping Version",
+            "default": "canonical-v1"
+          },
+          "declared_original_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Original Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ImportSource"
       },
       "Login": {
         "properties": {

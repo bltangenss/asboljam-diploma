@@ -10,7 +10,7 @@
     ],
     "generator": "scripts/generate_contracts.py",
     "dictionary_sha256": "fad1e65911e44a69d4c16b75e6a3a5598f9b8beb9ad432b32256e647d6e99df3",
-    "importer_sha256": "3cbb9b928c73233233ab4833c219c3022cbb1818addfa4dbd3bb649fb5af8da2",
+    "importer_sha256": "8182f87212294c33c111feff7c5c2129d54a1f70835404dc70b2d602b5ebce3d",
     "notice": "This file was reconstructed explicitly; no original contracts/data_manifest.json was included in the supplied materials."
   },
   "encoding": [
@@ -22,8 +22,25 @@
   "date_format": "YYYY-MM-DD",
   "identifier_policy": "Keep source IDs as strings; no synthetic ID remapping.",
   "import": {
-    "default_mode": "reject_duplicates",
+    "default_mode": "append",
     "all_or_nothing": true,
+    "same_file_duplicate_keys": "rejected",
+    "existing_identical_rows": "unchanged_no_duplicate_insert",
+    "existing_changed_rows": "explicit_correction_required",
+    "correction_kinds": [
+      "daily_sales",
+      "calendar",
+      "inventory_lots"
+    ],
+    "correction_requires": [
+      "reason",
+      "existing_keys",
+      "unchanged_preview_hash_and_revision"
+    ],
+    "hash_scope": "received UTF-8 CSV text; claimed original hash remains unverified",
+    "canonical_hash_version": "canonical-v1",
+    "commit_replay": "immutable receipt, no duplicate operational writes",
+    "record_history": "append-only revisions; existing legacy source batches remain unknown",
     "preview_required": true,
     "default_max_bytes": 20971520,
     "default_max_rows": 250000,
@@ -44,6 +61,7 @@
     "calendar.weekday matches the ISO date (Monday=0)",
     "One active recipe_version per organization; multiple versions require explicit future version-selection support",
     "Foreign keys, duplicate keys, branch access and user role are rechecked on commit",
+    "Serialized natural key must fit the shared SQLite/PostgreSQL VARCHAR(255) boundary",
     "Inventory expiry_date < target is excluded; equality is usable under the demo convention",
     "Procurement chooses the exact target-date inventory snapshot; stale stock is not silently current",
     "Gross requirement = sum(portions * net_qty_per_portion / yield_factor), once",

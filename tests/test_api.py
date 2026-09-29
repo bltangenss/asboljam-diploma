@@ -12,7 +12,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func,select
 from apps.api.db import Audit,Job,Organization,Plan,Record,User
 from apps.api.main import create_app
-from apps.api.importing import SCHEMAS,parse_csv,safe_csv
+from apps.api.importing import SCHEMAS,parse_csv,safe_csv,rows_for
+from apps.api.lineage import capture_lineage
 from apps.api.security import password_hash
 from apps.worker.main import run_once
 from scripts.seed_demo import seed
@@ -56,7 +57,8 @@ class ApiTests(unittest.TestCase):
     def ready_plan(self,shortages=1):
         identifier=uuid.uuid4().hex
         with self.factory() as db:
-            db.add(Plan(id=identifier,organization_id='demo',branch_id='1',forecast_id='fixture',version=1,status='ready',result={'constraints_valid':True,'shortage_count':shortages,'lines':[],'requirements':[],'total_cost':'0','target_date':'2026-01-01'}))
+            inputs=capture_lineage(db,'demo',[{'kind':'inventory_lots','rows':rows_for(db,'demo','inventory_lots','1'),'branch_id':'1','snapshot_date':'2026-01-01'}])
+            db.add(Plan(id=identifier,organization_id='demo',branch_id='1',forecast_id='fixture',version=1,status='ready',result={'constraints_valid':True,'shortage_count':shortages,'lines':[],'requirements':[],'total_cost':'0','target_date':'2026-01-01','input_lineage':inputs}))
             db.commit()
         return identifier
     def test_auth_origin_csrf_and_limit(self):
@@ -100,10 +102,10 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(preview['valid'],preview)
         path='/api/v1/imports/'+preview['id']+'/commit'
         self.assertEqual(c.post(path).status_code,200)
-        self.assertEqual(c.post(path).status_code,409)
+        self.assertEqual(c.post(path).status_code,200)
         duplicate=c.post('/api/v1/imports/preview',json={'kind':'daily_sales','csv_text':header+valid}).json()
-        self.assertFalse(duplicate['valid'])
-        self.assertEqual(duplicate['errors'][0]['code'],'DUPLICATE_KEY')
+        self.assertTrue(duplicate['valid'])
+        self.assertEqual(duplicate['counts']['unchanged'],1)
         self.assertEqual(c.post('/api/v1/imports/preview',json={'kind':'oracle_do_not_train','csv_text':'latent_demand_ORACLE_ONLY\n1'}).status_code,400)
         rows,errors=parse_csv('daily_sales',header.rstrip() + ',latent_demand_ORACLE_ONLY\n')
         self.assertEqual(errors[0]['code'],'INVALID_COLUMNS')

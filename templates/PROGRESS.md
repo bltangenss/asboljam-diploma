@@ -1,5 +1,27 @@
 # AsBoljam — журнал прогресса
 
+## Актуальное продолжение — история импорта и версии данных, 29.09.2026
+
+Продолжена `main` от `5b2468122d59eeeb4832484612ad24210983644b`, без реального предприятия.
+
+**DONE:** явная additive-миграция0003 добавляет ImportEvidence, RecordRevision и ImportReceipt. Preview хранит источник/версию сопоставления, хеш полученного UTF-8 текста, хеш разобранных canonical rows, период, филиалы, счётчики и полноту проверки. Заявленный исходный SHA256 не считается проверенным. Старым загрузкам не приписано вымышленное происхождение. Commit атомарен и идемпотентен; повтор одинаковых строк не создаёт дублей. Изменённые значения требуют режима correction, существующих ключей и причины; поддержаны только daily_sales/calendar/inventory_lots. Версии «было → стало», аудит и квитанция сохраняются вместе. Изменение между preview/commit, включая ABA, блокирует устаревшую коррекцию. Повтор branches не выдаёт доступ к чужому филиалу.
+
+**DONE расчёты/UI:** forecast/procurement сохраняют хеши, версии и выборки входных строк; новый релевантный ряд тоже делает старый расчёт неактуальным. Готовый план с изменённым/непроверяемым источником нельзя утвердить до пересчёта. Прежние результаты, утверждённые решения, CSV и точный idempotent replay не переписываются. В web KK/RU есть история, ссылки из расчёта на загрузку, подтверждение исправления и восстановление результата после потерянного ответа commit. Исходные даты SYNTHETIC сохранены. Исправлен независимый сброс полей пароля при фоновой загрузке settings: формы больше не размонтируются вместе с metadata.
+
+**TESTED:** финальный `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` — **242/242 PASS, 60.489 s**. PostgreSQL runner восьми suites — **109/109 PASS, 73.648 s**: 108 тел тестов PostgreSQL17.11 и один намеренный SQLite backup/restore case; 109 отдельных PG fixture schemas, исходники во время прогона не менялись. [PG report](../artifacts/verification/postgres-import-platform.json). Полные команды и source hashes: [import-platform.json](../artifacts/verification/import-platform.json).
+
+`npm.cmd run build` — **PASS**, 1753 modules, Vite4.72 s. Mock Chrome sessions/imports/account/tenant — **31/31 PASS, 1.3 min**. Live Chrome: **7/8 PASS** в первом прогоне2.6 min; единственный failure — неоднозначный старый селектор сообщения, которое теперь также есть в истории импорта. Селектор ограничен областью результата preview; повторён только `workflow.spec.ts --grep "login → CSV"` — **1/1 PASS,37.1 s**. Все8 различных live-сценариев получили успешный результат; общий live suite после этой правки теста не повторялся. Новый live-сценарий выполняет четыре настоящих worker jobs и проверяет correction → stale approval refusal → replay без дублей → recompute → approve → correction → неизменность старого CSV/решения/idempotent reply. Existing live suite также проверил HGB, роли, onboarding, пароль и responsive. Снимок approved mobile с сообщением об изменившихся входных данных просмотрен; горизонтального overflow страницы нет.
+
+До0003 создан private online backup основной SQLite: `backups/pre-import-0003-ac122a6caab544e0b8fdb691cfae8ed2.sqlite`, SHA256 `e4eba28735e171eb871a01f653dfe5a2d31dca8c5835670894a78e303ae36467`. Integrity/FK PASS. После миграции версии0001/0002/0003; количества строк всех12 прежних таблиц, кроме migration marker table, совпали, в том числе200725 operational rows. Новые sidecars пусты: исторический source не выдуман. Tests отдельно проверяют точное сохранение строк, rollback, concurrent migration и backup/restore.
+
+В ходе проверки исправлены: неполная reference-validation после500 ошибок без признака усечения; возможность расширения branch scope через повтор справочника; password-form initialization race. После backend-исправления повторены Python/PG, после UI-исправления — build/mock browser. API/worker/preview и PG-контейнер остановлены, порты3000/8000 свободны; базы и volumes сохранены. Тестовые credentials, DB, screenshots/traces и backup не входят в Git/ZIP.
+
+**IN PROGRESS:** общая коммерческая подготовка. **TODO:** законченная REAL/date policy по всей цепочке, stock movement ledger, heartbeat/recovery, эксплуатационные gates. [Матрица](../docs/commercial/RELEASE_GATES_RU.md) сохраняет полный объём цели; [runbook импорта](../docs/commercial/IMPORT_OPERATIONS_RU.md) описывает текущие правила.
+
+**BLOCKED:** полевой пилот и измерение эффекта требуют предприятия; это не блокирует локальную разработку. **NOT TESTED:** REAL-импорт по-прежнему запрещён; целевой HTTPS deployment, нагрузка/SLA, независимый аудит, реальная экономия и обновлённый device runtime. APK/ZIP/research benchmark не пересобраны; pg_dump/restore на0003 отдельно не выполнялся. Массовый rollback/удаление, коррекции справочников и журнал складских движений ещё не реализованы. Production-ready не заявляется.
+
+Ниже — история предыдущих блоков; старые TODO/BLOCKED читать с учётом этого обновления.
+
 ## Актуальное продолжение — организации и первый запуск, 29.09.2026
 
 Продолжена `main` от `129f140c4bc8e2de002a8fb0f0e6ef0decbda6e1`, без реального предприятия.

@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -201,4 +201,62 @@ CREATE TABLE organizations (
     PRIMARY KEY (id),
     CONSTRAINT ck_organization_status CHECK (status IN ('active', 'suspended')),
     CONSTRAINT ck_organization_data_policy CHECK (data_policy IN ('synthetic_only', 'unconfigured'))
+);
+
+-- Added by migration 0003. No legacy source evidence or revisions are invented.
+CREATE TABLE import_evidence (
+    batch_id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    actor_id VARCHAR(64) NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    contract_version VARCHAR(32) DEFAULT 'app-import-v1' NOT NULL,
+    source JSON NOT NULL,
+    received_text_sha256 VARCHAR(64),
+    canonical_rows_sha256 VARCHAR(64),
+    summary JSON NOT NULL,
+    expected_state JSON NOT NULL,
+    mode VARCHAR(16) DEFAULT 'append' NOT NULL,
+    reason TEXT,
+    corrects_batch_id VARCHAR(64),
+    committed_at VARCHAR(64),
+    receipt JSON,
+    PRIMARY KEY (batch_id),
+    CONSTRAINT ck_import_evidence_mode CHECK (mode IN ('append', 'correction'))
+);
+CREATE INDEX ix_import_evidence_organization_id ON import_evidence (organization_id);
+
+CREATE TABLE record_revisions (
+    id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    natural_key VARCHAR(255) NOT NULL,
+    branch_id VARCHAR(64),
+    revision INTEGER NOT NULL,
+    record_id INTEGER,
+    before_data JSON,
+    after_data JSON NOT NULL,
+    before_sha256 VARCHAR(64),
+    after_sha256 VARCHAR(64) NOT NULL,
+    batch_id VARCHAR(64) NOT NULL,
+    actor_id VARCHAR(64) NOT NULL,
+    reason TEXT,
+    recorded_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT ck_record_revision_positive CHECK (revision >= 1),
+    CONSTRAINT uq_record_revision UNIQUE (organization_id, kind, natural_key, revision)
+);
+CREATE INDEX ix_record_revision_scope ON record_revisions (organization_id, kind, branch_id);
+CREATE INDEX ix_record_revision_batch ON record_revisions (organization_id, batch_id);
+
+CREATE TABLE import_receipts (
+    id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    actor_id VARCHAR(64) NOT NULL,
+    key VARCHAR(128) NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    batch_id VARCHAR(64) NOT NULL,
+    response JSON NOT NULL,
+    created_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_import_receipt_key UNIQUE (organization_id, actor_id, key)
 );
