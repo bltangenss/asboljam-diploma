@@ -19,6 +19,7 @@ services:
       context: .
       dockerfile: infra/Dockerfile.api
     environment: &backend_environment
+      ASBOLJAM_ENV: ${ASBOLJAM_ENV-local}
       DATABASE_URL: postgresql+psycopg://asboljam:${POSTGRES_PASSWORD:?Set a URL-safe POSTGRES_PASSWORD in .env}@postgres:5432/asboljam
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}

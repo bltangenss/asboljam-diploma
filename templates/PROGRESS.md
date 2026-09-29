@@ -1,5 +1,27 @@
 # AsBoljam — журнал прогресса
 
+## Актуальное продолжение — 29.09.2026
+
+Пользователь поручил улучшать коммерческую основу без реального бизнеса. Работа продолжена от `f0b835496ae639149bd14adb7dddbddc1cf9f947` в существующей `main`. После сообщения о 15% недельного расхода пользователь разрешил текущий блок работ; прежняя остановка на 10% не означает отмену этого поручения.
+
+**DONE:** права analyst приведены к чтению в API и web KK/RU; импорт ограничен ролью. Изменение доступа отзывает сессии и атомарно отменяет queued/running jobs с аудитом. Worker повторно проверяет организацию/филиал/роль и источник, не публикует отменённые или устаревшие вычисления, не раскрывает текст исключений. Добавлены проверки конфигурации до открытия БД, secure logout cookies, HSTS в production, безопасный отказ при некорректном Content-Length и запрет demo seed в production. Исправлены повреждённые CSV-заголовки и честность aggregate summary при частичном сканировании/дубликатах. Контракты обновлены; схема БД и модели прогнозирования не менялись.
+
+**TESTED:** финальный `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` — **131/131 PASS, 28.061 s** (19 API, 14 engine, 4 backup, 16 config, 5 import parser, 10 packaging, 28 POS adapter, 3 research guards, 5 security settings, 16 tenant isolation, 11 worker security). `npm.cmd run build` — PASS, 1749 modules, 9.61 s. `npm.cmd run test:e2e -- tests/e2e/sessions_imports.spec.ts --reporter=line --output=.cache/commercial-e2e-rerun --timeout=30000` — **8/8 PASS, 10.0 s**, Chrome на собранном Vite preview, API замокан. Проверены роли, KK/RU read-only controls, session recovery и import/session races. Это не полный browser workflow с настоящим API. API suite содержит настоящий forecast → procurement → export; специальные worker race-тесты используют stub вычисления и реальные SQLite-транзакции. `python scripts/generate_contracts.py` и `git diff --check` — PASS. Проверка секретов без изменения старого отчёта: `python scripts/check_secrets.py --no-report` — 0 findings.
+
+Первый CLI browser run не стартовал из-за `spawn EPERM`; расширенный запуск Chrome затем получил 8 failures из-за той же ошибки у sandbox Vite dev. Сервер заменён на уже собранный `npm.cmd run preview -- --strictPort --configLoader native`, повтор прошёл. Оба созданных для проверки web-процесса остановлены. В ходе разработки также исправлена коллизия имени settings с endpoint. Итоговые результаты относятся к исправленному коду. Подробности: [commercial-hardening.json](../artifacts/verification/commercial-hardening.json).
+
+**IN PROGRESS:** коммерческая готовность в целом; текущий блок локальных исправлений закончен.
+
+**TODO:** проверить новую сериализацию отзыва/публикации на PostgreSQL; полный browser workflow на обновлённых API/worker; отдельное создание tenant/первого администратора и сброс пароля; heartbeat для долгих задач. Следующие продуктовые этапы — multi-day forecast и журнал движения запасов с миграциями и отдельной проверкой научных допущений.
+
+**BLOCKED:** текущий PostgreSQL runtime недоступен — Docker Desktop Linux engine pipe отсутствует. Реальный пилот требует предприятия и согласованных данных; их пока нет. Это не блокирует дальнейшую локальную разработку.
+
+**NOT TESTED:** новые изменения на PostgreSQL, реальный HTTPS deployment, нагрузка и независимый аудит, полная browser цепочка с реальным API после этих изменений, обновлённый device runtime. APK, research benchmark и source ZIP в этом блоке не пересобирались; их старые артефакты не содержат текущие server/web изменения. REAL импорт по-прежнему запрещён.
+
+## Исторический снимок — 25.09.2026
+
+Следующие разделы сохранены как история. Их старые TODO, счётчики и ограничения запуска не заменяют актуальный статус выше. Android-отчёт и первый коммерческий data contract уже закоммичены до текущего блока.
+
 Состояние: 25.09.2026, локальная работа возобновлена по прямому запросу пользователя. Codex Cloud отменён. Проект и Git history сохранены; текущее продолжение идёт в `main`, origin — PRIVATE `bltangenss/asboljam-diploma`.
 
 ## DONE

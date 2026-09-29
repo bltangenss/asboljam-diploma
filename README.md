@@ -73,6 +73,10 @@ npm run dev
 
 План перехода к коммерческому пилоту и последовательные промпты для дальнейшей разработки находятся в [docs/commercial_prompts/README_RU.md](docs/commercial_prompts/README_RU.md). Договор данных и discovery-чеклист первого пилота — в [docs/commercial/DATA_CONTRACT_RU.md](docs/commercial/DATA_CONTRACT_RU.md) и [docs/commercial/DISCOVERY_CHECKLIST_RU.md](docs/commercial/DISCOVERY_CHECKLIST_RU.md). Это план работ, а не заявление о production-ready статусе или подключении реального бизнеса.
 
+Настройки среды и действия администратора описаны в [SECURITY_RUNBOOK_RU.md](docs/commercial/SECURITY_RUNBOOK_RU.md). По умолчанию работает `ASBOLJAM_ENV=local`. Режим `production` проверяет HTTPS origins, secure cookies и явный PostgreSQL URL до подключения API/worker к БД; demo seed в нём запрещён. Он не включает импорт REAL и не заменяет проверку целевого развёртывания.
+
+Аналитик (`analyst`) читает данные, сохранённые результаты и разрешённые CSV-шаблоны. Расчёты создают manager/admin; warehouse импортирует только складские партии, manager — продажи, календарь и партии, admin — все девять схем. Изменение доступа отзывает сессии и отменяет ожидающие/выполняющиеся задания сотрудника. Завершённые результаты сохраняются; отозванное задание не может опубликовать новый результат.
+
 Стек сохраняет React/Vite и custom DB worker. Next.js/Alembic/Redis/Celery не требуются. Операционные записи валидируются и хранятся JSON с ключами/изоляцией; это MVP, не полноценная ERP. Подробнее: [решения](templates/DECISIONS.md), [БД](database/README.md), [аудит источников](docs/SOURCE_REVIEW_RU.md).
 
 ## Данные и вычисления

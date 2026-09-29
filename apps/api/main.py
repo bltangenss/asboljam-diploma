@@ -16,7 +16,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
-from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
+from .config import load_settings
+from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Plan, Record, RefreshToken, User, make_engine, migrate, now, sessions
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .security import password_hash, token_hash, verify_password
 
@@ -80,28 +81,36 @@ def forecast_json(forecast):
     return {**forecast.result, **META, 'id':forecast.id,'run_id':forecast.id,'branch_id':forecast.branch_id,'created_at':forecast.created_at}
 
 def create_app(database_url=None):
+    runtime_settings = load_settings(database_url)
     app = FastAPI(title='AsBoljam', version='1.0.0', description='Synthetic catering operations demo; one-day forecasts; internal approval only.')
-    engine = make_engine(database_url)
+    engine = make_engine(runtime_settings.database_url)
     migrate(engine)
     atexit.register(engine.dispose)
     app.state.engine = engine
     app.state.sessions = sessions(engine)
-    allowed_origins = [s.strip() for s in os.environ.get('ALLOWED_ORIGINS','http://localhost:3000,http://127.0.0.1:3000').split(',') if s.strip()]
-    if '*' in allowed_origins:
-        raise ValueError('ALLOWED_ORIGINS must contain exact origins; wildcard credentials are forbidden')
-    secure = os.environ.get('COOKIE_SECURE','false').lower() == 'true'
+    app.state.settings = runtime_settings
+    allowed_origins = list(runtime_settings.allowed_origins)
+    secure = runtime_settings.cookie_secure
     app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'])
 
     @app.middleware('http')
     async def protection(request, call_next):
+        response = None
         if request.method in {'POST','PATCH','PUT','DELETE'}:
             length = request.headers.get('content-length')
-            if length and int(length) > 22 * 1024 * 1024:
-                return JSONResponse({'detail':{'code':'FILE_TOO_LARGE','message':'Сұрау өлшемі шектен асты.'}},413)
-        response = await call_next(request)
+            if length is not None:
+                if not length.isascii() or not length.isdecimal() or len(length)>20:
+                    response = JSONResponse({'detail':{'code':'INVALID_CONTENT_LENGTH','message':'Сұрау өлшемі жарамсыз.'}},400)
+                elif int(length) > 22 * 1024 * 1024:
+                    response = JSONResponse({'detail':{'code':'FILE_TOO_LARGE','message':'Сұрау өлшемі шектен асты.'}},413)
+        if response is None:
+            response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['Cache-Control'] = 'no-store'
+        if runtime_settings.environment == 'production':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000'
         return response
 
     def get_db():
@@ -187,7 +196,7 @@ def create_app(database_url=None):
         if request.state.auth.family_id:
             db.execute(update(RefreshToken).where(RefreshToken.family_id==request.state.auth.family_id).values(revoked=True))
         db.commit()
-        response.delete_cookie('asboljam_session',path='/api')
+        response.delete_cookie('asboljam_session',path='/api',secure=secure,httponly=True,samesite='lax')
         return {'status':'logged_out'}
     @app.post('/api/v1/auth/token')
     def token(data:Login,request:Request,db=Depends(get_db)):
@@ -293,8 +302,8 @@ def create_app(database_url=None):
 
     @app.post('/api/v1/imports/preview')
     def import_preview(data:ImportInput,user=Depends(current),db=Depends(get_db)):
-        roles(user,'admin','manager','analyst','warehouse')
-        if user.role=='warehouse' and data.kind!='inventory_lots': roles(user,'admin','manager','analyst')
+        roles(user,'admin','manager','warehouse')
+        if user.role=='warehouse' and data.kind!='inventory_lots': roles(user,'admin','manager')
         if data.kind not in SCHEMAS: fail('UNSUPPORTED_KIND','Рұқсат етілмеген файл түрі.')
         if data.kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
         rows,errors=parse_csv(data.kind,data.csv_text)
@@ -304,9 +313,10 @@ def create_app(database_url=None):
         return {'id':batch.id,'kind':data.kind,'row_count':len(rows),'valid':not errors,'errors':errors,'preview':rows[:10],**META}
     @app.post('/api/v1/imports/{batch_id}/commit')
     def import_commit(batch_id:str,user=Depends(current),db=Depends(get_db)):
+        roles(user,'admin','manager','warehouse')
         batch=db.get(ImportBatch,batch_id)
         if not batch or batch.organization_id!=user.organization_id or batch.actor_id!=user.id: fail('NOT_FOUND','Импорт табылмады.',404)
-        if user.role=='warehouse' and batch.kind!='inventory_lots': roles(user,'admin','manager','analyst')
+        if user.role=='warehouse' and batch.kind!='inventory_lots': roles(user,'admin','manager')
         if batch.kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
         if batch.status!='preview': fail('ALREADY_COMMITTED','Импорт орындалған.',409)
         errors=batch.errors or validate_rows(db,user.organization_id,batch.kind,batch.rows,user.branch_ids if batch.kind!='branches' else None)
@@ -327,7 +337,7 @@ def create_app(database_url=None):
 
     @app.post('/api/v1/forecasts',status_code=202,response_model=QueuedResponse)
     def create_forecast(data:ForecastInput,user=Depends(current),db=Depends(get_db)):
-        roles(user,'admin','manager','analyst');branch_access(db,user,data.branch_id)
+        roles(user,'admin','manager');branch_access(db,user,data.branch_id)
         sales=rows_for(db,user.organization_id,'daily_sales',data.branch_id)
         sales=[r for r in sales if r['date']<=data.origin.isoformat()]
         if not sales: fail('NO_SALES','Болжамға сатылым деректері қажет.',422)
@@ -351,7 +361,7 @@ def create_app(database_url=None):
         return {'items':[forecast_json(r) for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**META}
     @app.post('/api/v1/procurement',status_code=202,response_model=QueuedResponse)
     def create_procurement(data:ProcurementInput,user=Depends(current),db=Depends(get_db)):
-        roles(user,'admin','manager','analyst');branch_access(db,user,data.branch_id)
+        roles(user,'admin','manager');branch_access(db,user,data.branch_id)
         forecast=scoped(db,Forecast,user,data.forecast_id)
         if forecast.branch_id!=data.branch_id: fail('BRANCH_MISMATCH','Болжам бөлімшесі сәйкес емес.',422)
         if data.strategy!='point' and any(r.get('p50' if data.strategy=='p50' else 'p90') is None for r in forecast.result['predictions']): fail('QUANTILES_UNAVAILABLE','Бұл модельде квантильдер жоқ.',422)
@@ -456,13 +466,20 @@ def create_app(database_url=None):
     @app.patch('/api/v1/users/{user_id}')
     def update_user(user_id:str,data:UserAccess,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin')
-        other=db.get(User,user_id)
-        if not other or other.organization_id!=user.organization_id: fail('NOT_FOUND','Пайдаланушы табылмады.',404)
-        if other.id==user.id: fail('SELF_ACCESS_CHANGE','Өз рұқсатыңызды өзгертуге болмайды.',422)
+        if user_id==user.id: fail('SELF_ACCESS_CHANGE','Өз рұқсатыңызды өзгертуге болмайды.',422)
         for branch in data.branch_ids: branch_access(db,user,branch)
+        # Serialize access revocation with worker publication on both supported databases.
+        found=db.execute(update(User).where(User.id==user_id,User.organization_id==user.organization_id).values(active=User.active)).rowcount
+        if not found: fail('NOT_FOUND','Пайдаланушы табылмады.',404)
+        other=db.get(User,user_id,populate_existing=True)
         other.role,other.branch_ids,other.active=data.role,data.branch_ids,data.active
         db.execute(update(AuthSession).where(AuthSession.user_id==other.id).values(revoked=True))
         db.execute(update(RefreshToken).where(RefreshToken.user_id==other.id).values(revoked=True))
+        cancelled=db.execute(update(Job).where(Job.actor_id==other.id,Job.organization_id==user.organization_id,Job.status.in_(['queued','running'])).values(
+            status='failed',result_id=None,finished_at=now(),error='JOB_ACCESS_REVOKED: Есептеуге рұқсат өзгерген. Менеджерге хабарласыңыз.'
+        ).returning(Job.id,Job.branch_id)).all()
+        for job_id,branch_id in cancelled:
+            audit(db,user,'job.cancelled',job_id,branch_id,{'code':'JOB_ACCESS_REVOKED'})
         audit(db,user,'user.access_changed',other.id,details=data.model_dump());db.commit()
         return user_json(other)
     return app

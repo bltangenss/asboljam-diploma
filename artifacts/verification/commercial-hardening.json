@@ -1,0 +1,138 @@
+{
+  "date": "2026-09-29",
+  "base_commit": "f0b835496ae639149bd14adb7dddbddc1cf9f947",
+  "branch": "main",
+  "scope": "Local commercial hardening without real enterprise data. Existing synthetic-only operational importer preserved.",
+  "environment": {
+    "os": "Windows",
+    "python": "3.13.9",
+    "node": "24.14.1",
+    "database": "isolated SQLite fixtures",
+    "browser": "Chrome via Playwright, built Vite preview"
+  },
+  "checks": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "result": "PASS",
+      "tests": 131,
+      "seconds": 28.061,
+      "exit_code": 0,
+      "breakdown": {
+        "api": 19,
+        "engine": 14,
+        "backup": 4,
+        "config": 16,
+        "import_parser": 5,
+        "packaging": 10,
+        "pos_adapter": 28,
+        "research_guards": 3,
+        "security_settings": 5,
+        "tenant_isolation": 16,
+        "worker_security": 11
+      }
+    },
+    {
+      "command": "npm.cmd run build",
+      "result": "PASS",
+      "modules": 1749,
+      "vite_seconds": 9.61,
+      "exit_code": 0
+    },
+    {
+      "command": "npm.cmd run test:e2e -- tests/e2e/sessions_imports.spec.ts --reporter=line --output=.cache/commercial-e2e-rerun --timeout=30000",
+      "result": "PASS",
+      "tests": 8,
+      "seconds": 10,
+      "exit_code": 0,
+      "api": "mocked",
+      "web": "npm.cmd run preview -- --strictPort --configLoader native",
+      "coverage": [
+        "analyst read-only in KK/RU",
+        "manager/warehouse import schema controls",
+        "session expiration and recovery",
+        "stale session/branch responses",
+        "stale CSV previews"
+      ],
+      "limits": "Not the full live API/worker browser workflow; subprocess launch required approved sandbox escalation."
+    },
+    {
+      "command": "python scripts/generate_contracts.py",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python scripts/check_secrets.py --no-report",
+      "result": "PASS",
+      "checked_files": 175,
+      "findings": 0,
+      "scope": "before adding this evidence file; final staged check performed before commit"
+    }
+  ],
+  "failures_and_resolution": [
+    {
+      "result": "FAILED",
+      "scope": "initial targeted settings/API integration",
+      "cause": "local settings name collided with settings endpoint",
+      "resolution": "renamed runtime_settings; final full 131-test suite passes"
+    },
+    {
+      "result": "BLOCKED",
+      "scope": "first Playwright invocation",
+      "cause": "sandbox subprocess spawn EPERM",
+      "resolution": "approved escalated Playwright invocation"
+    },
+    {
+      "result": "FAILED",
+      "scope": "8 browser tests against sandbox Vite dev",
+      "cause": "Vite optimizeSafeRealPathSync attempted forbidden child process; pages displayed error overlay",
+      "resolution": "stopped owned dev server; served previously successful build with preview; all 8 tests pass"
+    }
+  ],
+  "boundaries": [
+    "API suite runs actual forecast/procurement engines; special worker security tests stub computation and exercise real SQLite transactions.",
+    "Secure cookies/HSTS tests use a local test client and substituted SQLite factory; they do not prove network TLS or PostgreSQL.",
+    "PostgreSQL new locks and end-to-end runtime not tested: docker info/compose ps reported missing Docker Desktop Linux engine pipe.",
+    "Historic PostgreSQL, runtime, research, APK and ZIP artifacts were not regenerated and do not prove this current changeset.",
+    "No real enterprise source, REAL import, customer savings, independent security audit or deployment success claimed.",
+    "Revoked in-flight jobs may finish CPU calculation, but cannot publish after cancellation.",
+    "Existing 30-minute job lease has no heartbeat; stale publication is fenced.",
+    "Both owned Vite dev and preview verification processes were stopped."
+  ],
+  "source_sha256_working_file_bytes": [
+    {
+      "path": "apps/api/config.py",
+      "sha256": "a6fb6382cd62e22350d07ae35e7e74d7f509d37508d0ee1b843df7217d52eada"
+    },
+    {
+      "path": "apps/api/main.py",
+      "sha256": "29c1a42931d12d4e900be38d444cd8cae1e10cd0938a59e0f5924287763c5b38"
+    },
+    {
+      "path": "apps/api/importing.py",
+      "sha256": "3cbb9b928c73233233ab4833c219c3022cbb1818addfa4dbd3bb649fb5af8da2"
+    },
+    {
+      "path": "apps/worker/main.py",
+      "sha256": "3b6f53453fe0dabbf1c3269e204d8d62383edcb7184a5e8d07479c6d71b13ca9"
+    },
+    {
+      "path": "scripts/adapt_pos_csv.py",
+      "sha256": "331c9cc0b1dbed09e32002b695a3ec81dff0ea481610f4ce75d168f33e743895"
+    },
+    {
+      "path": "apps/web/src/DataPages.tsx",
+      "sha256": "32dd16a5584d757b3cc67d1cf6c24044814c2a5a5269884b492525ea30db46f9"
+    },
+    {
+      "path": "apps/web/src/Planning.tsx",
+      "sha256": "d109d5b0e128e1f561682e8c3a7c821703dfd1c4968b9cc54e991d2c98200c6e"
+    },
+    {
+      "path": "apps/web/src/shared.tsx",
+      "sha256": "b341cae74903c52064cf531a8061abb96e2ac7e375e91f709e9496fb7b06b135"
+    }
+  ]
+}

@@ -38,9 +38,18 @@
     ],
     "forecast_and_procurement": [
       "admin",
+      "manager"
+    ],
+    "forecast_and_procurement_read": [
+      "admin",
       "manager",
       "analyst"
     ],
+    "operational_import": [
+      "admin",
+      "manager"
+    ],
+    "analyst_access": "read_only_with_operational_CSV_templates",
     "reference_import": [
       "admin"
     ],

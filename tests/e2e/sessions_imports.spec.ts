@@ -46,6 +46,85 @@ async function signInAgain(page:Page) {
   await expectDashboard(page);
 }
 
+test('analyst can read saved plans and templates but cannot submit writes',async({page})=>{
+  const writes:string[]=[];
+  const auth=await installApi(page,async(route,path)=>{
+    if(route.request().method()!=='GET') {
+      writes.push(path);
+      await route.fulfill({status:403,json:{detail:{code:'FORBIDDEN',message:'Read only'}}});
+      return true;
+    }
+    if(path==='/forecasts') {
+      await route.fulfill({json:{...pageData,items:[{id:'stored-forecast',model:'seasonal_naive_7',target_date:'2026-01-01'}],total:1}});
+      return true;
+    }
+    if(path==='/plans/stored-plan') {
+      await route.fulfill({json:{id:'stored-plan',branch_id:'1',forecast_id:'stored-forecast',version:1,status:'ready',
+        result:{target_date:'2026-01-01',strategy:'point',budget:'1000',total_cost:'0',remaining_budget:'1000',
+          shortage_count:0,requirements:[],lines:[],constraints_valid:true,solver_status:'optimal'}}});
+      return true;
+    }
+    return false;
+  });
+  auth.user={...user,role:'analyst'};
+  await page.goto('/forecasts');
+  await expect(page.getByRole('status')).toContainText('Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.');
+  await expect(page.getByRole('button',{name:'stored-f',exact:true})).toBeVisible();
+  await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
+  const forecastButton=page.getByRole('button',{name:'Есептеу',exact:true});
+  await expect(forecastButton).toBeDisabled();
+  await forecastButton.evaluate((button:HTMLButtonElement)=>button.click());
+  await page.goto('/procurement');
+  await expect(page.getByLabel('Болжам',{exact:true})).toHaveValue('stored-forecast');
+  await expect(page.getByLabel('Болжам',{exact:true})).toBeDisabled();
+  const planButton=page.getByRole('button',{name:'Есептеу',exact:true});
+  await expect(planButton).toBeDisabled();
+  await planButton.evaluate((button:HTMLButtonElement)=>button.click());
+  await page.goto('/procurement/stored-plan');
+  await expect(page.getByRole('button',{name:'Жоспарды бекіту',exact:true})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Қабылдамау',exact:true})).toBeDisabled();
+  await expect(page.getByRole('link',{name:'CSV жүктеу',exact:true})).toHaveAttribute('href','/api/v1/plans/stored-plan/export');
+  await page.goto('/imports');
+  await expect(page.getByRole('status')).toContainText('Сіз CSV үлгілерін жүктей аласыз.');
+  await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['daily_sales','inventory_lots','calendar']);
+  const input=page.getByLabel('CSV файлды таңдаңыз');
+  await expect(input).toBeDisabled();
+  // Even a programmatic file selection must not enable a forbidden submission.
+  await input.setInputFiles({name:'blocked.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nblocked\n')});
+  const previewButton=page.getByRole('button',{name:'Алдын ала қарау',exact:true});
+  await expect(previewButton).toBeDisabled();
+  await previewButton.evaluate((button:HTMLButtonElement)=>button.click());
+  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toHaveCount(0);
+  await page.getByLabel('Деректер',{exact:true}).selectOption('calendar');
+  await expect(page.locator('a[href="/api/v1/imports/template/calendar"]')).toBeVisible();
+  await page.locator('.language').click();
+  await expect(page.getByRole('status')).toContainText('Вы можете скачивать шаблоны CSV.');
+  await page.goto('/forecasts');
+  await expect(page.getByRole('status')).toContainText('Вам доступен просмотр готовых прогнозов и планов закупки.');
+  await settleBrowser(page);
+  expect(writes).toEqual([]);
+});
+
+test('manager and warehouse import selectors expose only authorized schemas',async({page})=>{
+  const payloads:{kind:string;csv_text:string}[]=[];
+  const auth=await installApi(page,async(route,path)=>{
+    if(path!=='/imports/preview')return false;
+    const body=route.request().postDataJSON();payloads.push(body);
+    await route.fulfill({json:{id:'allowed-preview',kind:body.kind,valid:true,row_count:1,errors:[],preview:[{marker:body.kind}]}});
+    return true;
+  });
+  for(const role of ['manager','warehouse']) {
+    auth.user={...user,role};
+    await page.goto('/imports');
+    const selector=page.getByLabel('Деректер',{exact:true});
+    await expect(selector.locator('option')).toHaveText(role==='manager'?['daily_sales','inventory_lots','calendar']:['inventory_lots']);
+    await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'allowed.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nallowed\n')});
+    await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();
+  }
+  expect(payloads.map(payload=>payload.kind)).toEqual(['daily_sales','inventory_lots']);
+});
+
 for (const trigger of ['protected read','logout'] as const) {
   test(`expired browser session recovers through login after ${trigger}`,async({page})=>{
     const auth=await installApi(page);

@@ -12,6 +12,8 @@ from apps.api.importing import SCHEMAS,insert_rows,parse_csv,validate_rows
 from apps.api.security import password_hash
 
 def seed(factory,password,email='admin@asboljam.local',organization_id='demo'):
+    if os.environ.get('ASBOLJAM_ENV','local').strip().lower() != 'local':
+        raise ValueError('Demo seed is allowed only in local mode.')
     with factory() as db:
         existing=db.scalar(select(func.count()).select_from(Record).where(Record.organization_id==organization_id))
         if not existing:
@@ -38,7 +40,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--email',default='admin@asboljam.local')
     args=parser.parse_args()
-    engine=make_engine();migrate(engine)
+    from apps.api.config import load_settings
+    settings=load_settings()
+    if settings.environment!='local':
+        raise SystemExit('Demo seed is allowed only in local mode.')
+    engine=make_engine(settings.database_url);migrate(engine)
     provided=os.environ.get('DEMO_PASSWORD')
     password=provided or secrets.token_urlsafe(18)
     created=seed(sessions(engine),password,args.email)
