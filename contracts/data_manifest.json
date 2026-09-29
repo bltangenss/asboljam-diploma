@@ -10,7 +10,7 @@
     ],
     "generator": "scripts/generate_contracts.py",
     "dictionary_sha256": "fad1e65911e44a69d4c16b75e6a3a5598f9b8beb9ad432b32256e647d6e99df3",
-    "importer_sha256": "75c037537f39a701780e9bf50f33f98b4bee6b5cc21c42c19bff5da007e2da32",
+    "importer_sha256": "3cbb9b928c73233233ab4833c219c3022cbb1818addfa4dbd3bb649fb5af8da2",
     "notice": "This file was reconstructed explicitly; no original contracts/data_manifest.json was included in the supplied materials."
   },
   "encoding": [

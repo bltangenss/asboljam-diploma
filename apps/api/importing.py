@@ -85,10 +85,10 @@ def parse_csv(kind, text):
         return [], [{'row_number': 1, 'field': 'file', 'code': 'FILE_TOO_LARGE', 'message': 'Файл өлшемі шектен асты.'}]
     reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff')), strict=True)
     required = set(SCHEMAS[kind].split())
-    fields = reader.fieldnames or []
-    if len(fields) != len(set(fields)) or set(fields) - required - IGNORED.get(kind, set()) or required - set(fields):
-        return [], [{'row_number': 1, 'field': 'header', 'code': 'INVALID_COLUMNS', 'message': 'CSV бағандары схемаға сәйкес емес.', 'expected': SCHEMAS[kind].split()}]
     try:
+        fields = reader.fieldnames or []
+        if len(fields) != len(set(fields)) or set(fields) - required - IGNORED.get(kind, set()) or required - set(fields):
+            return [], [{'row_number': 1, 'field': 'header', 'code': 'INVALID_COLUMNS', 'message': 'CSV бағандары схемаға сәйкес емес.', 'expected': SCHEMAS[kind].split()}]
         for index, raw in enumerate(reader, 2):
             if index > MAX_ROWS + 1:
                 err(index, 'file', 'TOO_MANY_ROWS', 'Жол саны шектен асты.'); break
@@ -150,7 +150,7 @@ def parse_csv(kind, text):
             if len(errors) >= 500:
                 break
     except csv.Error:
-        err(reader.line_num, 'file', 'INVALID_CSV', 'CSV құрылымы жарамсыз.')
+        err(max(1, reader.line_num), 'file', 'INVALID_CSV', 'CSV құрылымы жарамсыз.')
     if not rows and not errors:
         err(2, 'file', 'EMPTY_FILE', 'CSV бос.')
     return rows, errors

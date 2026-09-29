@@ -61,6 +61,9 @@ def _configuration(mapping: dict) -> tuple[str, dict, str]:
     if mapping.get("mapping_version") != "1" or not isinstance(mapping.get("kind"), str) or mapping["kind"] not in SCHEMAS:
         raise AdapterError("Unsupported mapping_version or kind.")
     kind, columns = mapping["kind"], mapping.get("columns")
+    if any(field in mapping and mapping[field] != expected
+           for field, expected in (("declared_sales_unit", "portion"), ("declared_currency", "KZT"))):
+        raise AdapterError("Unit and currency declarations must use documented values.")
     if kind == "daily_sales" and (mapping.get("declared_sales_unit") != "portion" or mapping.get("declared_currency") != "KZT"):
         raise AdapterError("Sales require explicit portion and KZT declarations; unit/currency conversion is unsupported.")
     required = set(SCHEMAS[kind]) - {"data_origin"}
@@ -123,6 +126,10 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
     kind, columns, origin = _configuration(mapping)
     quality = {
         "rows_seen": 0,
+        "rows_checked": 0,
+        "scan_complete": False,
+        "stop_reason": None,
+        "aggregate_basis": "valid_rows",
         "valid_rows": 0,
         "missing_values": 0,
         "duplicate_key_rows": 0,
@@ -150,38 +157,52 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
         "source_rows": 0, "output_rows": 0, "valid": False, "errors": [], "quality": quality,
     }
     errors = report["errors"]
+
+    def reject(code: str, row_number: int = 1, field: str = "file") -> tuple[list[dict], dict]:
+        errors.append(_problem(row_number, field, code))
+        quality["stop_reason"] = code
+        return [], report
+
+    def add_error(row_number: int, field: str, code: str) -> None:
+        if len(errors) < MAX_ERRORS:
+            errors.append(_problem(row_number, field, code))
+
     if len(source) > MAX_BYTES:
-        errors.append(_problem(1, "file", "FILE_TOO_LARGE")); return [], report
+        return reject("FILE_TOO_LARGE")
     try:
         source_text = source.decode("utf-8-sig")
     except UnicodeDecodeError:
-        errors.append(_problem(1, "file", "UTF8_REQUIRED")); return [], report
+        return reject("UTF8_REQUIRED")
     reader = csv.DictReader(io.StringIO(source_text, newline=""), delimiter=mapping.get("delimiter", ","), strict=True)
+    rows, seen = [], set()
+    branch_ids, entity_ids, units = set(), set(), set()
     try:
         fields = reader.fieldnames or []
         if any(FORBIDDEN_HEADERS.search(field) for field in fields):
-            errors.append(_problem(1, "header", "PERSONAL_OR_ORACLE_COLUMN")); return [], report
+            return reject("PERSONAL_OR_ORACLE_COLUMN", field="header")
         if len(fields) != len(set(fields)) or set(fields) != set(columns.values()):
-            errors.append(_problem(1, "header", "UNMAPPED_MISSING_OR_DUPLICATE_COLUMNS")); return [], report
-        rows, seen = [], set()
-        branch_ids, entity_ids = set(), set()
-        units = {"portion"} if kind == "daily_sales" else set()
+            return reject("UNMAPPED_MISSING_OR_DUPLICATE_COLUMNS", field="header")
         for row_number, raw in enumerate(reader, 2):
             report["source_rows"] += 1
             quality["rows_seen"] += 1
             if report["source_rows"] > MAX_ROWS:
-                errors.append(_problem(row_number, "file", "TOO_MANY_ROWS")); break
+                add_error(row_number, "file", "TOO_MANY_ROWS")
+                quality["stop_reason"] = "TOO_MANY_ROWS"
+                break
+            quality["rows_checked"] += 1
+            quality["missing_values"] += sum(
+                value is None or not value.strip() for value in (raw.get(name) for name in columns.values())
+            )
             if None in raw or any(value is None for value in raw.values()):
-                quality["missing_values"] += sum(value is None for value in raw.values())
-                errors.append(_problem(row_number, "row", "COLUMN_COUNT_MISMATCH"))
+                add_error(row_number, "row", "COLUMN_COUNT_MISMATCH")
                 if len(errors) >= MAX_ERRORS:
-                    errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED")); break
+                    quality["stop_reason"] = "ERROR_LIMIT_REACHED"
+                    errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED"))
+                    break
                 continue
             row, before = {}, len(errors)
             for field in SCHEMAS[kind]:
                 value = origin if field == "data_origin" and field not in columns else raw[columns[field]].strip()
-                if value == "":
-                    quality["missing_values"] += 1
                 try:
                     row[field] = _value(field, value, mapping)
                 except (ValueError, InvalidOperation) as exc:
@@ -189,39 +210,39 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
                     code = str(exc)
                     if not re.fullmatch(r"[A-Z_]+", code):
                         code = "INVALID_DATE" if field in DATE_FIELDS else "INVALID_VALUE"
-                    errors.append(_problem(row_number, field, code))
+                    add_error(row_number, field, code)
             if len(errors) == before:
                 key = tuple(row[field] for field in KEYS[kind])
                 if key in seen:
                     quality["duplicate_key_rows"] += 1
-                    errors.append(_problem(row_number, "key", "DUPLICATE_KEY"))
+                    add_error(row_number, "key", "DUPLICATE_KEY")
                 seen.add(key)
                 if kind == "daily_sales":
-                    branch_ids.add(row["branch_id"])
-                    entity_ids.add(row["meal_id"])
-                    if row["stockout_flag"] == "1":
-                        quality["stockout_rows"] += 1
-                    if row["promo"] == "1":
-                        quality["promo_rows"] += 1
-                    if row["is_open"] == "0":
-                        quality["closed_rows"] += 1
                     if int(row["units_sold"]) > int(row["available_portions"]):
-                        errors.append(_problem(row_number, "units_sold", "SALES_EXCEED_AVAILABLE"))
+                        add_error(row_number, "units_sold", "SALES_EXCEED_AVAILABLE")
                     if row["is_open"] == "0" and int(row["units_sold"]):
-                        errors.append(_problem(row_number, "is_open", "CLOSED_WITH_SALES"))
-                else:
-                    branch_ids.add(row["branch_id"])
-                    entity_ids.add(row["ingredient_id"])
-                    units.add(row["unit"])
+                        add_error(row_number, "is_open", "CLOSED_WITH_SALES")
                 if len(errors) == before:
                     quality["valid_rows"] += 1
                     rows.append(row)
+                    branch_ids.add(row["branch_id"])
+                    entity_ids.add(row["meal_id" if kind == "daily_sales" else "ingredient_id"])
+                    units.add("portion" if kind == "daily_sales" else row["unit"])
+                    if kind == "daily_sales":
+                        quality["stockout_rows"] += int(row["stockout_flag"])
+                        quality["promo_rows"] += int(row["promo"])
+                        quality["closed_rows"] += int(row["is_open"] == "0")
             if len(errors) >= MAX_ERRORS:
-                errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED")); break
+                quality["stop_reason"] = "ERROR_LIMIT_REACHED"
+                errors.append(_problem(row_number, "file", "ERROR_LIMIT_REACHED"))
+                break
+        else:
+            quality["scan_complete"] = True
         if not report["source_rows"] and not errors:
             errors.append(_problem(2, "file", "EMPTY_FILE"))
     except csv.Error:
-        errors.append(_problem(reader.line_num, "file", "INVALID_CSV"))
+        add_error(max(1, reader.line_num), "file", "INVALID_CSV")
+        quality["stop_reason"] = "INVALID_CSV"
     if errors:
         quality["units"] = sorted(units)
         quality["distinct_branch_count"] = len(branch_ids)

@@ -61,14 +61,19 @@ class PosAdapterTests(unittest.TestCase):
         self.assertFalse(report["import_performed"])
 
     def test_dry_run_quality_summary_is_aggregate_and_non_sensitive(self):
-        second = sales(date="2026-01-01", branch_id="002", meal_id="0010",
+        first = sales(branch_id="PRIVATE_BRANCH_A", meal_id="PRIVATE_MEAL_A")
+        second = sales(date="2026-01-01", branch_id="PRIVATE_BRANCH_B", meal_id="PRIVATE_MEAL_B",
                        stockout_flag="1", promo="1")
-        rows, report = adapter.adapt(payload(sales(), second), mapping())
+        rows, report = adapter.adapt(payload(first, second), mapping())
         self.assertTrue(report["valid"])
         self.assertEqual(report["date_from"], "2025-12-31")
         self.assertEqual(report["date_to"], "2026-01-01")
         self.assertEqual(report["quality"], {
             "rows_seen": 2,
+            "rows_checked": 2,
+            "scan_complete": True,
+            "stop_reason": None,
+            "aggregate_basis": "valid_rows",
             "valid_rows": 2,
             "missing_values": 0,
             "duplicate_key_rows": 0,
@@ -83,8 +88,28 @@ class PosAdapterTests(unittest.TestCase):
                 "reason": "Canonical reference files and organization scope are checked only at application commit.",
             },
         })
-        self.assertNotIn("001", json.dumps(report))
-        self.assertNotIn("0010", json.dumps(report))
+        # Short numeric IDs can occur by chance inside provenance SHA256 values.
+        for row in (first, second):
+            self.assertNotIn(row["branch_id"], json.dumps(report))
+            self.assertNotIn(row["meal_id"], json.dumps(report))
+
+    def test_quality_aggregates_exclude_duplicates_and_invalid_rows(self):
+        first = sales(stockout_flag="1", promo="1")
+        invalid = sales(branch_id="PRIVATE_INVALID_BRANCH", meal_id="PRIVATE_INVALID_MEAL",
+                        is_open="0", stockout_flag="1", promo="1")
+        closed = sales(meal_id="closed_meal", units_sold="0", available_portions="0", is_open="0")
+        rows, report = adapter.adapt(payload(first, first, invalid, closed), mapping())
+        self.assertEqual(rows, [])
+        self.assertEqual(report["output_rows"], 0)
+        quality = report["quality"]
+        self.assertTrue(quality["scan_complete"])
+        self.assertEqual(quality["rows_checked"], 4)
+        self.assertEqual(quality["valid_rows"], 2)
+        self.assertEqual(quality["duplicate_key_rows"], 1)
+        self.assertEqual(quality["distinct_branch_count"], 1)
+        self.assertEqual(quality["distinct_entity_count"], 2)
+        for field in ("stockout_rows", "promo_rows", "closed_rows"):
+            self.assertEqual(quality[field], 1)
 
     def test_dry_run_reports_missing_and_duplicate_rows_without_partial_output(self):
         duplicate = sales()
@@ -153,6 +178,58 @@ class PosAdapterTests(unittest.TestCase):
         self.assertEqual(rows, [])
         self.assertEqual(len(report["errors"]), 3)
         self.assertEqual(report["errors"][-1]["code"], "ERROR_LIMIT_REACHED")
+        self.assertFalse(report["quality"]["scan_complete"])
+        self.assertEqual(report["quality"]["stop_reason"], "ERROR_LIMIT_REACHED")
+        self.assertEqual(report["quality"]["rows_checked"], 2)
+
+    def test_many_errors_in_one_row_remain_bounded(self):
+        invalid = {field: "" for field in sales()}
+        with patch.object(adapter, "MAX_ERRORS", 2):
+            rows, report = adapter.adapt(payload(invalid, sales()), mapping())
+        self.assertEqual(rows, [])
+        self.assertEqual(len(report["errors"]), 3)
+        self.assertEqual(report["errors"][-1]["code"], "ERROR_LIMIT_REACHED")
+        self.assertEqual(report["quality"]["rows_checked"], 1)
+        self.assertEqual(report["quality"]["missing_values"], len(invalid))
+        self.assertEqual(report["quality"]["units"], [])
+        self.assertFalse(report["quality"]["scan_complete"])
+
+    def test_missing_summary_counts_blanks_and_absent_cells_in_short_rows(self):
+        raw = payload(sales()).splitlines()[0] + b"\n ,branch,\n"
+        rows, report = adapter.adapt(raw, mapping())
+        self.assertEqual(rows, [])
+        self.assertEqual(report["quality"]["missing_values"], 9)
+        self.assertTrue(report["quality"]["scan_complete"])
+
+    def test_row_limit_reports_only_the_checked_prefix(self):
+        with patch.object(adapter, "MAX_ROWS", 1):
+            rows, report = adapter.adapt(payload(sales(), sales(meal_id="second"), sales(meal_id="third")), mapping())
+        self.assertEqual(rows, [])
+        quality = report["quality"]
+        self.assertEqual(quality["rows_seen"], 2)
+        self.assertEqual(quality["rows_checked"], 1)
+        self.assertEqual(quality["valid_rows"], 1)
+        self.assertEqual(quality["distinct_entity_count"], 1)
+        self.assertEqual(quality["stop_reason"], "TOO_MANY_ROWS")
+        self.assertFalse(quality["scan_complete"])
+
+    def test_malformed_csv_headers_and_trailing_rows_report_partial_scan(self):
+        cases = (
+            (b'"PRIVATE_HEADER_UNTERMINATED', 0),
+            (b"PRIVATE_HEADER_" + b"x" * (csv.field_size_limit() + 1), 0),
+            (payload(sales()) + b'"PRIVATE_ROW_UNTERMINATED', 1),
+        )
+        for raw, checked in cases:
+            with self.subTest(checked=checked, size=len(raw)):
+                rows, report = adapter.adapt(raw, mapping())
+                self.assertEqual(rows, [])
+                self.assertFalse(report["valid"])
+                self.assertEqual(report["errors"][-1]["code"], "INVALID_CSV")
+                self.assertFalse(report["quality"]["scan_complete"])
+                self.assertEqual(report["quality"]["stop_reason"], "INVALID_CSV")
+                self.assertEqual(report["quality"]["rows_checked"], checked)
+                self.assertNotIn("PRIVATE_HEADER", json.dumps(report))
+                self.assertNotIn("PRIVATE_ROW", json.dumps(report))
 
     def test_explicit_date_decimal_locale_and_column_mapping(self):
         row = sales(); row["date"] = "31.12.2025"; row["price_kzt"] = "1250,10"
@@ -208,6 +285,26 @@ class PosAdapterTests(unittest.TestCase):
             config = mapping(); config[field] = value
             with self.subTest(field=field), self.assertRaises(adapter.AdapterError):
                 adapter.adapt(payload(sales()), config)
+
+    def test_inventory_declarations_cannot_echo_arbitrary_sensitive_text(self):
+        for field in ("declared_currency", "declared_sales_unit"):
+            config = mapping("inventory_lots")
+            config[field] = "PRIVATE_DECLARATION_VALUE"
+            with self.subTest(field=field), self.assertRaises(adapter.AdapterError) as error:
+                adapter.adapt(payload(stock()), config)
+            self.assertNotIn("PRIVATE_DECLARATION_VALUE", str(error.exception))
+
+    def test_cli_malformed_header_returns_safe_json_without_traceback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp); source = base / "sales.csv"; config = base / "mapping.json"
+            source.write_bytes(b'"PRIVATE_HEADER_UNTERMINATED')
+            config.write_text(json.dumps(mapping()), encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()) as stdout:
+                status = adapter.main(["--source", str(source), "--mapping", str(config)])
+            self.assertEqual(status, 2)
+            self.assertEqual(json.loads(stdout.getvalue())["errors"][0]["code"], "INVALID_CSV")
+            self.assertNotIn("PRIVATE_HEADER", stdout.getvalue())
+            self.assertNotIn(str(source), stdout.getvalue())
 
     def test_cli_dry_run_does_not_create_output_or_expose_source_values(self):
         with tempfile.TemporaryDirectory() as temp:
