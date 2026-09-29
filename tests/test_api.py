@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy import func,select
-from apps.api.db import Audit,Job,Plan,Record,User
+from apps.api.db import Audit,Job,Organization,Plan,Record,User
 from apps.api.main import create_app
 from apps.api.importing import SCHEMAS,parse_csv,safe_csv
 from apps.api.security import password_hash
@@ -31,6 +31,7 @@ class ApiTests(unittest.TestCase):
         cls.factory=cls.app.state.sessions
         seed(cls.factory,PASSWORD)
         with cls.factory() as db:
+            db.add(Organization(id='other',name='Foreign fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture'))
             for email,org,role,branches in [('manager@test.local','demo','manager',['1']),('analyst@test.local','demo','analyst',['1']),('warehouse@test.local','demo','warehouse',['1']),('foreign@test.local','other','manager',['1'])]:
                 db.add(User(id=uuid.uuid4().hex,organization_id=org,email=email,password_hash=password_hash(PASSWORD),role=role,branch_ids=branches))
             db.commit()

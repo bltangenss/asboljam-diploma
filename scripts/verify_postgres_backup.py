@@ -43,7 +43,10 @@ def main():
         if source_counts!=restored_counts: raise RuntimeError('Restored row counts differ')
         hash_query="SELECT md5(coalesce(string_agg(id || ':' || password_hash, ',' ORDER BY id),'')) FROM users;"
         if scalar(source,hash_query)!=scalar(restored,hash_query): raise RuntimeError('Restored credential hashes differ')
-        if scalar(restored,"SELECT version FROM schema_migrations;")!='0001': raise RuntimeError('Restored migration marker differs')
+        migration_query="SELECT version FROM schema_migrations ORDER BY version;"
+        source_migrations=scalar(source,migration_query).splitlines()
+        if not source_migrations or scalar(restored,migration_query).splitlines()!=source_migrations:
+            raise RuntimeError('Restored migration markers differ from source')
         report.update(status='passed',source_database=source,restored_database=restored,backup_file=str(backup_path.relative_to(ROOT)).replace('\\','/'),backup_bytes=len(dump),backup_sha256=hashlib.sha256(dump).hexdigest(),table_counts=source_counts,table_counts_match=True,password_hashes_match=True,migration_restored=True)
         print('PASS: pg_dump / pg_restore round-trip; every table count and password hash preserved. Hash values withheld.')
     except Exception as exc:

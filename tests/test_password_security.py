@@ -16,7 +16,7 @@ from sqlalchemy import select
 from database_fixture import isolated_database_url
 
 from apps.api import accounts, main as api, security
-from apps.api.db import Audit, AuthSession, Job, RefreshToken, User
+from apps.api.db import Audit, AuthSession, Job, Organization, RefreshToken, User
 
 
 OLD = 'Synthetic-old-password-2026!'
@@ -41,6 +41,7 @@ class PasswordSecurityTests(unittest.TestCase):
         self.addCleanup(self.app.state.engine.dispose)
         self.factory = self.app.state.sessions
         with self.factory() as db:
+            db.add_all([Organization(id=org,name=f'{org} fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture') for org in ('A','B')])
             for identifier, org, role in [('target', 'A', 'manager'), ('peer', 'A', 'manager'),
                                            ('foreign', 'B', 'admin'), ('analyst', 'A', 'analyst'),
                                            ('warehouse', 'A', 'warehouse'), ('admin', 'A', 'admin')]:

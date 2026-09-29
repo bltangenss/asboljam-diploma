@@ -20,9 +20,10 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
-from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
+from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .security import password_hash, token_hash, verify_password
+from .tenants import organization_active, organization_json
 
 SCENARIO = '2026-01-01'
 META = {'data_origin': 'SYNTHETIC', 'scenario_date': SCENARIO}
@@ -63,10 +64,10 @@ class UserInput(StrictModel):
     email: str = Field(min_length=3,max_length=255)
     password: str = Field(min_length=12,max_length=1024)
     role: Literal['admin','manager','analyst','warehouse']
-    branch_ids: list[str] = Field(min_length=1)
+    branch_ids: list[str] = Field(default_factory=list)
 class UserAccess(StrictModel):
     role: Literal['admin','manager','analyst','warehouse']
-    branch_ids: list[str] = Field(min_length=1)
+    branch_ids: list[str] = Field(default_factory=list)
     active: bool = True
 class QueuedResponse(BaseModel):
     run_id: str
@@ -77,6 +78,29 @@ class CollectionResponse(BaseModel):
     next_cursor: str | None
     data_origin: str = 'SYNTHETIC'
     scenario_date: str = SCENARIO
+class OrganizationView(BaseModel):
+    id: str
+    name: str | None
+    timezone: str | None
+    currency: str
+    status: Literal['active','suspended']
+    data_policy: Literal['synthetic_only','unconfigured']
+    provenance: str
+class OnboardingView(BaseModel):
+    branch_count: int
+    can_import_branches: bool
+    data_policy: Literal['synthetic_only','unconfigured']
+class SettingsResponse(BaseModel):
+    organization: OrganizationView
+    timezone: str | None
+    currency: str
+    onboarding: OnboardingView
+    language: str = 'kk-KZ'
+    read_only: bool = True
+    user: dict
+    forecast_horizon_days: int = 1
+    data_origin: str | None = None
+    scenario_date: str | None = None
 
 
 def user_json(user):
@@ -144,7 +168,7 @@ def create_app(database_url=None):
         if not auth or auth.revoked or auth.expires_at < time.time() or auth.kind != ('native' if native else 'web'):
             fail('AUTH_REQUIRED','Жүйеге кіріңіз.',401)
         user = db.get(User, auth.user_id)
-        if not user or not user.active:
+        if not user or not user.active or not organization_active(db,user.organization_id):
             fail('AUTH_REQUIRED','Есептік жазба қолжетімсіз.',401)
         if request.method not in {'GET','HEAD','OPTIONS'} and not native:
             origin_check(request)
@@ -156,6 +180,21 @@ def create_app(database_url=None):
             if count>=60: fail('RATE_LIMITED','Too many changes; retry after one minute.',429)
             db.add(LoginAttempt(id=uid(),identity=identity,timestamp=time.time()))
             db.commit()
+            # The rate-limit commit released locks. Revalidate and hold tenant access
+            # through the actual mutation so suspension cannot interleave side effects.
+            user=lock_user(db,user.id,user.organization_id)
+            auth=db.get(AuthSession,auth.id,populate_existing=True)
+            if (not user or not user.active or not auth or auth.revoked
+                    or auth.expires_at<time.time() or not organization_active(db,user.organization_id)):
+                fail('AUTH_REQUIRED','Қайта кіріңіз.',401)
+        organization=db.get(Organization,user.organization_id,populate_existing=True)
+        allowed_setup = (request.url.path in {'/api/v1/settings','/api/v1/audit',
+            '/api/v1/session/me','/api/v1/session/logout','/api/v1/account/password','/api/v1/users'}
+            or request.url.path.startswith('/api/v1/users/')
+            or request.url.path.startswith('/api/v1/imports/template/'))
+        if organization.data_policy!='synthetic_only' and not allowed_setup:
+            fail('TENANT_DATA_POLICY_REQUIRED','Деректер режимін әкімші баптауы керек.',403)
+        request.state.organization=organization
         request.state.auth = auth
         return user
     def roles(user, *allowed):
@@ -184,7 +223,8 @@ def create_app(database_url=None):
         if user:
             # Hold until the session/token creation commits; reset cannot interleave.
             user = lock_user(db,user.id)
-        if not user or not verify_password(data.password,user.password_hash) or not user.active:
+        if (not user or not verify_password(data.password,user.password_hash) or not user.active
+                or not organization_active(db,user.organization_id)):
             fail('INVALID_CREDENTIALS','Пошта немесе құпиясөз қате.',401)
         return user
     def native_tokens(db,user,family=None):
@@ -254,7 +294,7 @@ def create_app(database_url=None):
             db.execute(update(AuthSession).where(AuthSession.family_id==old.family_id).values(revoked=True))
             db.commit()
             fail('REFRESH_REUSED','Сессия қауіпсіздік үшін тоқтатылды.',401)
-        if not user or not user.active:
+        if not user or not user.active or not organization_active(db,user.organization_id):
             fail('AUTH_REQUIRED','Қайта кіріңіз.',401)
         db.execute(update(AuthSession).where(AuthSession.family_id==old.family_id).values(revoked=True))
         result=native_tokens(db,user,old.family_id)
@@ -484,9 +524,17 @@ def create_app(database_url=None):
         roles(user,'admin','manager','analyst');branch_access(db,user,branch_id)
         rows=list(db.scalars(select(Forecast).where(Forecast.organization_id==user.organization_id,Forecast.branch_id==branch_id).order_by(Forecast.created_at.desc()).limit(20)))
         return {'items':[{'forecast_id':r.id,'created_at':r.created_at,'metrics':r.result.get('metrics',[]),'metadata':r.result.get('metadata',{})} for r in rows],**META}
-    @app.get('/api/v1/settings')
-    def settings(user=Depends(current)):
-        return {**META,'organization':{'id':user.organization_id,'name':os.environ.get('ORGANIZATION_NAME','AsBoljam Demo')},'language':'kk-KZ','read_only':True,'user':user_json(user),'forecast_horizon_days':1}
+    @app.get('/api/v1/settings',response_model=SettingsResponse)
+    def settings(request:Request,user=Depends(current),db=Depends(get_db)):
+        organization=request.state.organization
+        branch_count=db.scalar(select(func.count()).select_from(Record).where(
+            Record.organization_id==organization.id,Record.kind=='branches'))
+        metadata=META if organization.data_policy=='synthetic_only' else {'data_origin':None,'scenario_date':None}
+        return {**metadata,'organization':organization_json(organization),
+            'timezone':organization.timezone,'currency':organization.currency,
+            'onboarding':{'branch_count':branch_count,'can_import_branches':user.role=='admin' and organization.data_policy=='synthetic_only',
+                          'data_policy':organization.data_policy},
+            'language':'kk-KZ','read_only':True,'user':user_json(user),'forecast_horizon_days':1}
     @app.get('/api/v1/users')
     def users(user=Depends(current),db=Depends(get_db)):
         roles(user,'admin')

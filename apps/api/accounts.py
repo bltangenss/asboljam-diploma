@@ -11,6 +11,7 @@ from sqlalchemy import update
 
 from .db import Audit, AuthSession, Job, RefreshToken, User, now
 from .security import password_hash, verify_password
+from .tenants import lock_organization, organization_active
 
 
 class CredentialError(ValueError):
@@ -20,7 +21,13 @@ class CredentialError(ValueError):
 
 
 def lock_user(db, user_id, organization_id=None):
-    """Acquire a real write lock on SQLite/PostgreSQL, then discard cached data."""
+    """Always lock Organization before User, then discard cached identity data."""
+    from sqlalchemy import select
+    stored_org = db.scalar(select(User.organization_id).where(User.id == user_id))
+    if stored_org is None or (organization_id is not None and stored_org != organization_id):
+        return None
+    if lock_organization(db, stored_org) is None:
+        return None
     statement = update(User).where(User.id == user_id)
     if organization_id is not None:
         statement = statement.where(User.organization_id == organization_id)
@@ -67,7 +74,8 @@ def change_password(db, *, organization_id, user_id, current_password, new_passw
     user = lock_user(db, user_id, organization_id)
     auth = db.get(AuthSession, session_id, populate_existing=True)
     if (user is None or not user.active or auth is None or auth.user_id != user_id
-            or auth.revoked or auth.expires_at < time.time()):
+            or auth.revoked or auth.expires_at < time.time()
+            or not organization_active(db, organization_id)):
         raise CredentialError('AUTH_REQUIRED', 'Қайта кіріңіз.', 401)
     if not verify_password(current_password, user.password_hash):
         raise CredentialError('CURRENT_PASSWORD_INVALID', 'Қазіргі құпиясөз сәйкес емес.', 400)

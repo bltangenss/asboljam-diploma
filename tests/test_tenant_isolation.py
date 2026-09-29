@@ -15,7 +15,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from apps.api.db import Audit, Forecast, ImportBatch, Job, Plan, Record, User
+from apps.api.db import Audit, Forecast, ImportBatch, Job, Organization, Plan, Record, User
 from apps.api.importing import SCHEMAS, insert_rows
 from apps.api.main import create_app
 from apps.api.security import password_hash
@@ -42,6 +42,7 @@ class TenantIsolationTests(unittest.TestCase):
         self.factory = self.app.state.sessions
         with self.factory() as db:
             for org, base in [('A', 10), ('B', 20)]:
+                db.add(Organization(id=org,name=f'{org} fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture'))
                 fixture = {
                     'branches': [dict(branch_id=b, branch_name=f'{org}-branch-{b}') for b in ('1', '2')],
                     'meals': [dict(meal_id='1', meal_name=f'{org}-meal', base_price_kzt='1200')],

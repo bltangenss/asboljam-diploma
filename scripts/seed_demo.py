@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import func,select
-from apps.api.db import ROOT,Record,User,make_engine,migrate,sessions
+from apps.api.db import ROOT,Organization,Record,User,make_engine,migrate,sessions
 from apps.api.importing import SCHEMAS,insert_rows,parse_csv,validate_rows
 from apps.api.security import password_hash
 
@@ -15,6 +15,13 @@ def seed(factory,password,email='admin@asboljam.local',organization_id='demo'):
     if os.environ.get('ASBOLJAM_ENV','local').strip().lower() != 'local':
         raise ValueError('Demo seed is allowed only in local mode.')
     with factory() as db:
+        organization=db.get(Organization,organization_id)
+        if organization is None:
+            organization=Organization(id=organization_id,name='AsBoljam Demo' if organization_id=='demo' else None,
+                timezone='Asia/Qyzylorda',currency='KZT',status='active',data_policy='synthetic_only',provenance='demo_seed')
+            db.add(organization);db.flush()
+        elif organization.status!='active' or organization.data_policy!='synthetic_only':
+            raise ValueError('Demo seed requires an active synthetic-only organization.')
         existing=db.scalar(select(func.count()).select_from(Record).where(Record.organization_id==organization_id))
         if not existing:
             for kind in SCHEMAS:

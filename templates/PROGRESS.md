@@ -1,5 +1,27 @@
 # AsBoljam — журнал прогресса
 
+## Актуальное продолжение — организации и первый запуск, 29.09.2026
+
+Продолжена `main` от `129f140c4bc8e2de002a8fb0f0e6ef0decbda6e1`, без реального предприятия.
+
+**DONE:** Organization и явная миграция0002; metadata/status/timezone/data policy; операторский bootstrap первого admin без демо-записей; suspend/resume с атомарным отзывом сессий, refresh и queued/running jobs. Возобновление их не восстанавливает. API/пароли/worker соблюдают порядок Organization → User → session/job. CLI требует явной существующей БД с поддерживаемой схемой, preflight по умолчанию, `--apply`, скрытый пароль и operator/reason/audit. Migration CLI проверяет конфигурацию до открытия БД.
+
+**DONE UI:** пустая организация получает настройку без branch=1 и чужого имени. После branches CSV обновляются сессия и филиалы без logout; старые ответы прежнего аккаунта игнорируются. Unconfigured не запрашивает операционные данные. Metadata берётся из БД; без истории продажи/выручка — `—`, подтверждённые нулевые продажи — `0`. Даты графика/планов берутся из API, диапазон продаж обозначен как фильтр. OpenAPI/design contracts и [runbook](../docs/commercial/TENANT_OPERATIONS_RU.md) обновлены.
+
+**TESTED:** полный `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` — **196/196 PASS, 44.788 s**. После финального guard версии схемы повторён только затронутый `test_tenant_cli.py` — **10/10 PASS, 0.986 s**; полный suite после этой CLI-правки не повторялся. PostgreSQL runner пяти suites — **64/64 PASS, 50.21 s**: 63 тела тестов PostgreSQL17.11, один backup/restore case намеренно SQLite; все64 fixture setups создали отдельные PG-схемы. Backend не менялся во время PG-прогона. [PG report](../artifacts/verification/postgres-tenant-platform.json).
+
+`npm.cmd run build` — **PASS**,1751 modules,Vite3.32 s. Mock Chrome sessions/imports/account/tenant — **22/22 PASS,28.6 s**. Live Chrome workflow6 + первый tenant1 — **7/7 PASS,48.6 s**, настоящие API/worker и `.cache/tenant-live.sqlite`. Проверены шаблон → CSV → новый branch scope, пустая история, полный synthetic workflow до approval/export, HGB, роли/сессии и responsive. Mobile audit screenshot просмотрен, таблица остаётся внутри scroll region. [Все команды и границы](../artifacts/verification/tenant-platform.json).
+
+До0002 создан приватный online backup основной SQLite: `backups/pre-tenant-0002-c8157ef272ee49aeb1b3a14f88536c25.sqlite`, SHA256 `cc0acff19e2c00d322bc7716d23670c4685ff5c1058ed8d8b97ccdfcf10643fe`; integrity/FK PASS. После upgrade версии0001/0002, backfill7 организаций, количества строк во всех прежних таблицах совпали. Migration fixtures отдельно проверяют точное сохранение строк, rollback DDL/данных/версии, конкурентный запуск и backup → restore в новый путь → upgrade.
+
+Начальная сборка нашла пропущенную JSX-скобку logout — исправлено. Sandbox затем запретил esbuild (`spawn EPERM`); разрешённая локальная сборка прошла. Review исправил запрос запрещённых branches у unconfigured до browser-прогона. API/worker/preview и PostgreSQL-контейнер остановлены; порты3000/8000 свободны, базы/volumes сохранены. `.cache` и backups не входят в Git/ZIP.
+
+**IN PROGRESS:** общая коммерческая подготовка. **TODO:** REAL/provenance, повторяемый импорт/corrections/reconciliation, далее stock ledger, heartbeat и эксплуатационные gates. [Матрица](../docs/commercial/RELEASE_GATES_RU.md) сохраняет полный незавершённый объём.
+
+**BLOCKED:** реальные пилотные метрики требуют бизнеса; локальная разработка доступна. **NOT TESTED:** production HTTPS/deployment, нагрузка/SLA, независимый аудит, интерактивный CLI человеком, бизнес/экономия, device runtime/APK. Research benchmark и финальный ZIP не пересобирались. PostgreSQL backup verifier сравнивает полный набор migration markers, но pg_dump/restore повторно не запускался. REAL-импорт запрещён; production-ready не заявляется.
+
+Ниже — история предыдущих блоков; её TODO/BLOCKED не заменяют актуальное состояние выше.
+
 ## Актуальное продолжение — пароли и PostgreSQL, 29.09.2026
 
 Предыдущий блок классифицирован как **progress**: два коммита `e495268`, `1bba8ba` отправлены в origin/main, состояние проверено чистым. Общая цель выхода на рынок остаётся активной; [матрица коммерческих условий](../docs/commercial/RELEASE_GATES_RU.md) сохраняет её полный объём.

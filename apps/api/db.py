@@ -2,7 +2,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlalchemy import Boolean, Float, Index, Integer, JSON, String, Text, UniqueConstraint, create_engine, event
+from sqlalchemy import Boolean, CheckConstraint, Float, Index, Integer, JSON, String, Text, UniqueConstraint, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -10,6 +10,20 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 class Base(DeclarativeBase):
     pass
+class Organization(Base):
+    __tablename__ = 'organizations'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), default='KZT', server_default='KZT')
+    status: Mapped[str] = mapped_column(String(16), default='active', server_default='active')
+    data_policy: Mapped[str] = mapped_column(String(32), default='unconfigured', server_default='unconfigured')
+    provenance: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'suspended')", name='ck_organization_status'),
+        CheckConstraint("data_policy IN ('synthetic_only', 'unconfigured')", name='ck_organization_data_policy'),
+    )
 class User(Base):
     __tablename__ = 'users'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -127,10 +141,6 @@ def make_engine(url=None):
 def sessions(engine):
     return sessionmaker(engine, expire_on_commit=False)
 def migrate(engine):
-    """Apply the versioned initial migration; usable on SQLite and PostgreSQL."""
-    from sqlalchemy import text
-    with engine.begin() as connection:
-        connection.execute(text('CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(32) PRIMARY KEY)'))
-        if not connection.execute(text("SELECT version FROM schema_migrations WHERE version='0001'")).first():
-            Base.metadata.create_all(connection)
-            connection.execute(text("INSERT INTO schema_migrations (version) VALUES ('0001')"))
+    """Apply explicit migrations under a database-level transaction lock."""
+    from .migrations import migrate as apply_migrations
+    return apply_migrations(engine)

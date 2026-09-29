@@ -2328,7 +2328,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
               }
             }
           }
@@ -2592,6 +2594,98 @@
         ],
         "title": "Login"
       },
+      "OnboardingView": {
+        "properties": {
+          "branch_count": {
+            "type": "integer",
+            "title": "Branch Count"
+          },
+          "can_import_branches": {
+            "type": "boolean",
+            "title": "Can Import Branches"
+          },
+          "data_policy": {
+            "type": "string",
+            "enum": [
+              "synthetic_only",
+              "unconfigured"
+            ],
+            "title": "Data Policy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "branch_count",
+          "can_import_branches",
+          "data_policy"
+        ],
+        "title": "OnboardingView"
+      },
+      "OrganizationView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Status"
+          },
+          "data_policy": {
+            "type": "string",
+            "enum": [
+              "synthetic_only",
+              "unconfigured"
+            ],
+            "title": "Data Policy"
+          },
+          "provenance": {
+            "type": "string",
+            "title": "Provenance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "timezone",
+          "currency",
+          "status",
+          "data_policy",
+          "provenance"
+        ],
+        "title": "OrganizationView"
+      },
       "PasswordChange": {
         "properties": {
           "current_password": {
@@ -2693,6 +2787,82 @@
         ],
         "title": "Refresh"
       },
+      "SettingsResponse": {
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/OrganizationView"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "onboarding": {
+            "$ref": "#/components/schemas/OnboardingView"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "kk-KZ"
+          },
+          "read_only": {
+            "type": "boolean",
+            "title": "Read Only",
+            "default": true
+          },
+          "user": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User"
+          },
+          "forecast_horizon_days": {
+            "type": "integer",
+            "title": "Forecast Horizon Days",
+            "default": 1
+          },
+          "data_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Origin"
+          },
+          "scenario_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organization",
+          "timezone",
+          "currency",
+          "onboarding",
+          "user"
+        ],
+        "title": "SettingsResponse"
+      },
       "UserAccess": {
         "properties": {
           "role": {
@@ -2710,7 +2880,6 @@
               "type": "string"
             },
             "type": "array",
-            "minItems": 1,
             "title": "Branch Ids"
           },
           "active": {
@@ -2722,8 +2891,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "role",
-          "branch_ids"
+          "role"
         ],
         "title": "UserAccess"
       },
@@ -2756,7 +2924,6 @@
               "type": "string"
             },
             "type": "array",
-            "minItems": 1,
             "title": "Branch Ids"
           }
         },
@@ -2765,8 +2932,7 @@
         "required": [
           "email",
           "password",
-          "role",
-          "branch_ids"
+          "role"
         ],
         "title": "UserInput"
       },

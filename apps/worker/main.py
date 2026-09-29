@@ -5,7 +5,8 @@ import json
 import time
 import uuid
 from sqlalchemy import select, update
-from apps.api.db import Audit, Forecast, Job, Plan, Record, User, make_engine, migrate, now, sessions
+from apps.api.accounts import lock_user
+from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, now, sessions
 from apps.api.engine import forecast, procurement
 
 LEASE_SECONDS = 1800
@@ -19,6 +20,10 @@ ERROR_MESSAGES = {
 
 
 def access_error(db, job, actor):
+    organization=db.get(Organization,job.organization_id,populate_existing=True)
+    if (organization is None or organization.status!='active'
+            or organization.data_policy!='synthetic_only'):
+        return 'JOB_ACCESS_REVOKED'
     if (actor is None or not actor.active or actor.organization_id != job.organization_id
             or actor.role not in PLANNING_ROLES or job.branch_id not in actor.branch_ids):
         return 'JOB_ACCESS_REVOKED'
@@ -70,10 +75,8 @@ def finish(factory, job_id, claim_time, result=None, error=None):
         job = db.get(Job, job_id)
         if job is None:
             return
-        # This no-op UPDATE locks the actor on both SQLite and PostgreSQL.
-        # Access updates take the same lock before cancelling queued/running jobs.
-        db.execute(update(User).where(User.id == job.actor_id).values(active=User.active))
-        actor = db.get(User, job.actor_id, populate_existing=True)
+        # Tenant suspension, credential changes and publication share this lock order.
+        actor = lock_user(db,job.actor_id,job.organization_id)
         if result is not None:
             error = access_error(db, job, actor)
             if result.get('branch_id') != job.branch_id:

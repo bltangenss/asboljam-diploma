@@ -1,5 +1,13 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## Текущий этап — организации и onboarding, 29.09.2026
+
+Миграция0002 добавляет Organization и сохраняет прежние данные; реализованы bootstrap пустой организации/первого admin и suspend/resume. API/worker запрещают доступ отсутствующей или suspended организации, unconfigured оставляет настройку аккаунта. CLI требует явной БД, поддерживаемой схемы, preflight/apply и скрытого пароля. [Runbook](docs/commercial/TENANT_OPERATIONS_RU.md).
+
+Web показывает реальные metadata и пустые состояния, обновляет доступ к первому филиалу без logout, не выдаёт демо-даты за отсутствующую историю. **Проверено:** полный Python196 PASS плюс финальный CLI10 PASS; PostgreSQL runner64 PASS (63 PG + один SQLite backup case); build, mock browser22 и live browser7 PASS. Команды и ограничения: [PROGRESS](templates/PROGRESS.md), [tenant-platform.json](artifacts/verification/tenant-platform.json), [PG](artifacts/verification/postgres-tenant-platform.json).
+
+Тестовые процессы остановлены, базы/volumes сохранены. Основная SQLite обновлена после backup: прежние table counts совпали, backfill7 организаций. Следующие задачи — REAL/provenance, повторяемый импорт, stock ledger/эксплуатация. Цель рынка активна; REAL-импорт/deployment/экономия не подтверждены. APK/ZIP этим блоком не обновлялись. Ниже — история.
+
 ## Текущий этап — пароли и реальная PostgreSQL-проверка, 29.09.2026
 
 Добавлены web/API смена своего пароля и `scripts/manage_password.py` для операторского восстановления. Пароли не принимаются CLI-аргументами и не возвращаются в validation errors; сессии и pending jobs отзываются атомарно. Login/refresh сериализованы с reset. [Runbook](docs/commercial/SECURITY_RUNBOOK_RU.md) содержит preflight/apply и ограничения; публичного email reset нет.

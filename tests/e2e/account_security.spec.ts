@@ -29,7 +29,8 @@ async function installApi(page:Page, intercept?:(route:Route,path:string)=>Promi
       await route.fulfill({json:{...empty,items:[{branch_id:'1',branch_name:'Fixture branch'}],total:1}});return;
     }
     if(path==='/settings') {
-      await route.fulfill({json:{organization:{name:'Fixture organization'},timezone:'Asia/Qyzylorda'}});return;
+      await route.fulfill({json:{organization:{id:auth.user.organization_id,name:'Fixture organization',timezone:'Asia/Qyzylorda',currency:'KZT',status:'active',data_policy:'synthetic_only',provenance:'test_fixture'},
+        timezone:'Asia/Qyzylorda',currency:'KZT',onboarding:{branch_count:1,can_import_branches:false,data_policy:'synthetic_only'}}});return;
     }
     if(path==='/dashboard') {
       await route.fulfill({json:{as_of:'2025-12-31',sold_portions:2,revenue:'4000',history:[],warnings:[],top_meals:[],latest_plans:[]}});return;

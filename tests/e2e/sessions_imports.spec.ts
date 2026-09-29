@@ -27,6 +27,10 @@ async function installApi(page:Page, intercept?:(route:Route,path:string)=>Promi
     }
     if (path === '/session/me') {await reply({user:auth.user,csrf_token:'fake-browser-csrf-'+auth.generation}); return}
     if (path === '/session/logout') {auth.authenticated=false; await reply({status:'logged_out'}); return}
+    if (path === '/settings') {
+      await reply({organization:{id:auth.user.organization_id,name:'Test organization',timezone:'Asia/Qyzylorda',currency:'KZT',status:'active',data_policy:'synthetic_only',provenance:'test_fixture'},
+        timezone:'Asia/Qyzylorda',currency:'KZT',onboarding:{branch_count:auth.user.branch_ids.length,can_import_branches:auth.user.role==='admin',data_policy:'synthetic_only'}});return;
+    }
     if (path === '/branches') {await reply({...pageData,items:[{branch_id:'1',branch_name:'Test branch'}],total:1}); return}
     if (path === '/dashboard') {await reply(dashboard); return}
     await reply(pageData);
@@ -170,9 +174,10 @@ test('a delayed branch lookup cannot replace branches after signing in again',as
     await route.fulfill({json:{...pageData,items:[{branch_id:'2',branch_name:'NEW_BRANCH'}],total:1}});
     return true;
   });
-  await page.goto('/');await expectDashboard(page);await started.promise;
+  await page.goto('/');await started.promise;
   auth.authenticated=false;
-  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+  // Branch views now wait for an actual branch; settings still verifies the session.
+  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();
   await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
   auth.user={...user,branch_ids:['2']};newSession=true;
   await signInAgain(page);

@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from sqlalchemy import select, update
-from apps.api.db import Audit, Forecast, Job, Plan, Record, User, make_engine, migrate, sessions
+from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, sessions
 from apps.api.importing import insert_rows
 from apps.worker import main as worker
 from database_fixture import isolated_database_url
@@ -33,6 +33,7 @@ class WorkerSecurityTests(unittest.TestCase):
         self.result = {'branch_id': '1', 'predictions': [{'meal_id': '1', 'point_forecast': 2}],
                        'target_date': '2026-01-01', 'data_origin': 'SYNTHETIC'}
         with self.factory() as db:
+            db.add(Organization(id='A',name='Worker fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture'))
             db.add(User(id='actor', organization_id='A', email='worker@fixture.invalid',
                         password_hash='unused', role='manager', branch_ids=['1']))
             insert_rows(db, 'A', 'branches', [{'branch_id': '1', 'branch_name': 'Fixture', 'data_origin': 'SYNTHETIC'}])

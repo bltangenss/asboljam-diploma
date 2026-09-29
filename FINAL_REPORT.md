@@ -1,5 +1,15 @@
 # AsBoljam — итоговый технический отчёт
 
+## Текущее дополнение — организации и первый запуск, 29.09.2026
+
+**DONE:** Organization с миграцией0002, сохранением прежних данных и metadata/status/policy; bootstrap пустой организации/первого admin без demo seed; suspend/resume с отзывом сессий/задач и аудитом. CLI проверяет конфигурацию/схему, использует preflight и скрытый пароль. Web показывает настройку без выдуманного филиала/истории; первый CSV обновляет доступ без logout. Подтверждённые нулевые продажи отличаются от отсутствующей истории.
+
+**TESTED:** Python regression196/196 PASS, затем10/10 CLI после guard версии схемы; PostgreSQL runner64/64 PASS (63 PostgreSQL, один SQLite backup/restore case). Build PASS,22/22 mocked browser и7/7 live browser PASS, включая первый филиал и полный workflow настоящих API/worker. Основная SQLite обновлена после backup; количества строк прежних таблиц совпали. [Подробности](artifacts/verification/tenant-platform.json), [PG](artifacts/verification/postgres-tenant-platform.json).
+
+**NOT TESTED:** целевой HTTPS deployment, нагрузка, независимый аудит, human-interactive CLI, device runtime, реальные данные/экономия. APK/ZIP/research не пересобраны; pg_dump/restore повторно не запускался после корректировки verifier под0002. **BLOCKED:** полевой пилот требует предприятия; локальная разработка продолжается.
+
+Цель коммерческого выхода ещё не выполнена: остаются REAL/provenance, повторяемый импорт, stock ledger и другие [release gates](docs/commercial/RELEASE_GATES_RU.md). [Tenant runbook](docs/commercial/TENANT_OPERATIONS_RU.md) описывает фактические команды. Ниже — история предыдущих блоков.
+
 ## Текущее дополнение — пароли и завершённая локальная проверка, 29.09.2026
 
 Реализована смена своего пароля в web KK/RU и API; добавлена операторская recovery CLI с точным tenant/user scope, скрытым вводом, причиной и отдельным audit actor. В одной транзакции меняется хеш и отзываются сессии/refresh/незавершённые задачи. Login/refresh блокируются согласованно с reset; credential validation не раскрывает значения. Схема БД не менялась.

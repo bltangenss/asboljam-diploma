@@ -1,4 +1,5 @@
--- Generated from SQLAlchemy models; migration 0001. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002. No external source schema was supplied.
+-- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
 CREATE TABLE audit_events (
@@ -186,3 +187,18 @@ CREATE TABLE users (
 ;
 
 CREATE INDEX ix_users_organization_id ON users (organization_id);
+
+-- Added by migration 0002; migration 0001 retains its original table list.
+CREATE TABLE organizations (
+    id VARCHAR(64) NOT NULL,
+    name VARCHAR(200),
+    timezone VARCHAR(64),
+    currency VARCHAR(3) DEFAULT 'KZT' NOT NULL,
+    status VARCHAR(16) DEFAULT 'active' NOT NULL,
+    data_policy VARCHAR(32) DEFAULT 'unconfigured' NOT NULL,
+    provenance VARCHAR(32) NOT NULL,
+    created_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT ck_organization_status CHECK (status IN ('active', 'suspended')),
+    CONSTRAINT ck_organization_data_policy CHECK (data_policy IN ('synthetic_only', 'unconfigured'))
+);

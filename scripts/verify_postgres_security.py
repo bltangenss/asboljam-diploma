@@ -20,12 +20,13 @@ import uuid
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_security.py')
+SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_security.py',
+          'test_tenant_migration.py', 'test_tenant_lifecycle.py')
 
 
 def source_hashes():
     paths = [*ROOT.glob('apps/api/*.py'), *ROOT.glob('apps/worker/*.py'),
-             *ROOT.glob('tests/test_*security.py'), ROOT/'tests/test_tenant_isolation.py',
+             *ROOT.glob('tests/test_*security.py'), *[ROOT/'tests'/name for name in SUITES],
              ROOT/'tests/database_fixture.py', ROOT/'scripts/seed_demo.py', Path(__file__)]
     return {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(set(paths))}
@@ -80,7 +81,7 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])

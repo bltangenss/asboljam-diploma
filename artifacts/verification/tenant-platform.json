@@ -1,0 +1,105 @@
+{
+  "timestamp": "2026-09-29T11:04:22.758694+00:00",
+  "status": "passed_with_scope_limits",
+  "source_parent_commit": "129f140c4bc8e2de002a8fb0f0e6ef0decbda6e1",
+  "source_sha256": {
+    "apps/api/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/api/accounts.py": "53a48bf2269e194c6ccd178503bc88c9404184def3ca511dd7092796b68444c7",
+    "apps/api/config.py": "a6fb6382cd62e22350d07ae35e7e74d7f509d37508d0ee1b843df7217d52eada",
+    "apps/api/db.py": "54d520dd202a099eb75a7d5fa2fe7a6280ec09d9ca94bc986abe5a14fe947ed2",
+    "apps/api/engine.py": "e3484678ac2584a8888d07c502075b29037b833ec5219e7dfdd59f88b6349754",
+    "apps/api/importing.py": "3cbb9b928c73233233ab4833c219c3022cbb1818addfa4dbd3bb649fb5af8da2",
+    "apps/api/main.py": "3f73eae2111a53bd01fdda1b35f58a9f3cb71fa95929901f6ba32967e98f9005",
+    "apps/api/migrations.py": "cacfe7aa2935b3c16331d4c52fa37bd3531f7e5e44defd3d6cb43c6dae4d8fef",
+    "apps/api/security.py": "d7cfffb4a93677da0f45e7dccf856a702c46ded9301b71038b33a1c48e7b7b80",
+    "apps/api/tenants.py": "240d53d2ce89c6536603d12c53e4f5ae53d0deb76cd35c881ffc5e4f79d6a53c",
+    "apps/web/src/AccountSecurity.tsx": "5bd0927d8ebd83dd8962c5bbf9202a96e6cba6cb34f1fbc95ebf850ce3e2120a",
+    "apps/web/src/App.tsx": "e30ccd8d6b38ef8534206f154981006a4218a9d945501b36b5c54c9a2ba1d8d7",
+    "apps/web/src/Dashboard.tsx": "204602d8131dc001dd01ed62d60ca89c4076c5898254a21b0539f0a2b1076466",
+    "apps/web/src/DataPages.tsx": "e386ab864f9d22a6972afe587cde93dfa2979c10e71d7026f03dd0308f543da6",
+    "apps/web/src/ForecastChart.tsx": "4faaf676b2b7734b3b49c84b2896716956351351034a0866c4786307b402a8fa",
+    "apps/web/src/main.tsx": "73051aa7ab77bcbbd178fb874840432fae28fd3630f1da6e43734b6db3cbe210",
+    "apps/web/src/Onboarding.tsx": "ec97ea6b5e91e8eda4b63e49d809da16bfc27b6651601942d0ae489f09fa59aa",
+    "apps/web/src/Planning.tsx": "d109d5b0e128e1f561682e8c3a7c821703dfd1c4968b9cc54e991d2c98200c6e",
+    "apps/web/src/shared.tsx": "ff361a02f8c25b5301fc0018871a526705836a43214e4c4f702c4a77e7372ecb",
+    "apps/web/src/style.css": "9af6857e490324fda0c9af715b6929f6f72cff302782410a62572d69fc0a33c3",
+    "apps/web/src/UserAdmin.tsx": "10ebc7b84328940d5ed3e46091c257a142a1e856810b358907ca79d4db049dbc",
+    "apps/worker/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/worker/main.py": "0cd75e584bbf182b123f44433f751f0048c94a12d5d04c099214fc4b88ca7a53",
+    "database/migrate.py": "67e212f9beff7c0d8007481fa7b6c9ffac33beab065890e7339a992f231eaf1d",
+    "scripts/manage_tenant.py": "a953e0709561c50da1c961dbcd91c02cf3df54081a2fb7db515bc0202e07b5a8",
+    "scripts/prepare_e2e.py": "a2020f1381408fe6ca084fba9baa9c8484ac3b618354b31b5106f764d8572221",
+    "tests/e2e/tenant_onboarding.spec.ts": "c554ccb6fd34b624081aaa375d34a5b372551c760b09de46c5e665ed76b360ed",
+    "tests/e2e/tenant_onboarding_live.spec.ts": "c626e7d67286996f34b60514c526a4985aa4dd49a30dac4950b036a95225c1cb",
+    "tests/test_tenant_cli.py": "520e8620fa788681368b77d1682638e940de92e8065d652b2e96d732a47ca634",
+    "tests/test_tenant_isolation.py": "1dc5b99b7b9973f76e1e13ba098c1e4a6aaa2149c096cd4ffbd5fa5a07f2992f",
+    "tests/test_tenant_lifecycle.py": "45834a9a45514ca97af8a43ce1b07d4b3753ca5736ac273691f9d169067fafba",
+    "tests/test_tenant_migration.py": "04752717f46142a7c95943a67e59ea97fdc37e5dcf78f10200c6d8bac6e42c93"
+  },
+  "python_regression": {
+    "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+    "tests": 196,
+    "status": "passed",
+    "elapsed_seconds": 44.788,
+    "scope": "Full suite before final manage_tenant schema-version guard; only the affected CLI suite was rerun afterwards."
+  },
+  "final_tenant_cli": {
+    "command": "python -X utf8 -m unittest discover -s tests -p \"test_tenant_cli.py\" -v",
+    "tests": 10,
+    "status": "passed",
+    "elapsed_seconds": 0.986,
+    "scope": "Includes rejection of unapplied/future database schema without prompts or writes; hidden input is mocked."
+  },
+  "postgres": {
+    "report": "artifacts/verification/postgres-tenant-platform.json",
+    "tests": 64,
+    "status": "passed",
+    "elapsed_seconds": 50.21,
+    "scope": "63 test bodies use real PostgreSQL; the migration backup/restore case deliberately exercises SQLite. All 64 fixture setups create isolated PostgreSQL schemas."
+  },
+  "web_build": {
+    "command": "npm.cmd run build",
+    "status": "passed",
+    "modules": 1751,
+    "vite_elapsed_seconds": 3.32
+  },
+  "mock_browser": {
+    "command": "npm.cmd run test:e2e -- tests/e2e/sessions_imports.spec.ts tests/e2e/account_security.spec.ts tests/e2e/tenant_onboarding.spec.ts --reporter=line --output=.cache/tenant-mock-browser --timeout=30000",
+    "status": "passed",
+    "tests": 22,
+    "elapsed_seconds": 28.6
+  },
+  "live_browser": {
+    "command": "npm.cmd run test:e2e -- tests/e2e/workflow.spec.ts tests/e2e/tenant_onboarding_live.spec.ts --reporter=line --output=.cache/tenant-live-browser",
+    "status": "passed",
+    "tests": 7,
+    "elapsed_seconds": 48.6,
+    "scope": "Real API, SQLite and separate worker; first branch template/preview/commit/access refresh, empty sales state, CSV-to-forecast-to-procurement-to-approval/export, HGB, access roles, session revocation, mobile layout."
+  },
+  "existing_database_upgrade": {
+    "pre_upgrade_backup": "backups/pre-tenant-0002-c8157ef272ee49aeb1b3a14f88536c25.sqlite",
+    "backup_sha256": "cc0acff19e2c00d322bc7716d23670c4685ff5c1058ed8d8b97ccdfcf10643fe",
+    "versions": [
+      "0001",
+      "0002"
+    ],
+    "legacy_table_counts_preserved": true,
+    "organizations_backfilled": 7,
+    "scope": "Private local demo/test database; backup integrity and foreign-key checks passed. Exact old-row preservation and backup/restore also covered in isolated migration fixtures."
+  },
+  "development_failures_fixed": [
+    "Initial TypeScript build found a missing JSX closing brace on logout; corrected.",
+    "Sandbox blocked esbuild spawn (EPERM); authorized local build passed.",
+    "Read-only review found unconfigured workspace requesting forbidden branches; fixed before browser tests.",
+    "Migration CLI now validates environment before opening a database."
+  ],
+  "limits": [
+    "REAL operational import remains disabled; no business pilot or measured savings.",
+    "No target HTTPS deployment, load/SLA or independent security audit.",
+    "No manual human password entry exercise; TTY/getpass interactions are stubbed in CLI tests.",
+    "PostgreSQL backup verifier was made migration-list aware; actual pg_dump/restore was not rerun in this block.",
+    "Native device/APK, research benchmark and final ZIP were not rebuilt in this block.",
+    "Organization locks serialize tenant mutations; production throughput is unmeasured.",
+    "Temporary browser credentials, session traces, screenshots and databases remain in ignored .cache/backups."
+  ]
+}

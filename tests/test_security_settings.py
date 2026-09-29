@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from apps.api import main as api
 from apps.api.config import ConfigurationError
-from apps.api.db import User, make_engine
+from apps.api.db import Organization, User, make_engine
 from apps.api.security import password_hash
 from apps.worker import main as worker
 from scripts import seed_demo
@@ -53,6 +53,7 @@ class SettingsIntegrationTests(unittest.TestCase):
             app = api.create_app()
         password = 'Synthetic-cookie-fixture-2026!'
         with app.state.sessions() as db:
+            db.add(Organization(id='A',name='Transport fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture'))
             db.add(User(id='fixture', organization_id='A', email='cookie@fixture.invalid',
                         password_hash=password_hash(password), role='analyst', branch_ids=['1']))
             db.commit()

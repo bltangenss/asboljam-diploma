@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from sqlalchemy import select
 
-from apps.api.db import Audit, AuthSession, Job, RefreshToken, User, make_engine, migrate, sessions
+from apps.api.db import Audit, AuthSession, Job, Organization, RefreshToken, User, make_engine, migrate, sessions
 from apps.api.security import password_hash, verify_password
 from scripts import manage_password
 
@@ -36,6 +36,7 @@ class PasswordCliTests(unittest.TestCase):
         migrate(self.engine)
         self.factory = sessions(self.engine)
         with self.factory() as db:
+            db.add_all([Organization(id=org,name=f'{org} fixture',timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture') for org in ('A','B')])
             for user_id, org in [('target', 'A'), ('other', 'B')]:
                 db.add(User(id=user_id, organization_id=org, email=f'{user_id}@fixture.invalid',
                             password_hash=password_hash(OLD_PASSWORD), role='admin', branch_ids=['1']))
