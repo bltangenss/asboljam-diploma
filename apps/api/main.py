@@ -7,7 +7,7 @@ import secrets
 import time
 import uuid
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
@@ -27,6 +27,8 @@ from .import_service import ImportProblem, batch_view, commit_import, get_batch,
 from .lineage import capture_lineage, input_freshness, input_provenance
 from .security import password_hash, token_hash, verify_password
 from .tenants import organization_active, organization_json
+from .data_policy import (DataPolicyError, ensure_rows, execution_context, metadata,
+                          policy_context, validate_execution_context, workspace_context)
 
 SCENARIO = '2026-01-01'
 META = {'data_origin': 'SYNTHETIC', 'scenario_date': SCENARIO}
@@ -60,7 +62,7 @@ class ImportInput(StrictModel):
     source: ImportSource | None = None
 class ForecastInput(StrictModel):
     branch_id: str
-    origin: date = date(2025,12,31)
+    origin: date | None = None
     model: Literal['seasonal_naive_7','rolling_mean_28','hist_gradient_boosting'] = 'seasonal_naive_7'
 class ProcurementInput(StrictModel):
     branch_id: str
@@ -87,20 +89,21 @@ class CollectionResponse(BaseModel):
     items: list[dict]
     total: int
     next_cursor: str | None
-    data_origin: str = 'SYNTHETIC'
-    scenario_date: str = SCENARIO
+    data_origin: str | None = None
+    scenario_date: str | None = None
+    usage_mode: str | None = None
 class OrganizationView(BaseModel):
     id: str
     name: str | None
     timezone: str | None
     currency: str
     status: Literal['active','suspended']
-    data_policy: Literal['synthetic_only','unconfigured']
+    data_policy: Literal['synthetic_only','real_only','unconfigured']
     provenance: str
 class OnboardingView(BaseModel):
     branch_count: int
     can_import_branches: bool
-    data_policy: Literal['synthetic_only','unconfigured']
+    data_policy: Literal['synthetic_only','real_only','unconfigured']
 class SettingsResponse(BaseModel):
     organization: OrganizationView
     timezone: str | None
@@ -112,26 +115,33 @@ class SettingsResponse(BaseModel):
     forecast_horizon_days: int = 1
     data_origin: str | None = None
     scenario_date: str | None = None
+    usage_mode: str | None = None
+    data_context: dict
 
 
 def user_json(user):
     return {key: getattr(user,key) for key in ('id','email','role','organization_id','branch_ids','active')}
+def result_metadata(result):
+    origin = result.get('data_origin')
+    context = result.get('execution_context') or {}
+    return {'data_origin': origin, 'usage_mode': context.get('usage_mode', 'DEMO' if origin == 'SYNTHETIC' else None),
+            'scenario_date': SCENARIO if origin == 'SYNTHETIC' else None}
 def plan_json(plan, freshness_cache=None):
     lineage=plan.result.get('input_lineage')
     result={key:value for key,value in plan.result.items() if key!='input_lineage'}
-    return {**result, **META, 'id':plan.id,'run_id':plan.id,'branch_id':plan.branch_id,'forecast_id':plan.forecast_id,'version':plan.version,'status':plan.status,'created_at':plan.created_at,
+    return {**result, **result_metadata(result), 'id':plan.id,'run_id':plan.id,'branch_id':plan.branch_id,'forecast_id':plan.forecast_id,'version':plan.version,'status':plan.status,'created_at':plan.created_at,
             'input_freshness':input_freshness(object_session(plan),plan.organization_id,lineage,state_cache=freshness_cache),
             'input_provenance':input_provenance(plan.organization_id,lineage)}
 def forecast_json(forecast, freshness_cache=None):
     lineage=forecast.result.get('input_lineage')
     result={key:value for key,value in forecast.result.items() if key!='input_lineage'}
-    return {**result, **META, 'id':forecast.id,'run_id':forecast.id,'branch_id':forecast.branch_id,'created_at':forecast.created_at,
+    return {**result, **result_metadata(result), 'id':forecast.id,'run_id':forecast.id,'branch_id':forecast.branch_id,'created_at':forecast.created_at,
             'input_freshness':input_freshness(object_session(forecast),forecast.organization_id,lineage,state_cache=freshness_cache),
             'input_provenance':input_provenance(forecast.organization_id,lineage)}
 
 def create_app(database_url=None):
     runtime_settings = load_settings(database_url)
-    app = FastAPI(title='AsBoljam', version='1.0.0', description='Synthetic catering operations demo; one-day forecasts; internal approval only.')
+    app = FastAPI(title='AsBoljam', version='1.1.0', description='Scoped catering operations; explicit demo or operator-configured source; one-day forecasts; internal approval only.')
     engine = make_engine(runtime_settings.database_url)
     migrate(engine)
     atexit.register(engine.dispose)
@@ -143,6 +153,7 @@ def create_app(database_url=None):
     app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'])
 
     @app.exception_handler(ImportProblem)
+    @app.exception_handler(DataPolicyError)
     async def import_problem(request:Request,exc:ImportProblem):
         return JSONResponse(status_code=exc.status,content={'detail':{'code':exc.code,'message':exc.message}})
     @app.exception_handler(RequestValidationError)
@@ -214,8 +225,12 @@ def create_app(database_url=None):
             '/api/v1/session/me','/api/v1/session/logout','/api/v1/account/password','/api/v1/users'}
             or request.url.path.startswith('/api/v1/users/')
             or request.url.path.startswith('/api/v1/imports/template/'))
-        if organization.data_policy!='synthetic_only' and not allowed_setup:
+        if organization.data_policy not in {'synthetic_only','real_only'} and not allowed_setup:
             fail('TENANT_DATA_POLICY_REQUIRED','Деректер режимін әкімші баптауы керек.',403)
+        if organization.data_policy == 'real_only':
+            policy_context(db, organization.id)
+            if native and not allowed_setup:
+                fail('NATIVE_REAL_UNSUPPORTED','REAL деректері үшін web нұсқасын пайдаланыңыз.',403)
         request.state.organization=organization
         request.state.auth = auth
         return user
@@ -258,7 +273,7 @@ def create_app(database_url=None):
 
     @app.get('/api/v1/health')
     def health():
-        return {'status':'ok',**META}
+        return {'status':'ok'}
     @app.post('/api/v1/session/login')
     def login(data: Login, request:Request,response:Response,db=Depends(get_db)):
         origin_check(request)
@@ -268,10 +283,10 @@ def create_app(database_url=None):
         audit(db,user,'session.login',user.id)
         db.commit()
         response.set_cookie('asboljam_session',token,httponly=True,secure=secure,samesite='lax',max_age=8*3600,path='/api')
-        return {'user':user_json(user),'csrf_token':csrf,**META}
+        return {'user':user_json(user),'csrf_token':csrf,**metadata(db,user.organization_id)}
     @app.get('/api/v1/session/me')
-    def me(request:Request,user=Depends(current)):
-        return {'user':user_json(user),'csrf_token':request.state.auth.csrf_token,**META}
+    def me(request:Request,user=Depends(current),db=Depends(get_db)):
+        return {'user':user_json(user),'csrf_token':request.state.auth.csrf_token,**metadata(db,user.organization_id)}
     @app.post('/api/v1/account/password')
     def account_password(data:PasswordChange,request:Request,response:Response,user=Depends(current),db=Depends(get_db)):
         try:
@@ -327,10 +342,13 @@ def create_app(database_url=None):
         if branch:
             branch_access(db,user,branch)
         result=rows_for(db,user.organization_id,kind,branch if kind in {'daily_sales','calendar','inventory_lots'} else None)
+        ensure_rows(policy_context(db,user.organization_id),result)
         return [r for r in result if 'branch_id' not in r or r['branch_id'] in user.branch_ids and (not branch or r['branch_id']==branch)]
     def decorate(db,user,kind,rows):
         meals={r['meal_id']:r for r in rows_for(db,user.organization_id,'meals')}
         ingredients={r['ingredient_id']:r for r in rows_for(db,user.organization_id,'ingredients')}
+        context=policy_context(db,user.organization_id)
+        ensure_rows(context,list(meals.values())+list(ingredients.values()))
         for original in rows:
             row=dict(original)
             if row.get('meal_id') in meals:
@@ -341,7 +359,7 @@ def create_app(database_url=None):
                 row.setdefault('unit',ingredient['unit'])
                 if kind=='recipes': row['yield_factor']=ingredient['yield_factor']
             if kind=='inventory_lots':
-                row['expired']=row['expiry_date']<SCENARIO
+                row['expired']=row['expiry_date']<row['snapshot_date']
             if kind=='suppliers':
                 row['offers']=[r for r in rows_for(db,user.organization_id,'supplier_offers') if r['supplier_id']==row['supplier_id']]
             yield row
@@ -355,14 +373,14 @@ def create_app(database_url=None):
             if date_from: rows=[r for r in rows if r.get('date',r.get('snapshot_date',''))>=date_from]
             if date_to: rows=[r for r in rows if r.get('date',r.get('snapshot_date',''))<=date_to]
             rows=sorted(rows,key=lambda r:(r.get('date',r.get('snapshot_date','')),str(r.get('meal_id',''))),reverse=True)
-            return {'items':list(decorate(db,user,kind,rows[cursor:cursor+limit])),'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**META}
+            return {'items':list(decorate(db,user,kind,rows[cursor:cursor+limit])),'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**metadata(db,user.organization_id)}
         endpoint.__name__='list_'+kind
         return endpoint
     for name,kind in aliases.items():
         app.add_api_route('/api/v1/'+name,list_endpoint(kind),methods=['GET'],response_model=CollectionResponse)
 
     @app.get('/api/v1/dashboard')
-    def dashboard(branch_id:str,user=Depends(current),db=Depends(get_db)):
+    def dashboard(branch_id:str,inventory_date:date|None=None,user=Depends(current),db=Depends(get_db)):
         branch_access(db,user,branch_id)
         roles(user,'admin','manager','analyst')
         sales=visible_rows(db,user,'daily_sales',branch_id)
@@ -378,17 +396,21 @@ def create_app(database_url=None):
             item['units_sold']+=r['units_sold'];item['revenue']+=Decimal(r['price_kzt'])*r['units_sold']
         plans=list(db.scalars(select(Plan).where(Plan.organization_id==user.organization_id,Plan.branch_id==branch_id).order_by(Plan.created_at.desc()).limit(5)))
         forecasts=list(db.scalars(select(Forecast).where(Forecast.organization_id==user.organization_id,Forecast.branch_id==branch_id).order_by(Forecast.created_at.desc()).limit(1)))
-        lots=[r for r in rows_for(db,user.organization_id,'inventory_lots',branch_id) if r['snapshot_date']==SCENARIO]
-        expiry_limit=(date.fromisoformat(SCENARIO)+timedelta(days=2)).isoformat()
-        expired_count=sum(1 for r in lots if r['expiry_date']<SCENARIO)
-        expiring_count=sum(1 for r in lots if SCENARIO<=r['expiry_date']<=expiry_limit)
+        dates=workspace_context(db,user.organization_id,branch_id)
+        snapshot_date=inventory_date.isoformat() if inventory_date else dates['inventory_date']
+        lots=[r for r in visible_rows(db,user,'inventory_lots',branch_id) if r['snapshot_date']==snapshot_date]
+        expiry_limit=date.fromordinal(min(date.max.toordinal(),date.fromisoformat(snapshot_date).toordinal()+2)).isoformat() if snapshot_date else None
+        expired_count=sum(1 for r in lots if r['expiry_date']<snapshot_date)
+        expiring_count=sum(1 for r in lots if snapshot_date<=r['expiry_date']<=expiry_limit)
         warnings=[]
+        if not lots:
+            warnings.append({'code':'INVENTORY_UNKNOWN','count':None,'message':'Таңдалған күнге қойма кесіндісі жоқ.'})
         if expired_count:
             warnings.append({'code':'EXPIRED_LOTS','count':expired_count,'message':f'{expired_count} партияның жарамдылық мерзімі өткен.'})
         if expiring_count:
             warnings.append({'code':'EXPIRING_LOTS','count':expiring_count,'message':f'{expiring_count} партияның мерзімі екі күн ішінде аяқталады.'})
         last_plan=plans[0] if plans else None
-        return {**META,'branch_id':branch_id,'as_of':last_date,'sold_portions':sum(r['units_sold'] for r in latest),'revenue':str(sum((Decimal(r['price_kzt'])*r['units_sold'] for r in latest),Decimal(0))),'total_shortages':last_plan.result.get('shortage_count',0) if last_plan else None,'procurement_cost':last_plan.result.get('total_cost') if last_plan else None,'history':[{'date':d,'units_sold':history[d]} for d in sorted(history)[-28:]],'top_meals':[{'meal_id':k,'meal_name':names.get(k,k),'units_sold':v['units_sold'],'revenue':str(v['revenue'])} for k,v in sorted(top.items(),key=lambda item:-item[1]['units_sold'])],'warnings':warnings,'latest_plans':[plan_json(p) for p in plans],'latest_forecast':forecast_json(forecasts[0]) if forecasts else None}
+        return {**metadata(db,user.organization_id),'branch_id':branch_id,'inventory_date':snapshot_date,'inventory_known':bool(lots),'as_of':last_date,'sold_portions':sum(r['units_sold'] for r in latest),'revenue':str(sum((Decimal(r['price_kzt'])*r['units_sold'] for r in latest),Decimal(0))),'total_shortages':last_plan.result.get('shortage_count',0) if last_plan else None,'procurement_cost':last_plan.result.get('total_cost') if last_plan else None,'history':[{'date':d,'units_sold':history[d]} for d in sorted(history)[-28:]],'top_meals':[{'meal_id':k,'meal_name':names.get(k,k),'units_sold':v['units_sold'],'revenue':str(v['revenue'])} for k,v in sorted(top.items(),key=lambda item:-item[1]['units_sold'])],'warnings':warnings,'latest_plans':[plan_json(p) for p in plans],'latest_forecast':forecast_json(forecasts[0]) if forecasts else None}
 
     @app.get('/api/v1/imports/template/{kind}')
     def import_template(kind:str,user=Depends(current)):
@@ -428,21 +450,29 @@ def create_app(database_url=None):
     @app.post('/api/v1/forecasts',status_code=202,response_model=QueuedResponse)
     def create_forecast(data:ForecastInput,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager');branch_access(db,user,data.branch_id)
+        context=execution_context(db,user.organization_id,data.branch_id,data.origin.isoformat() if data.origin else None)
+        origin=context['origin']
         sales=rows_for(db,user.organization_id,'daily_sales',data.branch_id)
-        sales=[r for r in sales if r['date']<=data.origin.isoformat()]
+        ensure_rows(context,sales)
+        sales=[r for r in sales if r['date']<=origin]
         if not sales: fail('NO_SALES','Болжамға сатылым деректері қажет.',422)
-        snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals')}
+        if context['data_origin']=='REAL':
+            from .engine import validate_forecast_history
+            try: validate_forecast_history(sales,data.branch_id,origin)
+            except ValueError: fail('DATA_HISTORY_INCOMPLETE','Әр тағамға таңдалған күнге дейін кемінде 84 үзіліссіз күн қажет. Жоқ күн нөл емес.',422)
+        snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals'),'execution_context':context}
+        ensure_rows(context,snapshot['meals'])
         snapshot['input_lineage']=capture_lineage(db,user.organization_id,[
-            {'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':data.origin.isoformat()},
+            {'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':origin},
             {'kind':'meals','rows':snapshot['meals']}])
-        job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload=data.model_dump(mode='json'),snapshot=snapshot)
+        job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload={**data.model_dump(mode='json'),'origin':origin},snapshot=snapshot)
         db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
     @app.get('/api/v1/runs/{run_id}')
     def run(run_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
         row=scoped(db,Job,user,run_id)
-        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','finished_at')} | {'run_id':row.id,**META}
+        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','finished_at')} | {'run_id':row.id,**metadata(db,user.organization_id)}
     @app.get('/api/v1/forecasts/{forecast_id}')
     def forecast_detail(forecast_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
@@ -455,16 +485,30 @@ def create_app(database_url=None):
         total=db.scalar(select(func.count()).select_from(Forecast).where(*scope))
         rows=list(db.scalars(select(Forecast).where(*scope).order_by(Forecast.created_at.desc(),Forecast.id.desc()).offset(cursor).limit(limit)))
         freshness_cache={}
-        return {'items':[forecast_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**META}
+        return {'items':[forecast_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**metadata(db,user.organization_id)}
     @app.post('/api/v1/procurement',status_code=202,response_model=QueuedResponse)
     def create_procurement(data:ProcurementInput,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager');branch_access(db,user,data.branch_id)
         forecast=scoped(db,Forecast,user,data.forecast_id)
         if forecast.branch_id!=data.branch_id: fail('BRANCH_MISMATCH','Болжам бөлімшесі сәйкес емес.',422)
+        context=forecast.result.get('execution_context')
+        tenant_context=policy_context(db,user.organization_id)
+        if context is None:
+            if tenant_context['data_origin']!='SYNTHETIC': fail('EXECUTION_CONTEXT_INVALID','Болжамның дерек көзі белгісіз. Қайта есептеңіз.',422)
+            context=execution_context(db,user.organization_id,data.branch_id,forecast.result.get('origin'))
+        validate_execution_context(db,user.organization_id,context)
+        if forecast.result.get('data_origin')!=context['data_origin']:
+            fail('DATA_ORIGIN_MISMATCH','Болжамның шығу тегі ұйымға сәйкес емес.',422)
         if data.strategy!='point' and any(r.get('p50' if data.strategy=='p50' else 'p90') is None for r in forecast.result['predictions']): fail('QUANTILES_UNAVAILABLE','Бұл модельде квантильдер жоқ.',422)
-        snapshot={'forecast_result':forecast.result,**{k:rows_for(db,user.organization_id,k,data.branch_id if k=='inventory_lots' else None) for k in ['ingredients','recipes','inventory_lots','supplier_offers','suppliers']}}
+        snapshot={'forecast_result':forecast.result,'execution_context':context,**{k:rows_for(db,user.organization_id,k,data.branch_id if k=='inventory_lots' else None) for k in ['ingredients','recipes','inventory_lots','supplier_offers','suppliers']}}
+        for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers'): ensure_rows(context,snapshot[kind])
         snapshot['inventory_lots']=[r for r in snapshot['inventory_lots'] if r['snapshot_date']==forecast.result['target_date']]
         if not snapshot['inventory_lots']: fail('STALE_INVENTORY','Қойма кесіндісі мақсат күніне сәйкес емес.',422)
+        if context['data_origin']=='REAL':
+            meals={row['meal_id'] for row in forecast.result['predictions']}
+            required={row['ingredient_id'] for row in snapshot['recipes'] if row['meal_id'] in meals}
+            present={row['ingredient_id'] for row in snapshot['inventory_lots']}
+            if not required<=present: fail('INVENTORY_COVERAGE_REQUIRED','Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жоқ жазба нөл емес.',422)
         collections=[{'kind':kind,'rows':snapshot[kind],**(
             {'branch_id':data.branch_id,'snapshot_date':forecast.result['target_date']} if kind=='inventory_lots' else {})}
             for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers')]
@@ -481,7 +525,7 @@ def create_app(database_url=None):
         total=db.scalar(select(func.count()).select_from(Plan).where(*scope))
         rows=list(db.scalars(select(Plan).where(*scope).order_by(Plan.created_at.desc(),Plan.id.desc()).offset(cursor).limit(limit)))
         freshness_cache={}
-        return {'items':[plan_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**META}
+        return {'items':[plan_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**metadata(db,user.organization_id)}
     @app.get('/api/v1/plans/{plan_id}')
     def plan_detail(plan_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
@@ -497,6 +541,16 @@ def create_app(database_url=None):
             return old.response
         if plan.version!=data.expected_version or plan.status!='ready': fail('STALE_VERSION','Жоспар өзгерген немесе шешім қабылданған.',409)
         if action=='approved':
+            context=plan.result.get('execution_context')
+            if context is not None:
+                validate_execution_context(db,user.organization_id,context)
+                from .engine import validate_calculation_context
+                try: validate_calculation_context(context,plan.branch_id,target_date=plan.result.get('target_date'))
+                except ValueError: fail('EXECUTION_CONTEXT_INVALID','Жоспардың күні немесе дерек контексті жарамсыз.',409)
+                if plan.result.get('data_origin')!=context.get('data_origin'):
+                    fail('DATA_ORIGIN_MISMATCH','Жоспардың шығу тегі сәйкес емес.',409)
+            elif policy_context(db,user.organization_id)['data_origin']=='REAL':
+                fail('EXECUTION_CONTEXT_INVALID','Жоспардың дерек көзі белгісіз. Қайта есептеңіз.',409)
             if not plan.result.get('constraints_valid'): fail('CONSTRAINTS_INVALID','Шектеулері тексерілмеген жоспар бекітілмейді.',422)
             if plan.result.get('shortage_count',0)>0 and not data.acknowledge_shortage: fail('SHORTAGE_ACK_REQUIRED','Тапшылықты арнайы растау қажет.',422)
             freshness=input_freshness(db,user.organization_id,plan.result.get('input_lineage'))
@@ -534,11 +588,18 @@ def create_app(database_url=None):
         if meal_id: rows=[r for r in rows if r.get('meal_id')==meal_id]
         if date_from: rows=[r for r in rows if r.get('date',r.get('snapshot_date',''))>=date_from]
         if date_to: rows=[r for r in rows if r.get('date',r.get('snapshot_date',''))<=date_to]
-        return Response(safe_csv(rows),media_type='text/csv; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="{actual}.csv"'})
+        context=policy_context(db,user.organization_id)
+        filename=actual
+        if context['data_origin']=='REAL':
+            source=context['source']
+            rows=[{**row,'usage_mode':context['usage_mode'],'source_id':source['source_id'],
+                   'mapping_version':source['mapping_version'],'source_version':source['version']} for row in rows]
+            filename=context['usage_mode']+'-'+actual
+        return Response(safe_csv(rows),media_type='text/csv; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="{filename}.csv"'})
     @app.get('/api/v1/plans/{plan_id}/export')
     def export_plan(plan_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst');plan=scoped(db,Plan,user,plan_id)
-        common={'plan_id':plan.id,'status':plan.status,'version':plan.version,'target_date':plan.result.get('target_date'),'data_origin':'SYNTHETIC'}
+        common={'plan_id':plan.id,'status':plan.status,'version':plan.version,'target_date':plan.result.get('target_date'),**result_metadata(plan.result)}
         rows=[{**common,'row_type':'summary','total_cost':plan.result.get('total_cost'),'budget':plan.result.get('budget'),'shortage_count':plan.result.get('shortage_count'),'constraints_valid':plan.result.get('constraints_valid')}]
         rows += [{**common,'row_type':'requirement',**r} for r in plan.result.get('requirements',[])]
         rows += [{**common,'row_type':'purchase',**r} for r in plan.result.get('lines',[])]
@@ -549,27 +610,29 @@ def create_app(database_url=None):
         if branch_id: branch_access(db,user,branch_id)
         query=select(Audit).where(Audit.organization_id==user.organization_id,or_(Audit.branch_id.in_([branch_id] if branch_id else user.branch_ids),Audit.branch_id==None)).order_by(Audit.created_at.desc())
         rows=list(db.scalars(query))
-        return {'items':[{k:getattr(r,k) for k in ('id','branch_id','actor_id','action','entity_id','details','created_at')} for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**META}
+        return {'items':[{k:getattr(r,k) for k in ('id','branch_id','actor_id','action','entity_id','details','created_at')} for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**metadata(db,user.organization_id)}
     @app.get('/api/v1/reports')
     def reports(branch_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst');branch_access(db,user,branch_id)
         rows=list(db.scalars(select(Forecast).where(Forecast.organization_id==user.organization_id,Forecast.branch_id==branch_id).order_by(Forecast.created_at.desc()).limit(20)))
-        return {'items':[{'forecast_id':r.id,'created_at':r.created_at,'metrics':r.result.get('metrics',[]),'metadata':r.result.get('metadata',{})} for r in rows],**META}
+        return {'items':[{'forecast_id':r.id,'created_at':r.created_at,'metrics':r.result.get('metrics',[]),'metadata':r.result.get('metadata',{}),'origin':r.result.get('origin'),'target_date':r.result.get('target_date'),**result_metadata(r.result)} for r in rows],**metadata(db,user.organization_id)}
     @app.get('/api/v1/settings',response_model=SettingsResponse)
-    def settings(request:Request,user=Depends(current),db=Depends(get_db)):
+    def settings(request:Request,branch_id:str|None=None,user=Depends(current),db=Depends(get_db)):
         organization=request.state.organization
+        if branch_id: branch_access(db,user,branch_id)
         branch_count=db.scalar(select(func.count()).select_from(Record).where(
             Record.organization_id==organization.id,Record.kind=='branches'))
-        metadata=META if organization.data_policy=='synthetic_only' else {'data_origin':None,'scenario_date':None}
-        return {**metadata,'organization':organization_json(organization),
+        origin_metadata=metadata(db,user.organization_id)
+        return {**origin_metadata,'organization':organization_json(organization),
+            'data_context':workspace_context(db,organization.id,branch_id),
             'timezone':organization.timezone,'currency':organization.currency,
-            'onboarding':{'branch_count':branch_count,'can_import_branches':user.role=='admin' and organization.data_policy=='synthetic_only',
+            'onboarding':{'branch_count':branch_count,'can_import_branches':user.role=='admin' and organization.data_policy in {'synthetic_only','real_only'},
                           'data_policy':organization.data_policy},
             'language':'kk-KZ','read_only':True,'user':user_json(user),'forecast_horizon_days':1}
     @app.get('/api/v1/users')
     def users(user=Depends(current),db=Depends(get_db)):
         roles(user,'admin')
-        return {'items':[user_json(u) for u in db.scalars(select(User).where(User.organization_id==user.organization_id))],**META}
+        return {'items':[user_json(u) for u in db.scalars(select(User).where(User.organization_id==user.organization_id))],**metadata(db,user.organization_id)}
     @app.post('/api/v1/users',status_code=201)
     def create_user(data:UserInput,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin')

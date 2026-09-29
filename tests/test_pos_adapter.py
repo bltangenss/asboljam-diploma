@@ -55,7 +55,11 @@ class PosAdapterTests(unittest.TestCase):
         self.assertEqual(rows[0]["price_kzt"], "1250.10")
         self.assertEqual(rows[0]["data_origin"], "REAL")
         self.assertEqual(report["source_sha256"], hashlib.sha256(raw).hexdigest())
-        self.assertEqual(report["compatibility"], "CANONICAL_REAL_IMPORT_UNSUPPORTED")
+        self.assertEqual(report["compatibility"], "CANONICAL_REAL_REQUIRES_CONFIGURED_SOURCE")
+        warnings = " ".join(report["warnings"])
+        self.assertIn("separately registered source", warnings)
+        self.assertIn("application preview/commit", warnings)
+        self.assertIn("tenant compatibility is not checked here", warnings)
         self.assertFalse(report["foreign_keys_checked"])
         self.assertFalse(report["enterprise_compatibility_verified"])
         self.assertFalse(report["import_performed"])
@@ -85,7 +89,7 @@ class PosAdapterTests(unittest.TestCase):
             "closed_rows": 0,
             "reference_check": {
                 "status": "not_run",
-                "reason": "Canonical reference files and organization scope are checked only at application commit.",
+                "reason": "Canonical references and organization scope require separate application preview and commit.",
             },
         })
         # Short numeric IDs can occur by chance inside provenance SHA256 values.

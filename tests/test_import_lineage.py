@@ -119,7 +119,7 @@ class ImportLineageTests(unittest.TestCase):
         queued = client.post('/api/v1/forecasts', json={'branch_id': '1', 'origin': '2025-12-31'})
         self.assertEqual(queued.status_code, 202, queued.text)
         identifier = queued.json()['run_id']
-        def calculation(sales, *args):
+        def calculation(sales, *args, **kwargs):
             result = {'branch_id': '1', 'target_date': '2026-01-01', 'origin': '2025-12-31',
                       'predictions': [{'meal_id': '1', 'point_forecast': sales[0]['units_sold'], 'p50': None, 'p90': None}]}
             if side_effect is not None:

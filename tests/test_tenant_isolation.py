@@ -59,7 +59,7 @@ class TenantIsolationTests(unittest.TestCase):
                     insert_rows(db, org, kind, [dict(row, data_origin='SYNTHETIC') for row in rows])
                 for branch in ('1', '2'):
                     forecast_id = f'{org}-forecast-{branch}'
-                    result = {'target_date': '2026-01-01', 'predictions': [{'meal_id': '1', 'point': base + int(branch), 'p10': None, 'p50': None, 'p90': None}], 'metadata': {'fixture_organization': org}, 'metrics': []}
+                    result = {'data_origin': 'SYNTHETIC', 'origin': '2025-12-31', 'branch_id': branch, 'target_date': '2026-01-01', 'predictions': [{'meal_id': '1', 'point': base + int(branch), 'p10': None, 'p50': None, 'p90': None}], 'metadata': {'fixture_organization': org}, 'metrics': []}
                     db.add(Forecast(id=forecast_id, organization_id=org, branch_id=branch, result=result))
                     db.add(Job(id=f'{org}-job-{branch}', organization_id=org, branch_id=branch, actor_id=f'{org}-admin', kind='forecast', status='succeeded', payload={}, snapshot={}, result_id=forecast_id))
                     inputs = capture_lineage(db, org, [{'kind': 'inventory_lots', 'rows': rows_for(db, org, 'inventory_lots', branch), 'branch_id': branch, 'snapshot_date': '2026-01-01'}])

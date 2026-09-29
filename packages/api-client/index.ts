@@ -1,6 +1,13 @@
 ﻿export type Role = 'admin' | 'manager' | 'analyst' | 'warehouse';
 export interface User { id: string; email: string; role: Role; organization_id: string; branch_ids: string[] }
-export interface Page<T> { items: T[]; total: number; next_cursor: string | null; data_origin: string; scenario_date: string }
+export interface Page<T> { items: T[]; total: number; next_cursor: string | null; data_origin: string | null; scenario_date: string | null }
+export type WorkspaceDataContext = {
+ version:1;mode:'synthetic_fixed'|'real_business'|'unconfigured';data_origin:'SYNTHETIC'|'REAL'|null;
+ usage_mode:'DEMO'|'PILOT'|'TEST'|null;timezone:string|null;currency:string;branch_id:string|null;
+ history_start:string|null;history_end:string|null;forecast_origin:string|null;target_date:string|null;
+ inventory_date:string|null;inventory_dates:string[];dates_editable:boolean;operations_enabled:boolean;business_date:string|null;
+ source:null|{source_id:string;mapping_version:string;branch_id:string;purpose:string;version:string|number};
+};
 export interface Prediction { meal_id: string; point_forecast: number; p10: number | null; p50: number | null; p90: number | null }
 export interface Run { id: string; run_id: string; kind: string; status: 'queued'|'running'|'succeeded'|'failed'; result_id: string | null; error: string | null }
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }

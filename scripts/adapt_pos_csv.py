@@ -1,7 +1,7 @@
 """Offline, explicitly mapped aggregate POS CSV preparation; no API or DB writes.
 
-REAL output deliberately remains outside the demo import boundary. Unknown source
-columns are refused instead of silently dropping possible personal/oracle data.
+REAL output requires a separately registered tenant source and API preview/commit.
+Unknown source columns are refused instead of dropping possible personal/oracle data.
 """
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
         "closed_rows": 0,
         "reference_check": {
             "status": "not_run",
-            "reason": "Canonical reference files and organization scope are checked only at application commit.",
+            "reason": "Canonical references and organization scope require separate application preview and commit.",
         },
     }
     report = {
@@ -150,10 +150,10 @@ def adapt(source: bytes, mapping: dict) -> tuple[list[dict], dict]:
         "mapping_sha256": hashlib.sha256(json.dumps(mapping, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest(),
         "origin_evidence": "source_column_and_operator_declaration" if "data_origin" in columns else "operator_declaration_only",
         "declared_sales_unit": mapping.get("declared_sales_unit"), "declared_currency": mapping.get("declared_currency"),
-        "compatibility": "CANONICAL_REAL_IMPORT_UNSUPPORTED" if origin == "REAL" else "DEMO_SCHEMA_PREPARED_NOT_IMPORTED",
+        "compatibility": "CANONICAL_REAL_REQUIRES_CONFIGURED_SOURCE" if origin == "REAL" else "DEMO_SCHEMA_PREPARED_NOT_IMPORTED",
         "import_performed": False, "foreign_keys_checked": False, "enterprise_compatibility_verified": False,
         "warnings": ["No enterprise connector, source authorization, PII audit, foreign-key or database validation is certified.",
-                     "REAL records cannot be uploaded to the current SYNTHETIC-only application importer."],
+                     "REAL output requires a separately registered source in an eligible organization and application preview/commit; tenant compatibility is not checked here."],
         "source_rows": 0, "output_rows": 0, "valid": False, "errors": [], "quality": quality,
     }
     errors = report["errors"]

@@ -1,5 +1,5 @@
 import {useId,useState} from 'react';
-import {type Row,useData,items,name,fmt,date,DataState,Empty} from './shared';
+import {type Row,useData,items,name,fmt,date,shiftDate,DataState,Empty} from './shared';
 
 type Props={result:any;branch:string;t:(key:string)=>string;lang:'kk'|'ru';meals:Row[]};
 const DAY=86400000;
@@ -12,19 +12,21 @@ export default function ForecastChart({result,branch,t,lang,meals}:Props){
   const[selection,setSelection]=useState('');
   const predictions:Row[]=Array.isArray(result.predictions)?result.predictions:[];
   const chosen=predictions.find(row=>String(row.meal_id)===selection)||predictions[0];
+  const origin=String(result.forecast_origin||result.origin||result.metadata?.forecast_origin||result.metadata?.history_end||'');
+  const knownDates=Boolean(origin&&result.target_date&&shiftDate(origin,0)===origin&&shiftDate(String(result.target_date),0)===String(result.target_date));
   const mealName=(id:string)=>name(meals.find(row=>String(row.meal_id)===id)?.meal_name||predictions.find(row=>String(row.meal_id)===id)?.meal_name||id);
   return <section className="panel forecast-history-panel">
     <div className="panel-heading" style={{flexWrap:'wrap'}}><div><h2>{lang==='kk'?'Сатылым тарихы және келесі күн':'История продаж и следующий день'}</h2><p>{lang==='kk'?'Күн бойынша · порция':'По датам · порции'}</p></div>
       {chosen&&<label style={{minWidth:190,maxWidth:'100%'}}>{t('meal')}<select aria-label={lang==='kk'?'Графиктегі тағам':'Блюдо на графике'} value={String(chosen.meal_id)} onChange={event=>setSelection(event.target.value)}>{predictions.map(row=><option key={row.meal_id} value={String(row.meal_id)}>{mealName(String(row.meal_id))}</option>)}</select></label>}
     </div>
-    {chosen?<Series key={`${result.id||result.model}-${result.target_date}-${chosen.meal_id}-${branch}`} result={result} branch={branch} prediction={chosen} mealName={mealName(String(chosen.meal_id))} t={t} lang={lang}/>:<Empty t={t}/>}
+    {chosen?knownDates?<Series key={`${result.id||result.model}-${result.target_date}-${chosen.meal_id}-${branch}`} result={result} branch={branch} prediction={chosen} mealName={mealName(String(chosen.meal_id))} t={t} lang={lang}/>:<div className="alert info">{t('forecastOriginUnknown')}</div>:<Empty t={t}/>}
   </section>;
 }
 
 function Series({result,branch,prediction,mealName,t,lang}:Omit<Props,'meals'>&{prediction:Row;mealName:string}){
   const id=useId(),[revision,setRevision]=useState(0),[description,setDescription]=useState('');
-  const origin=String(result.forecast_origin||result.origin||result.metadata?.forecast_origin||result.metadata?.history_end||'2025-12-31'),end=time(origin),start=end-27*DAY;
-  const targetDate=String(result.target_date||iso(end+DAY)),target=time(targetDate),branchId=String(result.branch_id||branch),mealId=String(prediction.meal_id);
+  const origin=String(result.forecast_origin||result.origin||result.metadata?.forecast_origin||result.metadata?.history_end),end=time(origin),start=end-27*DAY;
+  const targetDate=String(result.target_date),target=time(targetDate),branchId=String(result.branch_id||branch),mealId=String(prediction.meal_id);
   const query=new URLSearchParams({branch_id:branchId,date_from:iso(start),date_to:origin,meal_id:mealId,limit:'200',cursor:'0'});
   const state=useData('/sales?'+query.toString(),revision);
   const actual=items(state.data).filter(row=>String(row.branch_id)===branchId&&String(row.meal_id)===mealId&&number(row.units_sold)!==null&&time(String(row.date))>=start&&time(String(row.date))<=end).map(row=>({date:String(row.date),value:number(row.units_sold)!})).sort((a,b)=>a.date.localeCompare(b.date));

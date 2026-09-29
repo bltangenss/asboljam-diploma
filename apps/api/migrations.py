@@ -4,13 +4,14 @@
 migration. 0002 materializes tenant metadata once from pre-existing scoped rows;
 normal startup never invents organizations for subsequently orphaned records.
 0003 adds import evidence, revisions and receipts without fabricating legacy provenance.
+0004 explicitly adds a real-only policy and operator source registration, without activation.
 """
-from sqlalchemy import case, literal, select, text, union
+from sqlalchemy import CheckConstraint, Column, MetaData, String, Table, case, inspect, literal, select, text, union
 
-from .db import Base, Organization, now
+from .db import Base, now
 
 
-VERSIONS = ('0001', '0002', '0003')
+VERSIONS = ('0001', '0002', '0003', '0004')
 LEGACY_TABLE_NAMES = (
     'users', 'auth_sessions', 'refresh_tokens', 'login_attempts',
     'operational_records', 'import_batches', 'jobs', 'forecasts',
@@ -21,12 +22,32 @@ ORGANIZATION_TABLE_NAMES = (
     'forecasts', 'plans', 'audit_events', 'idempotency_keys',
 )
 IMPORT_TABLE_NAMES = ('import_evidence', 'record_revisions', 'import_receipts')
+SOURCE_TABLE_NAMES = ('organization_sources',)
 # Stable per-database PostgreSQL transaction lock shared by API/worker/migration CLI.
 _MIGRATION_LOCK = 0x4153424F4C4A414D
 
 
 class MigrationError(RuntimeError):
     """Migration history cannot safely be applied by this application version."""
+
+
+def _organization_definition(name, *, allow_real=False):
+    """Freeze the original eight columns instead of using the evolving ORM model."""
+    policy = "data_policy IN ('synthetic_only', 'unconfigured'" + (", 'real_only')" if allow_real else ")")
+    return Table(name, MetaData(),
+        Column('id', String(64), primary_key=True),
+        Column('name', String(200), nullable=True),
+        Column('timezone', String(64), nullable=True),
+        Column('currency', String(3), nullable=False, server_default='KZT'),
+        Column('status', String(16), nullable=False, server_default='active'),
+        Column('data_policy', String(32), nullable=False, server_default='unconfigured'),
+        Column('provenance', String(32), nullable=False),
+        Column('created_at', String(64), nullable=False),
+        CheckConstraint("status IN ('active', 'suspended')", name='ck_organization_status'),
+        CheckConstraint(policy, name='ck_organization_data_policy'))
+
+
+_ORGANIZATION_V2 = _organization_definition('organizations')
 
 
 def _initial_schema(connection):
@@ -39,7 +60,7 @@ def _backfill_organizations(connection):
         for name in ORGANIZATION_TABLE_NAMES
     ]).subquery()
     identifier = legacy_ids.c.organization_id
-    statement = Organization.__table__.insert().from_select(
+    statement = _ORGANIZATION_V2.insert().from_select(
         ['id', 'name', 'timezone', 'currency', 'status', 'data_policy', 'provenance', 'created_at'],
         select(identifier,
                case((identifier == 'demo', literal('AsBoljam Demo')), else_=None),
@@ -52,13 +73,38 @@ def _backfill_organizations(connection):
 
 def _tenant_schema(connection):
     # An unexpected pre-existing table is an error; never stamp an unknown shape.
-    Organization.__table__.create(connection, checkfirst=False)
+    _ORGANIZATION_V2.create(connection, checkfirst=False)
     _backfill_organizations(connection)
 
 
 def _import_schema(connection):
     # Old operational rows/batches remain untouched; their missing source evidence is unknown.
     for name in IMPORT_TABLE_NAMES:
+        Base.metadata.tables[name].create(connection, checkfirst=False)
+
+
+def _real_source_schema(connection):
+    if connection.dialect.name == 'sqlite':
+        # SQLite cannot replace a CHECK in place. Its enclosing BEGIN IMMEDIATE
+        # makes the copy, replacement, new table and marker one reversible unit.
+        schema = inspect(connection)
+        triggers = connection.execute(text("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='organizations'")).first()
+        inbound_keys = any(key.get('referred_table') == 'organizations'
+                           for table in schema.get_table_names() for key in schema.get_foreign_keys(table))
+        if schema.get_indexes('organizations') or triggers or inbound_keys:
+            raise MigrationError('Unsupported organization schema extensions; preserve and reconcile them before migration')
+        replacement = _organization_definition('organizations_v0004', allow_real=True)
+        replacement.create(connection, checkfirst=False)
+        columns = list(_ORGANIZATION_V2.c.keys())
+        connection.execute(replacement.insert().from_select(
+            columns, select(*[_ORGANIZATION_V2.c[name] for name in columns])))
+        connection.exec_driver_sql('DROP TABLE organizations')
+        connection.exec_driver_sql('ALTER TABLE organizations_v0004 RENAME TO organizations')
+    else:
+        connection.exec_driver_sql('ALTER TABLE organizations DROP CONSTRAINT ck_organization_data_policy')
+        connection.exec_driver_sql("ALTER TABLE organizations ADD CONSTRAINT ck_organization_data_policy "
+                                   "CHECK (data_policy IN ('synthetic_only', 'unconfigured', 'real_only'))")
+    for name in SOURCE_TABLE_NAMES:
         Base.metadata.tables[name].create(connection, checkfirst=False)
 
 
@@ -79,7 +125,7 @@ def migrate(engine):
             if applied != VERSIONS[:len(applied)]:
                 raise MigrationError('Unsupported or incomplete migration history; use a compatible application version')
             completed = []
-            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema)):
+            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema)):
                 if version not in applied:
                     operation(connection)
                     connection.execute(text('INSERT INTO schema_migrations (version) VALUES (:version)'), {'version': version})

@@ -21,7 +21,8 @@ from sqlalchemy import text
 from apps.api.config import ConfigurationError, load_settings
 from apps.api.db import Organization, make_engine, sessions
 from apps.api.migrations import VERSIONS
-from apps.api.tenants import TenantError, bootstrap_tenant, organization_json, preflight_bootstrap, set_tenant_status
+from apps.api.tenants import (TenantError, bootstrap_tenant, configure_real_source, organization_json,
+                             preflight_bootstrap, preflight_configure_real_source, set_tenant_status)
 
 
 class SafeParser(argparse.ArgumentParser):
@@ -47,7 +48,14 @@ def main(argv=None):
     status = commands.add_parser('status', help='Suspend or resume one organization')
     status.add_argument('--status', required=True, choices=['active', 'suspended'])
     status.add_argument('--expected-status', required=True, choices=['active', 'suspended'])
-    for command in (bootstrap, status):
+    configure = commands.add_parser('configure-real', help='Register one source on an empty unconfigured organization')
+    configure.add_argument('--source-id', required=True)
+    configure.add_argument('--mapping-version', required=True)
+    configure.add_argument('--branch-id', required=True, type=identifier)
+    configure.add_argument('--authorization-reference', required=True,
+                           help='Opaque reference held by the operator; no document contents, paths or personal data')
+    configure.add_argument('--purpose', required=True, choices=['pilot', 'test_fixture'])
+    for command in (bootstrap, status, configure):
         command.add_argument('--organization-id', required=True, type=identifier)
         command.add_argument('--operator-id', required=True, type=identifier)
         command.add_argument('--reason', required=True, help='Audit reason, 3..1000 characters; no passwords or secrets')
@@ -82,6 +90,16 @@ def main(argv=None):
                 preflight_bootstrap(db, **metadata)
             report = {'status': 'ready', 'organization_id': args.organization_id,
                       'data_policy': args.data_policy, 'branch_count': 0}
+        elif args.command == 'configure-real':
+            metadata = dict(common, source_id=args.source_id, mapping_version=args.mapping_version,
+                            branch_id=args.branch_id, authorization_reference=args.authorization_reference,
+                            purpose=args.purpose)
+            with factory() as db:
+                preflight_configure_real_source(db, **metadata)
+            report = {'status': 'ready', 'organization_id': args.organization_id,
+                      'requested_data_policy': 'real_only', 'source_id': args.source_id,
+                      'mapping_version': args.mapping_version, 'branch_id': args.branch_id,
+                      'purpose': args.purpose, 'branch_count': 0}
         else:
             with factory() as db:
                 organization = db.get(Organization, args.organization_id)
@@ -113,6 +131,12 @@ def main(argv=None):
                 db.commit()
             print(json.dumps({'status': 'created', 'organization_id': args.organization_id,
                               'admin_user_id': result['admin_user_id'], 'branch_count': 0}))
+        elif args.command == 'configure-real':
+            with factory() as db:
+                configure_real_source(db, **metadata)
+                db.commit()
+            print(json.dumps({'status': 'configured', 'organization_id': args.organization_id,
+                              'data_policy': 'real_only', 'reauth_required': True}))
         else:
             with factory() as db:
                 set_tenant_status(db, status=args.status, expected_status=args.expected_status, **common)

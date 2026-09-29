@@ -22,7 +22,22 @@ class Organization(Base):
     created_at: Mapped[str] = mapped_column(String(64), default=now)
     __table_args__ = (
         CheckConstraint("status IN ('active', 'suspended')", name='ck_organization_status'),
-        CheckConstraint("data_policy IN ('synthetic_only', 'unconfigured')", name='ck_organization_data_policy'),
+        CheckConstraint("data_policy IN ('synthetic_only', 'unconfigured', 'real_only')", name='ck_organization_data_policy'),
+    )
+class OrganizationSource(Base):
+    __tablename__ = 'organization_sources'
+    organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(64))
+    mapping_version: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    authorization_reference: Mapped[str] = mapped_column(String(128))
+    purpose: Mapped[str] = mapped_column(String(32))
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
+    actor_id: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint("purpose IN ('pilot', 'test_fixture')", name='ck_organization_source_purpose'),
+        CheckConstraint('version >= 1', name='ck_organization_source_version'),
     )
 class User(Base):
     __tablename__ = 'users'

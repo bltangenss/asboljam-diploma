@@ -10,7 +10,7 @@
     ],
     "generator": "scripts/generate_contracts.py",
     "dictionary_sha256": "fad1e65911e44a69d4c16b75e6a3a5598f9b8beb9ad432b32256e647d6e99df3",
-    "importer_sha256": "8182f87212294c33c111feff7c5c2129d54a1f70835404dc70b2d602b5ebce3d",
+    "importer_sha256": "7423d343745fb56ef061d6124661300138c2ae69888dab7e540640404e6ac340",
     "notice": "This file was reconstructed explicitly; no original contracts/data_manifest.json was included in the supplied materials."
   },
   "encoding": [
@@ -24,6 +24,24 @@
   "import": {
     "default_mode": "append",
     "all_or_nothing": true,
+    "origin_policy": {
+      "synthetic_only": "SYNTHETIC",
+      "real_only": "REAL"
+    },
+    "real_source_required": [
+      "source_id",
+      "mapping_version",
+      "branch_id",
+      "authorization_reference",
+      "purpose"
+    ],
+    "real_usage_modes": {
+      "pilot": "PILOT",
+      "test_fixture": "TEST"
+    },
+    "real_source_registration": "Operator-only, empty unconfigured organization, known timezone and KZT; immutable versioned registration does not independently verify consent.",
+    "real_date_policy": "Sales must precede current business day; inventory snapshots cannot be future-dated. Forecast origin is explicit and closed, target=origin+1.",
+    "real_inventory_policy": "Exact target-date snapshot; every required recipe ingredient needs an explicit quantity, including factual zero. Same-date expiry is usable; eligible offer lead time is zero.",
     "same_file_duplicate_keys": "rejected",
     "existing_identical_rows": "unchanged_no_duplicate_insert",
     "existing_changed_rows": "explicit_correction_required",
@@ -157,8 +175,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -247,8 +267,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -384,8 +406,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -488,8 +512,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -565,8 +591,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -712,8 +740,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -841,8 +871,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -1020,8 +1052,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     },
@@ -1165,8 +1199,10 @@
           "source_to_storage": "operational_records.data.data_origin",
           "training_use": "not_used_by_current_forecasting_features",
           "enum": [
-            "SYNTHETIC"
-          ]
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
     }

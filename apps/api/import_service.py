@@ -1,7 +1,7 @@
 """Atomic imports with provenance, replay receipts and immutable row revisions.
 
 The API holds Organization then User locks for each mutation. Callers own commit.
-Only canonical SYNTHETIC rows are accepted until the separate REAL source contract.
+Each tenant accepts only its configured origin and immutable source contract.
 """
 from copy import deepcopy
 import hashlib
@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from .db import Audit, ImportBatch, ImportEvidence, ImportReceipt, Organization, Record, RecordRevision, now
 from .importing import SCHEMAS, natural_key, parse_csv, validate_rows
 from .lineage import row_digest
+from .data_policy import DataPolicyError, business_clock, ensure_rows, metadata as origin_metadata, policy_context
 
 
 OPERATIONAL = {'daily_sales', 'calendar', 'inventory_lots'}
@@ -65,6 +66,12 @@ def _versions(db, organization_id, kind):
     ).group_by(RecordRevision.natural_key)).all())
 
 
+def _check_stored_origins(db, organization_id, context, existing):
+    ensure_rows(context, [record.data for record in existing.values()])
+    for kind in ('branches', 'meals', 'ingredients', 'suppliers'):
+        ensure_rows(context, [record.data for record in _existing(db, organization_id, kind).values()])
+
+
 def _classify(rows, kind, mode, existing, versions):
     counts = dict(new=0, unchanged=0, updated=0, conflicting=0)
     changes, expected, errors = [], {}, []
@@ -107,10 +114,26 @@ def preview_import(db, user, *, kind, csv_text, mode='append', reason=None,
             raise ImportProblem('CORRECTION_SOURCE_INVALID', 'Бұрынғы импорт түрі немесе күйі сәйкес емес.')
         prior_keys = {natural_key(kind, row) for row in prior.rows}
     organization = db.get(Organization, user.organization_id)
-    if not organization or organization.status != 'active' or organization.data_policy != 'synthetic_only':
+    if not organization or organization.status != 'active':
         raise ImportProblem('TENANT_DATA_POLICY_REQUIRED', 'Деректер режимі қолжетімсіз.', 403)
+    context = policy_context(db, user.organization_id)
+    if context['data_origin'] is None:
+        raise ImportProblem('TENANT_DATA_POLICY_REQUIRED', 'Деректер режимі қолжетімсіз.', 403)
+    source = source or {}
+    if context['source'] and any(source.get(key) != context['source'][key] for key in ('source_id', 'mapping_version')):
+        raise ImportProblem('SOURCE_PROFILE_MISMATCH', 'Ұйымға тіркелген дерек көзі мен нұсқасын таңдаңыз.')
     report = {}
-    rows, errors = parse_csv(kind, csv_text, report)
+    rows, errors = parse_csv(kind, csv_text, report, expected_origin=context['data_origin'])
+    try:
+        ensure_rows(context, rows)
+    except DataPolicyError as exc:
+        errors.append({'row_number': 1, 'field': 'branch_id', 'code': exc.code, 'message': exc.message})
+    if context['data_origin'] == 'REAL':
+        today = business_clock(context)[1].isoformat()
+        for index, row in enumerate(rows, 2):
+            if kind == 'daily_sales' and row['date'] >= today or kind == 'inventory_lots' and row['snapshot_date'] > today:
+                errors.append({'row_number': index, 'field': 'date', 'code': 'BUSINESS_DATE_NOT_CLOSED',
+                               'message': 'Күндік сатылым аяқталған күнге, ал қойма кесіндісі бүгінге не өткен күнге тиесілі болуы керек.'})
     validation_report = dict(rows_checked=0, complete=False,
                              stop_reason='parser_errors', errors_truncated=False)
     if not errors:
@@ -121,6 +144,7 @@ def preview_import(db, user, *, kind, csv_text, mode='append', reason=None,
         errors = [{'row_number': 1, 'field': 'corrects_batch_id', 'code': 'CORRECTION_SOURCE_MISMATCH',
                    'message': 'Түзету кілттері көрсетілген импортқа жатпайды.'}]
     existing = _existing(db, user.organization_id, kind)
+    _check_stored_origins(db, user.organization_id, context, existing)
     if kind == 'branches' and any(natural_key(kind, row) in existing
             and row['branch_id'] not in user.branch_ids for row in rows):
         errors = errors or [{'row_number': 1, 'field': 'branch_id', 'code': 'BRANCH_FORBIDDEN',
@@ -135,12 +159,12 @@ def preview_import(db, user, *, kind, csv_text, mode='append', reason=None,
             change['before'] = None
     if not errors:
         errors = conflicts
-    source = source or {}
     metadata = {**source, 'source_id': source.get('source_id', 'manual_csv'),
         'mapping_version': source.get('mapping_version', 'canonical-v1'),
         'declared_original_sha256': source.get('declared_original_sha256'),
         'timezone': organization.timezone, 'currency': organization.currency,
-        'data_origin': 'SYNTHETIC', 'provenance': 'received_csv_text',
+        'data_origin': context['data_origin'], 'usage_mode': context['usage_mode'],
+        'source_contract': context['source'], 'provenance': 'received_csv_text',
         'hash_version': 'canonical-v1', 'original_hash_verified': False}
     days = sorted({r.get('date', r.get('snapshot_date')) for r in rows if r.get('date', r.get('snapshot_date'))})
     summary = {**report, 'counts': {**counts, 'rows_seen': report['rows_seen'],
@@ -190,7 +214,10 @@ def batch_view(db, user, batch, evidence=None, *, details=True):
         'errors_truncated': summary.get('errors_truncated'),
         'branch_ids': summary.get('branch_ids', sorted({r['branch_id'] for r in batch.rows if r.get('branch_id') is not None})),
         'period': summary.get('period'), 'preview_limit': 10,
-        'receipt': evidence.receipt if evidence else None, 'data_origin': 'SYNTHETIC', 'scenario_date': '2026-01-01'}
+        'receipt': evidence.receipt if evidence else None,
+        'data_origin': evidence.source.get('data_origin') if evidence else None,
+        'usage_mode': evidence.source.get('usage_mode') if evidence else None,
+        'scenario_date': '2026-01-01' if evidence and evidence.source.get('data_origin') == 'SYNTHETIC' else None}
     if details:
         result.update(errors=batch.errors, preview=batch.rows[:10], changes=summary.get('changes', []))
     return result
@@ -221,6 +248,13 @@ def commit_import(db, user, batch_id, idempotency_key=None):
         raise ImportProblem('FORBIDDEN', 'Өз импортыңызды ғана сақтай аласыз.', 403)
     if evidence is None:
         raise ImportProblem('IMPORT_PREVIEW_REQUIRED', 'Импортты жаңа тексеруден өткізіңіз.', 409)
+    context = policy_context(db, user.organization_id)
+    ensure_rows(context, batch.rows)
+    if (evidence.source.get('data_origin') != context['data_origin']
+            or evidence.source.get('source_contract') != context['source']
+            or any(evidence.source.get(field) != context[field] for field in ('timezone', 'currency'))
+            or context['data_origin'] == 'REAL' and evidence.source.get('usage_mode') != context['usage_mode']):
+        raise ImportProblem('SOURCE_CONTEXT_CHANGED', 'Импорттың дерек көзі өзгерген. Қайта тексеріңіз.', 409)
     key = idempotency_key if idempotency_key is not None else 'batch:' + batch.id
     if not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}', key):
         raise ImportProblem('IDEMPOTENCY_INVALID', 'Idempotency-Key жарамсыз.')
@@ -241,6 +275,7 @@ def commit_import(db, user, batch_id, idempotency_key=None):
         if errors:
             raise ImportProblem('IMPORT_INVALID', 'Импортты қайта тексеріңіз.')
         existing, versions = _existing(db, user.organization_id, batch.kind), _versions(db, user.organization_id, batch.kind)
+        _check_stored_origins(db, user.organization_id, context, existing)
         if batch.kind == 'branches' and any(natural_key(batch.kind, row) in existing
                 and row['branch_id'] not in user.branch_ids for row in batch.rows):
             raise ImportProblem('BRANCH_FORBIDDEN', 'Бұрынғы бөлімшеге рұқсат жоқ.', 403)
@@ -273,7 +308,7 @@ def commit_import(db, user, batch_id, idempotency_key=None):
         batch.status = 'committed'; evidence.committed_at = now()
         response = {'id': batch.id, 'status': 'committed', 'row_count': len(batch.rows),
             'inserted_rows': counts['new'], 'updated_rows': counts['updated'],
-            'unchanged_rows': counts['unchanged'], 'data_origin': 'SYNTHETIC', 'scenario_date': '2026-01-01'}
+            'unchanged_rows': counts['unchanged'], **origin_metadata(db, user.organization_id)}
         evidence.receipt = deepcopy(response)
         for branch in {r.get('branch_id') for r in batch.rows}:
             db.add(Audit(id=uuid.uuid4().hex, organization_id=user.organization_id,

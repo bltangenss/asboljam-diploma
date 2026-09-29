@@ -9,7 +9,8 @@ const timestamp=(value?:string|null)=>value?value.slice(0,19).replace('T',' '):'
 
 export default function Imports(c:Context) {
  const {t,lang,branch,user,online}=c;
- const canImport=c.organization?.data_policy==='synthetic_only'&&['admin','manager','warehouse'].includes(user?.role||'');
+ const real=c.dataContext?.mode==='real_business',configuredSource=c.dataContext?.source;
+ const canImport=c.dataContext?.operations_enabled===true&&['admin','manager','warehouse'].includes(user?.role||'');
  const types=user?.role==='admin'?['daily_sales','inventory_lots','branches','meals','ingredients','recipes','suppliers','supplier_offers','calendar']
   :user?.role==='warehouse'?['inventory_lots']:['manager','analyst'].includes(user?.role||'')?correctionKinds:[];
  const [kind,setKind]=useState(user?.role==='admin'&&(!branch||new URLSearchParams(location.search).get('kind')==='branches')?'branches':user?.role==='warehouse'?'inventory_lots':'daily_sales');
@@ -26,6 +27,7 @@ export default function Imports(c:Context) {
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++version.current}},[]);
  useEffect(()=>{if(!done)resetPreview()},[branch]);
  useEffect(()=>{resetPreview()},[user?.role]);
+ useEffect(()=>{if(real&&configuredSource){resetPreview();setSourceId(configuredSource.source_id);setMappingVersion(configuredSource.mapping_version)}},[real,configuredSource?.source_id,configuredSource?.mapping_version]);
  useEffect(()=>{if(requestedBatch)void openBatch(requestedBatch)},[requestedBatch,user?.id,user?.organization_id]);
 
  function resetPreview() {
@@ -52,6 +54,7 @@ export default function Imports(c:Context) {
  async function validate() {
   if(!canImport||!types.includes(kind)||!text||pending.current||!online)return;
   if(!sourceCode.test(sourceId)||!sourceCode.test(mappingVersion)||(declaredHash&&!/^[a-fA-F0-9]{64}$/.test(declaredHash))){setError(t('importSourceInvalid'));return}
+  if(real&&(!configuredSource||sourceId!==configuredSource.source_id||mappingVersion!==configuredSource.mapping_version)){setError(t('importSourceInvalid'));return}
   if(mode==='correction'&&(!correctionKinds.includes(kind)||reason.trim().length<3)){setError(t('importReasonRequired'));return}
   const current=begin(resetPreview());setAction('preview');
   try {
@@ -65,7 +68,7 @@ export default function Imports(c:Context) {
  async function accepted(batch:ImportBatchView,receipt:ImportReceipt,current:()=>boolean) {
   if(!current())return;
   setPreview({...batch,status:'committed',can_commit:false,receipt});setDone(true);setUncertain(false);setError('');setHistoryRevision(n=>n+1);
-  if(batch.kind==='branches')await c.refreshWorkspace();else c.refresh();
+  await c.refreshWorkspace();
  }
  async function recover(batch:ImportBatchView,current:()=>boolean) {
   if(!current())return;
@@ -109,7 +112,7 @@ export default function Imports(c:Context) {
  }
  function startCorrection(batch:ImportBatchView) {
   resetPreview();setKind(batch.kind);setMode('correction');setCorrectsBatch(batch.id);setReason('');setText('');setFilename('');
-  setSourceId(batch.source?.source_id||'manual_csv');setMappingVersion(batch.source?.mapping_version||'canonical-v1');setDeclaredHash('');
+  setSourceId((real?configuredSource?.source_id:batch.source?.source_id)||'manual_csv');setMappingVersion((real?configuredSource?.mapping_version:batch.source?.mapping_version)||'canonical-v1');setDeclaredHash('');
  }
  const countLabels=['rows_seen','rows_checked','parsed','new','unchanged','updated','conflicting'] as const;
  const previewMode=preview?.mode||'append';
@@ -118,7 +121,7 @@ export default function Imports(c:Context) {
  return <>
   <Heading title={t('imports')} sub={lang==='kk'?'Тексеру → алдын ала қарау → транзакциялық импорт':'Проверка → предпросмотр → транзакционный импорт'}/>
   {!canImport&&<div className="alert info" role="status">{t('readOnlyImports')}</div>}
-  <div className="alert info">{t('syntheticImportNotice')}</div>
+  <div className="alert info">{t(real?'realImportNotice':'syntheticImportNotice')}{real&&configuredSource&&<span> · {t('branch')}: {configuredSource.branch_id}</span>}</div>
   <div className="import-steps">{['file','validate','preview','commit'].map((key,index)=><div key={key} className={(done?3:preview?2:text?1:0)>=index?'current':''}><span>{done||preview&&index<2?<Check size={15}/>:index+1}</span>{t(key)}{index<3&&<ChevronRight size={16}/>}</div>)}</div>
   {error&&<div className="alert danger" role="alert">{error}</div>}
   {busy&&<div className="alert info" role="status">{t(action==='recover'?'importRecovering':action==='commit'?'importSaving':'importLoading')}</div>}
@@ -130,8 +133,8 @@ export default function Imports(c:Context) {
    <a className="button secondary" href={`/api/v1/imports/template/${kind}`}><ArrowDownToLine size={16}/>{lang==='kk'?'CSV үлгісі':'Шаблон CSV'}</a>
    {canImport&&<>
     <details><summary>{t('importSourceSettings')}</summary><div className="filters" style={{paddingTop:12}}>
-     <label>{t('importSourceId')}<input aria-label={t('importSourceId')} maxLength={64} value={sourceId} disabled={locked} onChange={event=>{resetPreview();setSourceId(event.target.value)}}/></label>
-     <label>{t('importMappingVersion')}<input aria-label={t('importMappingVersion')} maxLength={64} value={mappingVersion} disabled={locked} onChange={event=>{resetPreview();setMappingVersion(event.target.value)}}/></label>
+     <label>{t('importSourceId')}<input aria-label={t('importSourceId')} maxLength={64} value={sourceId} disabled={locked} readOnly={real} onChange={event=>{resetPreview();setSourceId(event.target.value)}}/></label>
+     <label>{t('importMappingVersion')}<input aria-label={t('importMappingVersion')} maxLength={64} value={mappingVersion} disabled={locked} readOnly={real} onChange={event=>{resetPreview();setMappingVersion(event.target.value)}}/></label>
      <label className="grow">{t('importDeclaredHash')}<input aria-label={t('importDeclaredHash')} maxLength={64} value={declaredHash} disabled={locked} onChange={event=>{resetPreview();setDeclaredHash(event.target.value)}}/></label>
     </div><p className="muted">{t('importSourceHint')}</p></details>
     {mode==='correction'&&<><div className="alert info">{t('importCorrectionHint')}{correctsBatch&&<span> · {t('importCorrects')}: {correctsBatch}</span>}</div><label>{t('importCorrectionReason')}<input aria-label={t('importCorrectionReason')} minLength={3} maxLength={1000} value={reason} disabled={locked} onChange={event=>{resetPreview();setReason(event.target.value)}}/></label></>}

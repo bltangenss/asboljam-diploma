@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from sqlalchemy import select, text
 
-from apps.api.db import Audit, Organization, Record, User, make_engine, migrate, sessions
+from apps.api.db import Audit, Organization, OrganizationSource, Record, User, make_engine, migrate, sessions
 from apps.api.security import verify_password
 from scripts import manage_tenant, seed_demo
 
@@ -119,6 +119,7 @@ class TenantCliTests(unittest.TestCase):
     def test_unapplied_or_future_schema_never_prompts_or_mutates(self):
         for query, undo in [
             ("DELETE FROM schema_migrations WHERE version='0002'", "INSERT INTO schema_migrations VALUES ('0002')"),
+            ("DELETE FROM schema_migrations WHERE version='0004'", "INSERT INTO schema_migrations VALUES ('0004')"),
             ("INSERT INTO schema_migrations VALUES ('9999')", "DELETE FROM schema_migrations WHERE version='9999'")]:
             with self.subTest(query=query):
                 with self.engine.begin() as connection:
@@ -167,6 +168,65 @@ class TenantCliTests(unittest.TestCase):
                 with self.factory() as db:
                     self.assertFalse(list(db.scalars(select(Record))))
                     self.assertEqual(len(list(db.scalars(select(User)))), 1)
+
+    def source_args(self):
+        return ['configure-real', '--organization-id', 'empty_fixture', '--source-id', 'fixture-pos',
+                '--mapping-version', 'canonical-v1', '--branch-id', '001',
+                '--authorization-reference', 'fixture-reference-01', '--purpose', 'test_fixture',
+                '--operator-id', 'support_1', '--reason', 'Explicit generated protocol fixture']
+
+    def test_source_preflight_and_apply_are_explicit_without_password_or_source_document_output(self):
+        self.create()
+        code, output, prompts = self.invoke(self.source_args(), interactive=False)
+        self.assertEqual((code, prompts), (0, 0), output)
+        self.assertIn('Preflight only', output)
+        self.assertNotIn('fixture-reference-01', output)
+        with self.factory() as db:
+            self.assertEqual(db.get(Organization, 'empty_fixture').data_policy, 'unconfigured')
+            self.assertIsNone(db.get(OrganizationSource, 'empty_fixture'))
+        code, output, prompts = self.invoke(self.source_args() + ['--apply'], interactive=False)
+        self.assertEqual((code, prompts), (0, 0), output)
+        self.assertIn('"data_policy": "real_only"', output)
+        self.assertNotIn('fixture-reference-01', output)
+        with self.factory() as db:
+            self.assertEqual(db.get(OrganizationSource, 'empty_fixture').purpose, 'test_fixture')
+            self.assertFalse(list(db.scalars(select(Record))))
+        self.assertEqual(self.invoke(self.source_args() + ['--apply'])[0], 2)
+
+    def test_source_command_refuses_sensitive_reference_without_echoing_it(self):
+        self.create()
+        args = self.source_args()
+        sensitive = 'person@example.invalid'
+        args[args.index('--authorization-reference') + 1] = sensitive
+        code, output, prompts = self.invoke(args + ['--apply'])
+        self.assertEqual((code, prompts), (2, 0), output)
+        self.assertNotIn(sensitive, output)
+        self.assertIn('SOURCE_METADATA_INVALID', output)
+        with self.factory() as db:
+            self.assertEqual(db.get(Organization, 'empty_fixture').data_policy, 'unconfigured')
+            self.assertIsNone(db.get(OrganizationSource, 'empty_fixture'))
+
+    def test_source_command_requires_current_schema_and_rejects_future_markers(self):
+        self.create()
+        for query, undo in [
+            ("DELETE FROM schema_migrations WHERE version='0004'", "INSERT INTO schema_migrations VALUES ('0004')"),
+            ("INSERT INTO schema_migrations VALUES ('9999')", "DELETE FROM schema_migrations WHERE version='9999'")]:
+            with self.subTest(query=query):
+                with self.engine.begin() as connection:
+                    connection.execute(text(query))
+                code, output, prompts = self.invoke(self.source_args() + ['--apply'])
+                self.assertEqual((code, prompts), (2, 0), output)
+                self.assertIn('MIGRATION_REQUIRED', output)
+                with self.factory() as db:
+                    self.assertEqual(db.get(Organization, 'empty_fixture').data_policy, 'unconfigured')
+                    self.assertIsNone(db.get(OrganizationSource, 'empty_fixture'))
+                with self.engine.begin() as connection:
+                    connection.execute(text(undo))
+
+    def test_bootstrap_cannot_bypass_registration_with_real_only_policy(self):
+        code, output, prompts = self.invoke(self.args + ['--data-policy', 'real_only', '--apply'])
+        self.assertEqual((code, prompts), (2, 0), output)
+        self.assert_empty()
 
 
 if __name__ == '__main__':

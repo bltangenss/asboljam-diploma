@@ -82,10 +82,12 @@ def validate_rows(db, org, kind, rows, allowed_branches=None, *, allow_existing=
         errors.append({'row_number': 1, 'field': 'recipe_version', 'code': 'RECIPE_VERSION_CONFLICT', 'message': 'Бір файлда бір рецепт нұсқасы қажет.'})
     return errors
 
-def parse_csv(kind, text, report=None):
+def parse_csv(kind, text, report=None, *, expected_origin='SYNTHETIC'):
     errors, rows = [], []
     report = report if report is not None else {}
     report.update(rows_seen=0, rows_checked=0, scan_complete=False, stop_reason=None, errors_truncated=False)
+    if expected_origin not in {'SYNTHETIC', 'REAL'}:
+        raise ValueError('Explicit supported origin is required')
     def err(index, field, code, message):
         errors.append({'row_number': index, 'field': field, 'code': code, 'message': message})
     if kind not in SCHEMAS:
@@ -98,7 +100,8 @@ def parse_csv(kind, text, report=None):
     required = set(SCHEMAS[kind].split())
     try:
         fields = reader.fieldnames or []
-        if len(fields) != len(set(fields)) or set(fields) - required - IGNORED.get(kind, set()) or required - set(fields):
+        ignored = IGNORED.get(kind, set()) if expected_origin == 'SYNTHETIC' else set()
+        if len(fields) != len(set(fields)) or set(fields) - required - ignored or required - set(fields):
             report['stop_reason'] = 'invalid_header'
             return [], [{'row_number': 1, 'field': 'header', 'code': 'INVALID_COLUMNS', 'message': 'CSV бағандары схемаға сәйкес емес.', 'expected': SCHEMAS[kind].split()}]
         for index, raw in enumerate(reader, 2):
@@ -147,7 +150,7 @@ def parse_csv(kind, text, report=None):
                             raise ValueError()
                     elif field == 'unit' and value not in {'kg','L'}:
                         raise ValueError()
-                    elif field == 'data_origin' and value != 'SYNTHETIC':
+                    elif field == 'data_origin' and value != expected_origin:
                         raise ValueError()
                     elif len(value) > 255:
                         raise ValueError()
@@ -164,6 +167,8 @@ def parse_csv(kind, text, report=None):
                     err(index, 'min_packs', 'MOQ_EXCEEDS_MAX', 'Ең аз қаптама ең көп мәннен артық.')
                 if kind == 'calendar' and date.fromisoformat(row['date']).weekday() != row['weekday']:
                     err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні датаға сәйкес емес.')
+                if kind == 'calendar' and expected_origin == 'REAL' and row['synthetic_event'] != 0:
+                    err(index, 'synthetic_event', 'SYNTHETIC_FIELD_FORBIDDEN', 'REAL күнтізбесінде жасанды оқиға белгісіне рұқсат жоқ.')
                 if len(natural_key(kind, row)) > 255:
                     err(index, 'key', 'KEY_TOO_LONG', 'Құрама кілт сақтау шегінен асты.')
                 if len(errors) == start_errors:

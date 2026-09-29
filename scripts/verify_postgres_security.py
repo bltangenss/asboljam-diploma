@@ -22,13 +22,14 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_security.py',
           'test_tenant_migration.py', 'test_tenant_lifecycle.py', 'test_import_migration.py',
-          'test_import_transactions.py', 'test_import_lineage.py')
+          'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
+          'test_real_source.py', 'test_real_execution.py', 'test_real_api.py')
 
 
 def source_hashes():
     paths = [*ROOT.glob('apps/api/*.py'), *ROOT.glob('apps/worker/*.py'),
              *ROOT.glob('tests/test_*security.py'), *[ROOT/'tests'/name for name in SUITES],
-             ROOT/'tests/database_fixture.py', ROOT/'scripts/seed_demo.py', Path(__file__)]
+             ROOT/'tests/database_fixture.py', ROOT/'scripts/pilot_fixture.py', ROOT/'scripts/seed_demo.py', Path(__file__)]
     return {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(set(paths))}
 
@@ -45,6 +46,14 @@ def inside(suites):
     if url.drivername != 'postgresql+psycopg' or not re.fullmatch(r'asboljam_security_[0-9a-f]{32}', url.database or ''):
         raise SystemExit('Refusing a database outside the isolated security-test namespace.')
     report = {'status': 'running', 'suites': [], 'source_sha256': source_hashes()}
+    def test_ids(suite):
+        for test in suite:
+            if isinstance(test, unittest.TestSuite):
+                yield from test_ids(test)
+            else:
+                yield test.id()
+    pure_engine_ids = []
+    sqlite_backup_ids = []
     engine = create_engine(url)
     try:
         with engine.connect() as connection:
@@ -54,6 +63,9 @@ def inside(suites):
             started = time.monotonic()
             output = io.StringIO()
             suite = unittest.TestLoader().discover(str(ROOT/'tests'), pattern=pattern)
+            identifiers = list(test_ids(suite))
+            pure_engine_ids.extend(identifier for identifier in identifiers if identifier.startswith('test_real_execution.RealEngineTests.'))
+            sqlite_backup_ids.extend(identifier for identifier in identifiers if 'sqlite' in identifier and 'backup' in identifier)
             result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
             report['suites'].append({
                 'pattern': pattern, 'tests_run': result.testsRun, 'failures': len(result.failures),
@@ -65,9 +77,13 @@ def inside(suites):
             report['test_schema_count'] = connection.execute(text("SELECT count(*) FROM information_schema.schemata WHERE schema_name ~ '^test_[0-9a-f]{32}$'")).scalar_one()
         report['source_changed_during_run'] = report['source_sha256'] != source_hashes()
         report['tests_run'] = sum(suite['tests_run'] for suite in report['suites'])
+        report['pure_engine_test_ids'] = pure_engine_ids
+        report['sqlite_backup_test_ids'] = sqlite_backup_ids
+        report['expected_postgres_fixture_setups'] = report['tests_run'] - len(pure_engine_ids)
+        report['postgres_test_bodies'] = report['expected_postgres_fixture_setups'] - len(sqlite_backup_ids)
         report['status'] = 'passed' if (all(suite['status'] == 'passed' for suite in report['suites'])
                                         and not report['source_changed_during_run']
-                                        and report['test_schema_count'] >= report['tests_run']) else 'failed'
+                                        and report['test_schema_count'] >= report['expected_postgres_fixture_setups']) else 'failed'
     finally:
         engine.dispose()
     print(json.dumps(report, ensure_ascii=False))
@@ -82,7 +98,7 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])

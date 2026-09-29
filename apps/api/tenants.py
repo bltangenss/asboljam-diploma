@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from .db import Audit, Forecast, Idempotency, ImportBatch, Job, Organization, Plan, Record, User, now
+from .db import (Audit, Forecast, Idempotency, ImportBatch, ImportEvidence, ImportReceipt,
+                 Job, Organization, OrganizationSource, Plan, Record, RecordRevision, User, now)
 from .security import password_hash
 
 
@@ -75,7 +76,8 @@ def preflight_bootstrap(db, **metadata):
     if db.get(Organization, organization_id) is not None:
         raise TenantError('ORGANIZATION_EXISTS', 'Organization identifier already exists.', 409)
     # Legacy/orphan objects must never silently acquire a new administrator.
-    for model in (User, Record, ImportBatch, Job, Forecast, Plan, Audit, Idempotency):
+    for model in (User, Record, ImportBatch, Job, Forecast, Plan, Audit, Idempotency,
+                  ImportEvidence, RecordRevision, ImportReceipt, OrganizationSource):
         if db.scalar(select(model.organization_id).where(model.organization_id == organization_id).limit(1)) is not None:
             raise TenantError('ORGANIZATION_ORPHANED', 'Organization identifier is already referenced; reconcile the store first.', 409)
     if db.scalar(select(User.id).where(User.email == values['email'])) is not None:
@@ -106,6 +108,87 @@ def bootstrap_tenant(db, *, password, **metadata):
         raise TenantError('BOOTSTRAP_CONFLICT', 'Tenant or administrator was created concurrently; no bootstrap committed.', 409) from None
     return {'organization': organization_json(organization), 'admin_user_id': admin.id,
             'branch_count': 0}
+
+
+def preflight_configure_real_source(db, *, organization_id, source_id, mapping_version,
+                                   branch_id, authorization_reference, purpose, operator_id, reason):
+    """Validate a single declared source without activating or creating data.
+
+    The opaque authorization reference points to an operator-held record. This
+    registration does not verify its contents, source authenticity or legal basis.
+    """
+    actor, reason = _operator(operator_id, reason)
+    if not isinstance(organization_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', organization_id):
+        raise TenantError('ORGANIZATION_ID_INVALID', 'Use an ASCII organization identifier.')
+    for value, maximum in ((source_id, 64), (mapping_version, 64), (authorization_reference, 128)):
+        if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,' + str(maximum) + '}', value):
+            raise TenantError('SOURCE_METADATA_INVALID', 'Use bounded opaque ASCII identifiers, without paths or personal data.')
+    if not isinstance(branch_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', branch_id):
+        raise TenantError('SOURCE_BRANCH_INVALID', 'Use an ASCII branch identifier.')
+    if purpose not in {'pilot', 'test_fixture'}:
+        raise TenantError('SOURCE_PURPOSE_INVALID', 'Source purpose must be pilot or test_fixture.')
+    organization = db.get(Organization, organization_id)
+    if organization is None:
+        raise TenantError('ORGANIZATION_NOT_FOUND', 'Organization not found.', 404)
+    if organization.status != 'active':
+        raise TenantError('TENANT_NOT_ACTIVE', 'Activate the organization before configuring its data source.', 409)
+    if db.get(OrganizationSource, organization_id) is not None:
+        raise TenantError('SOURCE_ALREADY_CONFIGURED', 'The source registration is immutable.', 409)
+    if organization.data_policy != 'unconfigured':
+        raise TenantError('DATA_POLICY_CONFLICT', 'Only an empty unconfigured organization may accept a real source.', 409)
+    if (not organization.name or not organization.name.strip() or len(organization.name) > 200
+            or not organization.timezone or len(organization.timezone) > 64 or organization.currency != 'KZT'):
+        raise TenantError('TENANT_METADATA_REQUIRED', 'A known name, IANA timezone and KZT currency are required.')
+    try:
+        ZoneInfo(organization.timezone)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise TenantError('TENANT_METADATA_REQUIRED', 'A valid IANA timezone is required.') from None
+    for model in (Record, ImportBatch, Job, Forecast, Plan, Idempotency,
+                  ImportEvidence, RecordRevision, ImportReceipt):
+        if db.scalar(select(model.organization_id).where(model.organization_id == organization_id).limit(1)) is not None:
+            raise TenantError('TENANT_NOT_EMPTY', 'Operational data or history already exists; create a separate organization.', 409)
+    # Identity and tenant administration are expected before configuration. Any
+    # other audit history is an operational trace, even if its rows were removed.
+    allowed_audit = ('tenant.created', 'tenant.suspended', 'tenant.resumed',
+                     'session.login', 'native.login', 'account.password_changed',
+                     'account.password_reset', 'user.created', 'user.access_changed')
+    if db.scalar(select(Audit.id).where(Audit.organization_id == organization_id,
+                                        Audit.action.not_in(allowed_audit)).limit(1)) is not None:
+        raise TenantError('TENANT_NOT_EMPTY', 'Operational audit history already exists; create a separate organization.', 409)
+    return dict(organization_id=organization_id, source_id=source_id, mapping_version=mapping_version,
+                branch_id=branch_id, authorization_reference=authorization_reference,
+                purpose=purpose, actor_id=actor, reason=reason)
+
+
+def configure_real_source(db, *, organization_id, source_id, mapping_version, branch_id,
+                          authorization_reference, purpose, operator_id, reason):
+    """Activate and record one immutable source; caller commits the whole transaction."""
+    if not isinstance(organization_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', organization_id):
+        raise TenantError('ORGANIZATION_ID_INVALID', 'Use an ASCII organization identifier.')
+    organization = lock_organization(db, organization_id)
+    if organization is None:
+        raise TenantError('ORGANIZATION_NOT_FOUND', 'Organization not found.', 404)
+    values = preflight_configure_real_source(db, organization_id=organization_id,
+        source_id=source_id, mapping_version=mapping_version, branch_id=branch_id,
+        authorization_reference=authorization_reference, purpose=purpose,
+        operator_id=operator_id, reason=reason)
+    from .accounts import lock_user, revoke_user_access
+    for identifier in db.scalars(select(User.id).where(User.organization_id == organization_id).order_by(User.id)):
+        user = lock_user(db, identifier, organization_id)
+        if user is not None:
+            revoke_user_access(db, user, actor_id=values['actor_id'])
+    source = OrganizationSource(**{key: value for key, value in values.items() if key != 'reason'}, version=1)
+    organization.data_policy = 'real_only'
+    db.add(source)
+    db.add(Audit(id=uuid.uuid4().hex, organization_id=organization_id, branch_id=None,
+                 actor_id=values['actor_id'], action='tenant.real_source_configured', entity_id=organization_id,
+                 details={'previous_data_policy': 'unconfigured', 'data_policy': 'real_only',
+                          'source_id': source_id, 'mapping_version': mapping_version, 'branch_id': branch_id,
+                          'purpose': purpose, 'source_version': 1, 'reason': values['reason']}))
+    db.flush()
+    return {'organization': organization_json(organization),
+            'source': {'source_id': source_id, 'mapping_version': mapping_version, 'branch_id': branch_id,
+                       'purpose': purpose, 'version': 1}, 'reauth_required': True}
 
 
 def set_tenant_status(db, *, organization_id, status, expected_status, operator_id, reason):

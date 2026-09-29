@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 import hashlib
@@ -17,6 +17,7 @@ import json
 import math
 import platform
 import time
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
@@ -44,6 +45,70 @@ def _date(value: object, field: str) -> date:
         return parsed
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be an ISO date YYYY-MM-DD") from exc
+
+
+def validate_calculation_context(context: dict, branch_id: str, *,
+                                 origin: str | None = None,
+                                 target_date: str | None = None) -> None:
+    """Validate the captured contract without a database or today's clock.
+
+    Authorization and current source registration are checked by the worker.
+    Unknown synthetic timezone is retained for migrated demo organizations.
+    """
+    try:
+        if (not isinstance(context, dict) or context.get('version') != 'execution-v1'
+                or not isinstance(context.get('organization_id'), str) or not context['organization_id']
+                or context.get('branch_id') != branch_id or context.get('horizon_days') != 1
+                or isinstance(context.get('horizon_days'), bool) or context.get('currency') != 'KZT'):
+            raise ValueError()
+        origin_day = _date(context['origin'], 'execution origin')
+        target = _date(context['target_date'], 'execution target')
+        if (target != origin_day + timedelta(days=1)
+                or context.get('inventory_snapshot_date') != target.isoformat()
+                or origin is not None and context['origin'] != origin
+                or target_date is not None and context['target_date'] != target_date):
+            raise ValueError()
+        as_of = _date(context['as_of_date'], 'execution as_of')
+        captured = datetime.fromisoformat(context['as_of_utc'].replace('Z', '+00:00'))
+        zone = ZoneInfo(context['timezone']) if context.get('timezone') else timezone.utc
+        if (captured.tzinfo is None or captured.utcoffset() != timedelta(0)
+                or captured.astimezone(zone).date() != as_of):
+            raise ValueError()
+        source_origin = context.get('data_origin')
+        if source_origin == 'SYNTHETIC':
+            if (context.get('data_policy') != 'synthetic_only'
+                    or context.get('date_policy') != 'synthetic_fixed'
+                    or context.get('usage_mode') != 'DEMO' or context.get('source') is not None
+                    or context.get('historical') is not False
+                    or context['origin'] != '2025-12-31' or context['target_date'] != '2026-01-01'):
+                raise ValueError()
+        elif source_origin == 'REAL':
+            source = context.get('source')
+            if (context.get('data_policy') != 'real_only'
+                    or context.get('date_policy') != 'explicit_closed_day'
+                    or context.get('usage_mode') not in {'PILOT', 'TEST'}
+                    or not isinstance(source, dict) or source.get('branch_id') != branch_id
+                    or not context.get('timezone') or origin_day >= as_of
+                    or context.get('historical') is not (target < as_of)):
+                raise ValueError()
+        else:
+            raise ValueError()
+    except (KeyError, TypeError, AttributeError, ValueError, OverflowError, ZoneInfoNotFoundError):
+        raise ValueError('Invalid calculation execution context') from None
+
+
+def _validate_context_rows(context: dict, rows: list, *, branch_id: str | None = None) -> None:
+    if not isinstance(rows, list):
+        raise ValueError('Calculation inputs must be row collections')
+    for row in rows:
+        if not isinstance(row, dict) or row.get('data_origin') != context['data_origin']:
+            raise ValueError('Calculation input origin does not match execution context')
+        if branch_id is not None and row.get('branch_id') != branch_id:
+            raise ValueError('Calculation input branch does not match execution context')
+
+
+def _context_result(context: dict | None) -> dict:
+    return {'execution_context': deepcopy(context), 'data_origin': context['data_origin']} if context is not None else {}
 
 
 def _decimal(value: object, field: str, *, positive: bool = False) -> Decimal:
@@ -119,6 +184,15 @@ def _series(history: tuple, origin: date) -> dict:
     if len(result) > 255:
         raise ValueError("This model supports at most 255 meal categories per branch")
     return result
+
+
+def validate_forecast_history(sales: list[dict], branch_id: str, origin: str) -> dict:
+    """Check completeness without fitting any model or starting a worker job."""
+    origin_day = _date(origin, 'origin')
+    history = _normalize_sales(sales, str(branch_id), origin_day)
+    series = _series(history, origin_day)
+    return {'history_start': min(day for _, day, _ in history), 'history_end': origin,
+            'meal_count': len(series), 'observations': len(history)}
 
 
 def _features(past: np.ndarray, target: date, category: int) -> list[float]:
@@ -225,7 +299,7 @@ def _evaluate(history: tuple, origin_text: str) -> tuple:
 
 
 def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
-             model: str = "seasonal_naive_7") -> dict:
+             model: str = "seasonal_naive_7", *, execution_context: dict | None = None) -> dict:
     """Forecast origin+1; all three models share the same real temporal test.
 
     Only date, branch_id, meal_id and units_sold are read. Baselines deliberately
@@ -235,6 +309,9 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     if model not in MODELS:
         raise ValueError(f"Unknown model; choose one of {', '.join(MODELS)}")
     branch_id = str(branch_id)
+    if execution_context is not None:
+        validate_calculation_context(execution_context, branch_id, origin=origin)
+        _validate_context_rows(execution_context, sales, branch_id=branch_id)
     origin_day = _date(origin, "origin")
     history = _normalize_sales(sales, branch_id, origin_day)
     metrics, metadata = deepcopy(_evaluate(history, origin))
@@ -273,6 +350,7 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     metadata["hash_fields"] = ["meal_id", "date", "units_sold"]
     metadata["branch_id"] = branch_id
     return {
+        **_context_result(execution_context),
         "branch_id": branch_id, "origin": origin, "target_date": target.isoformat(),
         "model": model, "predictions": predictions, "metrics": metrics,
         "selected_model_metrics": next(item for item in metrics if item["model"] == model),
@@ -413,7 +491,8 @@ def _solve(offers: list[dict], requirements: list[dict], budget: Decimal) -> tup
 
 def procurement(forecast_result: dict, ingredients: list, recipes: list,
                 inventory: list, offers: list, suppliers: list, branch_id: str,
-                target_date: str, budget: str, strategy: str = "point") -> dict:
+                target_date: str, budget: str, strategy: str = "point", *,
+                execution_context: dict | None = None) -> dict:
     """Produce a validated same-day integer-package purchasing proposal.
 
     Snapshot date must equal target date. Expiry on target date is usable under
@@ -422,6 +501,16 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
     """
     started = time.perf_counter()
     branch_id = str(branch_id)
+    if execution_context is not None:
+        validate_calculation_context(execution_context, branch_id, target_date=target_date)
+        if (forecast_result.get('data_origin') != execution_context['data_origin']
+                or (forecast_result.get('execution_context') != execution_context
+                    and not (execution_context['data_origin'] == 'SYNTHETIC'
+                             and forecast_result.get('execution_context') is None))):
+            raise ValueError('Forecast execution context does not match procurement')
+        for rows in (ingredients, recipes, offers, suppliers):
+            _validate_context_rows(execution_context, rows)
+        _validate_context_rows(execution_context, inventory, branch_id=branch_id)
     target = _date(target_date, "target_date")
     budget_amount = _decimal(budget, "budget")
     if budget_amount > Decimal("1000000000000"):
@@ -477,6 +566,11 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
                 and row["snapshot_date"] == target_date]
     if not snapshot:
         raise ValueError(f"No inventory snapshot for branch {branch_id} on {target_date}; stale stock is not current stock")
+    real_stock = execution_context is not None and execution_context['data_origin'] == 'REAL'
+    supplied = {str(row['ingredient_id']) for row in snapshot}
+    if real_stock:
+        if set(net) - supplied:
+            raise ValueError('Inventory snapshot is incomplete for required ingredients; unknown stock is not zero')
     stock = defaultdict(lambda: ZERO)
     lot_keys, expired_lots = set(), []
     for row in snapshot:
@@ -495,12 +589,17 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
             stock[ingredient] += quantity
     requirements = []
     for ingredient, details in sorted(catalog.items()):
+        # A catalog entry is not evidence of a counted zero balance. Required
+        # ingredients were checked above; retain other rows only when counted.
+        if real_stock and ingredient not in net and ingredient not in supplied:
+            continue
         if stock[ingredient] > details["storage_capacity"] + QUANTITY_TOLERANCE:
             raise ValueError(f"Inventory already exceeds storage capacity for ingredient {ingredient}")
         gross = net[ingredient] / details["yield_factor"]  # Yield is applied exactly once.
         requirements.append({**details, "net_required": net[ingredient], "gross_required": gross,
                              "usable_stock": stock[ingredient],
                              "required_purchase": max(ZERO, gross - stock[ingredient])})
+    planned_ingredients = {row['ingredient_id'] for row in requirements}
     supplier_map = {str(row["supplier_id"]): row for row in suppliers}
     eligible, excluded, offer_keys = [], [], set()
     for row in offers:
@@ -520,6 +619,10 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
                  "lead_time_days": lead_time}
         if offer["min_packs"] > offer["max_packs"]:
             raise ValueError("min_packs must not exceed max_packs")
+        if ingredient not in planned_ingredients:
+            excluded.append({"supplier_id": supplier, "ingredient_id": ingredient,
+                             "reason": "unobserved_stock_not_required"})
+            continue
         if supplier not in supplier_map or lead_time != 0 or offer["max_packs"] == 0:
             excluded.append({"supplier_id": supplier, "ingredient_id": ingredient,
                              "reason": "unknown_supplier" if supplier not in supplier_map
@@ -565,6 +668,7 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
     if expired_lots:
         warnings.append(f"{len(expired_lots)} expired inventory lots were excluded.")
     return {
+        **_context_result(execution_context),
         "branch_id": branch_id, "target_date": target_date, "strategy": strategy,
         "requirements": rendered, "lines": lines, "total_cost": _string(total_cost),
         "budget": _string(budget_amount), "remaining_budget": _string(budget_amount - total_cost),

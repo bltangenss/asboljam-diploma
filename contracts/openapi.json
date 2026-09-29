@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AsBoljam",
-    "description": "Synthetic catering operations demo; one-day forecasts; internal approval only.",
-    "version": "1.0.0"
+    "description": "Scoped catering operations; explicit demo or operator-configured source; one-day forecasts; internal approval only.",
+    "version": "1.1.0"
   },
   "paths": {
     "/api/v1/health": {
@@ -1498,6 +1498,23 @@
               "type": "string",
               "title": "Branch Id"
             }
+          },
+          {
+            "name": "inventory_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inventory Date"
+            }
           }
         ],
         "responses": {
@@ -2427,6 +2444,24 @@
       "get": {
         "summary": "Settings",
         "operationId": "settings_api_v1_settings_get",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2434,6 +2469,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2594,14 +2639,37 @@
             "title": "Next Cursor"
           },
           "data_origin": {
-            "type": "string",
-            "title": "Data Origin",
-            "default": "SYNTHETIC"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Origin"
           },
           "scenario_date": {
-            "type": "string",
-            "title": "Scenario Date",
-            "default": "2026-01-01"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Date"
+          },
+          "usage_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Mode"
           }
         },
         "type": "object",
@@ -2619,10 +2687,16 @@
             "title": "Branch Id"
           },
           "origin": {
-            "type": "string",
-            "format": "date",
-            "title": "Origin",
-            "default": "2025-12-31"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
           },
           "model": {
             "type": "string",
@@ -2786,6 +2860,7 @@
             "type": "string",
             "enum": [
               "synthetic_only",
+              "real_only",
               "unconfigured"
             ],
             "title": "Data Policy"
@@ -2843,6 +2918,7 @@
             "type": "string",
             "enum": [
               "synthetic_only",
+              "real_only",
               "unconfigured"
             ],
             "title": "Data Policy"
@@ -3029,6 +3105,22 @@
               }
             ],
             "title": "Scenario Date"
+          },
+          "usage_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Mode"
+          },
+          "data_context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data Context"
           }
         },
         "type": "object",
@@ -3037,7 +3129,8 @@
           "timezone",
           "currency",
           "onboarding",
-          "user"
+          "user",
+          "data_context"
         ],
         "title": "SettingsResponse"
       },

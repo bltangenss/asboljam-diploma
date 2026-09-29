@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -200,7 +200,7 @@ CREATE TABLE organizations (
     created_at VARCHAR(64) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT ck_organization_status CHECK (status IN ('active', 'suspended')),
-    CONSTRAINT ck_organization_data_policy CHECK (data_policy IN ('synthetic_only', 'unconfigured'))
+    CONSTRAINT ck_organization_data_policy CHECK (data_policy IN ('synthetic_only', 'unconfigured', 'real_only'))
 );
 
 -- Added by migration 0003. No legacy source evidence or revisions are invented.
@@ -259,4 +259,20 @@ CREATE TABLE import_receipts (
     created_at VARCHAR(64) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT uq_import_receipt_key UNIQUE (organization_id, actor_id, key)
+);
+
+-- Added by migration 0004. Sources are explicitly registered; none are backfilled.
+CREATE TABLE organization_sources (
+    organization_id VARCHAR(64) NOT NULL,
+    source_id VARCHAR(64) NOT NULL,
+    mapping_version VARCHAR(64) NOT NULL,
+    branch_id VARCHAR(64) NOT NULL,
+    authorization_reference VARCHAR(128) NOT NULL,
+    purpose VARCHAR(32) NOT NULL,
+    version INTEGER DEFAULT '1' NOT NULL,
+    actor_id VARCHAR(64) NOT NULL,
+    created_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (organization_id),
+    CONSTRAINT ck_organization_source_purpose CHECK (purpose IN ('pilot', 'test_fixture')),
+    CONSTRAINT ck_organization_source_version CHECK (version >= 1)
 );

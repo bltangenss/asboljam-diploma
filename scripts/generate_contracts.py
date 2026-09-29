@@ -100,7 +100,8 @@ def data_manifest() -> dict:
             if field == "unit":
                 field_schema["enum"] = ["kg", "L"]
             if field == "data_origin":
-                field_schema["enum"] = ["SYNTHETIC"]
+                field_schema["enum"] = ["SYNTHETIC", "REAL"]
+                field_schema["origin_policy"] = "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
             if field == "yield_factor":
                 field_schema.update({"exclusive_minimum": "0", "maximum": "1"})
             if field in {"pack_qty", "net_qty_per_portion"}:
@@ -136,6 +137,12 @@ def data_manifest() -> dict:
         "encoding": ["UTF-8", "UTF-8 BOM"], "separator": ",", "decimal_separator": ".",
         "date_format": "YYYY-MM-DD", "identifier_policy": "Keep source IDs as strings; no synthetic ID remapping.",
         "import": {"default_mode": "append", "all_or_nothing": True,
+                   "origin_policy": {"synthetic_only": "SYNTHETIC", "real_only": "REAL"},
+                   "real_source_required": ["source_id", "mapping_version", "branch_id", "authorization_reference", "purpose"],
+                   "real_usage_modes": {"pilot": "PILOT", "test_fixture": "TEST"},
+                   "real_source_registration": "Operator-only, empty unconfigured organization, known timezone and KZT; immutable versioned registration does not independently verify consent.",
+                   "real_date_policy": "Sales must precede current business day; inventory snapshots cannot be future-dated. Forecast origin is explicit and closed, target=origin+1.",
+                   "real_inventory_policy": "Exact target-date snapshot; every required recipe ingredient needs an explicit quantity, including factual zero. Same-date expiry is usable; eligible offer lead time is zero.",
                    "same_file_duplicate_keys": "rejected", "existing_identical_rows": "unchanged_no_duplicate_insert",
                    "existing_changed_rows": "explicit_correction_required",
                    "correction_kinds": ["daily_sales", "calendar", "inventory_lots"],
@@ -301,7 +308,7 @@ def screen_map() -> dict:
                        "source": "apps/web/src/App.tsx", "generator": "scripts/generate_contracts.py",
                        "notice": "Route/state inventory is implementation handoff, not a claim every viewport/state has an end-to-end test."},
         "shared_context": {"locales": ["kk", "ru"], "default_locale": "kk", "currency": "KZT",
-                           "branch_scoped": True, "data_origin": "SYNTHETIC", "scenario_date": "2026-01-01",
+                           "branch_scoped": True, "data_origin": "Server data_context: exclusive SYNTHETIC or REAL; usage DEMO/PILOT/TEST", "scenario_date": "2026-01-01 for fixed synthetic demo only",
                            "last_sales_date": "2025-12-31", "no_silent_mock_fallback": True,
                            "scenario_scope": "Supplied synthetic source only; never a date assigned to empty organizations",
                            "workspace_gate": {"component": "apps/web/src/Onboarding.tsx",
