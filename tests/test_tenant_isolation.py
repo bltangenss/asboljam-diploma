@@ -1,6 +1,6 @@
 """Commercial access regression using tiny, isolated SYNTHETIC organizations.
 
-These tests exercise the real API and SQLite transactions, without the full demo
+These tests exercise the real API and SQLite or opt-in PostgreSQL transactions, without the full demo
 seed, an external business source, or expensive forecast/optimization execution.
 """
 import csv
@@ -20,6 +20,7 @@ from apps.api.importing import SCHEMAS, insert_rows
 from apps.api.main import create_app
 from apps.api.security import password_hash
 from apps.worker.main import run_once
+from database_fixture import isolated_database_url
 
 
 PASSWORD = 'Synthetic-access-fixture-2026!'
@@ -35,7 +36,7 @@ class TenantIsolationTests(unittest.TestCase):
         Path('.cache').mkdir(exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir='.cache', prefix='tenant-tests-')
         self.addCleanup(self.temp.cleanup)
-        url = 'sqlite:///' + (Path(self.temp.name).resolve() / 'test.sqlite').as_posix()
+        url = isolated_database_url('sqlite:///' + (Path(self.temp.name).resolve() / 'test.sqlite').as_posix())
         self.app = create_app(url)
         self.addCleanup(self.app.state.engine.dispose)
         self.factory = self.app.state.sessions

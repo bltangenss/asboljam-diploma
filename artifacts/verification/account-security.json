@@ -1,0 +1,207 @@
+{
+  "date": "2026-09-29",
+  "base_commit": "1bba8ba0a3f2547d0971c47ec6b7d3b3c034f699",
+  "status": "passed_with_explicit_scope",
+  "goal_status": "active_not_market_ready",
+  "changes": [
+    "Authenticated password change in web KK/RU and API for all active roles",
+    "Operator recovery CLI with explicit database, organization/user, named operator and reason; default preflight and hidden password prompts",
+    "Atomic credential replacement, session/refresh revocation and pending-job cancellation",
+    "Common User-first lock ordering for login, refresh, reset, access changes and worker publication",
+    "Credential validation responses do not echo input values",
+    "Real PostgreSQL security verifier with isolated database and per-test schemas",
+    "Updated real analyst workflow and password lifecycle browser scenario"
+  ],
+  "checks": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "result": "PASS",
+      "tests": 157,
+      "seconds": 27.926,
+      "exit_code": 0,
+      "includes": {
+        "previous_suite": 131,
+        "database_fixture": 4,
+        "password_cli": 10,
+        "password_security": 12
+      }
+    },
+    {
+      "command": "npm.cmd run build",
+      "result": "PASS",
+      "modules": 1750,
+      "vite_seconds": 3.51,
+      "exit_code": 0
+    },
+    {
+      "command": "npm.cmd run test:e2e -- tests/e2e/account_security.spec.ts tests/e2e/sessions_imports.spec.ts --reporter=line --output=.cache/account-security-e2e-final --timeout=30000",
+      "result": "PASS",
+      "tests": 14,
+      "seconds": 21.8,
+      "api": "mocked",
+      "exit_code": 0
+    },
+    {
+      "command": "npm.cmd run test:e2e -- tests/e2e/workflow.spec.ts --reporter=line --output=.cache/account-live-playwright",
+      "result": "PASS",
+      "tests": 6,
+      "seconds": 33.3,
+      "api": "real local FastAPI",
+      "database": "separate ignored SQLite store",
+      "worker": "separate real process",
+      "exit_code": 0,
+      "coverage": [
+        "login and failed/valid CSV preview/commit",
+        "sales filters",
+        "baseline and HGB forecast,28 observed points and quantile interval",
+        "procurement,approval,download",
+        "stale approval and audit",
+        "branch scope,Russian labels,empty state,network/offline",
+        "admin creation and analyst read-only/forbidden writes",
+        "password change,old password rejection,new login,old web/native/refresh rejection"
+      ]
+    },
+    {
+      "command": "npm.cmd run test:e2e -- tests/e2e/workflow.spec.ts --grep \"login → CSV\" --reporter=line --output=.cache/account-live-responsive",
+      "result": "PASS",
+      "tests": 1,
+      "seconds": 21.7,
+      "scope": "Targeted rerun after screenshot stabilization and expanded mobile drawer checks; fresh test organization",
+      "viewports": [
+        390,
+        360
+      ],
+      "checks": [
+        "closed sidebar offscreen",
+        "top-menu open",
+        "overlay close",
+        "bottom navigation More open",
+        "navigation-triggered close",
+        "no document overflow",
+        "stable screenshots with animations disabled"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 scripts/verify_postgres_security.py",
+      "result": "PASS",
+      "tests": 27,
+      "elapsed_seconds": 25.994,
+      "artifact": "postgres-security.json",
+      "scope": "16 tenant isolation +11 worker security on real PostgreSQL17.11"
+    },
+    {
+      "command": "python -X utf8 scripts/verify_postgres_security.py --suite test_password_security.py --report-name postgres-password-security.json",
+      "result": "PASS",
+      "tests": 12,
+      "elapsed_seconds": 11.585,
+      "artifact": "postgres-password-security.json",
+      "scope": "Final password service including recovery metadata validation; real PostgreSQL17.11"
+    },
+    {
+      "command": "python scripts/generate_contracts.py",
+      "result": "PASS"
+    },
+    {
+      "check": "OpenAPI regenerated from isolated in-memory app; existing contract test passes in157",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python scripts/check_secrets.py --no-report",
+      "result": "PASS",
+      "checked_files": 188,
+      "findings": 0,
+      "scope": "before adding this evidence file; staged checks required before commits"
+    }
+  ],
+  "download_check": {
+    "file": ".cache/e2e-live/approved-plan.csv",
+    "rows": 23,
+    "summary": 1,
+    "requirements": 10,
+    "purchases": 12,
+    "status": "approved",
+    "version": 2,
+    "data_origin": "SYNTHETIC",
+    "total_cost": "87513.2",
+    "budget": "150000",
+    "checks": [
+      "parsed actual downloaded bytes",
+      "integer packs",
+      "line cost equals packs * pack_qty * unit_cost",
+      "purchase line sum equals summary total",
+      "total within budget"
+    ]
+  },
+  "failures_and_fixes": [
+    {
+      "scope": "initial mocked browser run",
+      "result": "failed_then_interrupted",
+      "cause": "new password accessible name included nested length hint; exact label lookup failed",
+      "fix": "added explicit aria-labelledby; rebuilt; all14 pass"
+    },
+    {
+      "scope": "visual inspection of first mobile screenshot",
+      "result": "capture_defect",
+      "cause": "viewport resize screenshot captured sidebar during0.2s transition",
+      "fix": "wait for actual offscreen sidebar and disable screenshot animations; expanded open/close checks pass at390/360"
+    }
+  ],
+  "limits": [
+    "No real business/customer data, field savings or completed market release.",
+    "No production HTTPS,load,SLA or independent security audit.",
+    "CLI hidden input is mocked in automated tests; no human terminal recovery trial claimed.",
+    "Native tokens tested through HTTP; no new native UI/device run or APK.",
+    "No email reset,forced password change,tenant bootstrap,REAL import or stock ledger yet.",
+    "Research benchmark,source ZIP,APK and production backup were not regenerated.",
+    "SQLAlchemy schema unchanged; no new migration required.",
+    "CLI commit connectivity error can leave outcome uncertain; runbook requires status/audit verification before retry."
+  ],
+  "cleanup": "Owned local API,worker and Vite preview stopped. Started verification PostgreSQL container stopped; existing volumes and fresh test databases retained. Docker Desktop engine left available.",
+  "source_sha256_working_file_bytes": [
+    {
+      "path": "apps/api/accounts.py",
+      "sha256": "fc4ea8d65e33294909854bad6c9708d3d2b86637c0f6c98460c18ff93109b185"
+    },
+    {
+      "path": "apps/api/main.py",
+      "sha256": "f4615108350135426cdd63a7afd0189dce50513b56d99bc9e84f216343e8b2f2"
+    },
+    {
+      "path": "apps/web/src/AccountSecurity.tsx",
+      "sha256": "5bd0927d8ebd83dd8962c5bbf9202a96e6cba6cb34f1fbc95ebf850ce3e2120a"
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "sha256": "9d2e8e9889b37eb28701cf8bba153f41dd8bc8123bed9c4c8dc3dcaf3644c096"
+    },
+    {
+      "path": "scripts/manage_password.py",
+      "sha256": "4db07460a8c529a0beeba9945285a69808a0118f666f4dde96428ee55619eeb0"
+    },
+    {
+      "path": "scripts/verify_postgres_security.py",
+      "sha256": "73e9c2bbfc6f6551a3713cd99a83c4d228133c1cde29b20cf432f66144730d9d"
+    },
+    {
+      "path": "tests/test_password_security.py",
+      "sha256": "81ec0e0865cfe0803b0654c88ae94f5ae676bffdc1762c4d68ece727e31f2616"
+    },
+    {
+      "path": "tests/test_password_cli.py",
+      "sha256": "adcd7f911d9f1686cc7754dc4b96712a1a1826e51569448afc76acfeec164812"
+    },
+    {
+      "path": "tests/e2e/account_security.spec.ts",
+      "sha256": "ffc3d2489d4c6fe0cc9104830396e794211107e0e4584e83bac5a4f8a62cab37"
+    },
+    {
+      "path": "tests/e2e/workflow.spec.ts",
+      "sha256": "787ce1a3a9399074ffe16e021da895cccab8726c35da31b7e91d1322ffbf71f5"
+    }
+  ]
+}

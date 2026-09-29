@@ -1,6 +1,26 @@
 # AsBoljam — журнал прогресса
 
-## Актуальное продолжение — 29.09.2026
+## Актуальное продолжение — пароли и PostgreSQL, 29.09.2026
+
+Предыдущий блок классифицирован как **progress**: два коммита `e495268`, `1bba8ba` отправлены в origin/main, состояние проверено чистым. Общая цель выхода на рынок остаётся активной; [матрица коммерческих условий](../docs/commercial/RELEASE_GATES_RU.md) сохраняет её полный объём.
+
+**DONE:** смена собственного пароля в web KK/RU для всех ролей и API `/account/password`; безопасная операторская CLI `scripts/manage_password.py` с dry preflight по умолчанию и скрытым двойным вводом при `--apply`. Замена пароля, отзыв web/native/refresh и отмена pending jobs атомарны; login/refresh берут ту же User-блокировку, чтобы старые credentials не пережили reset. Оператор указывает точную организацию/пользователя, свой ID и причину, не меняет active/role/branches. Ошибки валидации credential routes не возвращают входные секреты. API schema/OpenAPI и design map/copy обновлены; миграция не нужна.
+
+**TESTED:** `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` — **157/157 PASS, 27.926 s**. `npm.cmd run build` — PASS, 1750 modules, 3.51 s после исправления accessible name. `npm.cmd run test:e2e -- tests/e2e/account_security.spec.ts tests/e2e/sessions_imports.spec.ts --reporter=line --output=.cache/account-security-e2e-final --timeout=30000` — **14/14 PASS, 21.8 s**, mock API. Реальный `workflow.spec.ts` на отдельной SQLite-базе/API/worker — **6/6 PASS, 33.3 s**, включая login → CSV validation/commit → sales → baseline/HGB forecast → procurement → approval/stale conflict → audit/export, branch scope, offline/network, KK/RU и смену пароля с отказом старого login/web/native/refresh. Скачанный CSV отдельно прочитан: 23 строки, approved version 2, SYNTHETIC, 12 purchase lines, целые packs, суммы строк соответствуют packs × pack_qty × unit_cost; итог 87513.2 при бюджете 150000.
+
+Docker Desktop удалось запустить, использованы существующие образы без скачивания. `python -X utf8 scripts/verify_postgres_security.py` — **27/27 PASS** (tenant16 + worker11, 25.994 s), `python -X utf8 scripts/verify_postgres_security.py --suite test_password_security.py --report-name postgres-password-security.json` — **12/12 PASS, 11.585 s** на финальном password service. Реальный PostgreSQL **17.11**, новые тестовые базы и отдельная схема на тест; исходные operational DB/volumes не изменялись. Первоначальный PostgreSQL password12 прогон был повторён только после добавления защиты audit metadata. Это снимает предыдущую локальную Docker/PG блокировку. Артефакты: [postgres-security](../artifacts/verification/postgres-security.json), [postgres-password-security](../artifacts/verification/postgres-password-security.json).
+
+Начальная browser-проверка новой формы выявила примешивание length hint к accessible name поля; исправлено `aria-labelledby`, повтор14 PASS. При просмотре mobile screenshot обнаружен кадр посередине CSS-перехода sidebar; capture и проверки закрытого/открытого меню уточнены. Результат отдельного responsive-повтора записывается в [account-security.json](../artifacts/verification/account-security.json). Трассы, screenshots с сессиями, credentials и тестовые БД остаются в `.cache`, вне Git/ZIP.
+
+**IN PROGRESS:** коммерческая подготовка целиком, особенно tenant lifecycle, отдельная граница REAL/provenance, stock ledger и эксплуатация.
+
+**TODO:** следующая конкретная часть — tenant model/bootstrap с миграцией, status/timezone/data policy и проверяемым первым доступом. Полный список неизменённых требований и evidence gaps — в release gates.
+
+**BLOCKED:** бизнес-пилот и измерение эффекта требуют реального источника и согласований владельца; техническая разработка может продолжаться без них.
+
+**NOT TESTED:** реальный HTTPS deployment, нагрузка/SLA, независимый security audit, email reset, интерактивный ввод recovery CLI человеком (в tests он имитируется), native экран смены пароля и device runtime, реальные бизнес-данные и эффект. APK, ZIP, research benchmark и production backup в этом блоке не пересобирались. REAL импорт по-прежнему запрещён.
+
+## Предыдущий блок — локальная коммерческая основа, 29.09.2026
 
 Пользователь поручил улучшать коммерческую основу без реального бизнеса. Работа продолжена от `f0b835496ae639149bd14adb7dddbddc1cf9f947` в существующей `main`. После сообщения о 15% недельного расхода пользователь разрешил текущий блок работ; прежняя остановка на 10% не означает отмену этого поручения.
 

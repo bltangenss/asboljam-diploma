@@ -14,13 +14,14 @@ from sqlalchemy import select, update
 from apps.api.db import Audit, Forecast, Job, Plan, Record, User, make_engine, migrate, sessions
 from apps.api.importing import insert_rows
 from apps.worker import main as worker
+from database_fixture import isolated_database_url
 
 
 class WorkerSecurityTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.engine = make_engine('sqlite:///' + (Path(self.temp.name) / 'worker.sqlite').as_posix())
+        self.engine = make_engine(isolated_database_url('sqlite:///' + (Path(self.temp.name) / 'worker.sqlite').as_posix()))
         self.addCleanup(self.engine.dispose)
         migrate(self.engine)
         self.factory = sessions(self.engine)

@@ -1,5 +1,15 @@
 # AsBoljam — итоговый технический отчёт
 
+## Текущее дополнение — пароли и завершённая локальная проверка, 29.09.2026
+
+Реализована смена своего пароля в web KK/RU и API; добавлена операторская recovery CLI с точным tenant/user scope, скрытым вводом, причиной и отдельным audit actor. В одной транзакции меняется хеш и отзываются сессии/refresh/незавершённые задачи. Login/refresh блокируются согласованно с reset; credential validation не раскрывает значения. Схема БД не менялась.
+
+**TESTED:** 157/157 Python PASS (27.926 s), web build PASS (3.51 s), 39/39 проверок на настоящем PostgreSQL17.11, 14/14 browser с mock API и 6/6 browser с настоящими API/worker. Live-сценарии охватили основной путь от CSV до approval/export, HGB, stale approval, роли/филиалы, сеть/локализацию и смену пароля с отказом старых сессий. Скачанный CSV проверен отдельно по содержимому и арифметике. [Отчёт и границы](artifacts/verification/account-security.json); [PostgreSQL isolation/worker](artifacts/verification/postgres-security.json), [PostgreSQL credentials](artifacts/verification/postgres-password-security.json).
+
+**NOT TESTED:** целевое HTTPS deployment, реальные данные/эффект, нагрузка/SLA, независимый аудит, human-interactive recovery CLI и device runtime. Эти результаты относятся к локальным synthetic fixtures. Общая цель коммерческого выхода не завершена: остаются tenant bootstrap, REAL/import provenance, складские движения, эксплуатация, тарифный контур и пилотная приёмка. [Release gates](docs/commercial/RELEASE_GATES_RU.md) фиксируют полный оставшийся объём. APK/ZIP в этом блоке не обновлялись.
+
+Предыдущие разделы ниже — история проверок, включая уже снятую блокировку PostgreSQL и прежнюю неполную browser проверку.
+
 ## Дополнение — 29.09.2026
 
 По поручению улучшать проект без реального бизнеса укреплены API/web права, изоляция данных и выполнение фоновых задач. Analyst читает результаты, manager/admin создают расчёты; импорт ограничен ролью. Отзыв доступа отменяет незавершённые задания с аудитом, а worker не сохраняет результат отозванного/устаревшего запуска. Небезопасная production-конфигурация отклоняется до открытия БД; demo seed в этом режиме запрещён. Исправлены повреждённые CSV-заголовки, частичные отчёты проверки данных и утечка текста внутренних исключений worker. Добавлен [операторский runbook](docs/commercial/SECURITY_RUNBOOK_RU.md).

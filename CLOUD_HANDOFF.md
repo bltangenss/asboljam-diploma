@@ -1,5 +1,13 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## Текущий этап — пароли и реальная PostgreSQL-проверка, 29.09.2026
+
+Добавлены web/API смена своего пароля и `scripts/manage_password.py` для операторского восстановления. Пароли не принимаются CLI-аргументами и не возвращаются в validation errors; сессии и pending jobs отзываются атомарно. Login/refresh сериализованы с reset. [Runbook](docs/commercial/SECURITY_RUNBOOK_RU.md) содержит preflight/apply и ограничения; публичного email reset нет.
+
+Текущие результаты: **157/157 Python PASS**, **39/39 real PostgreSQL security checks PASS**, web build PASS; **14/14 mock browser** и **6/6 live browser workflow PASS**, включая реальную смену пароля и HGB. PostgreSQL-блокировка из предыдущего блока снята запуском установленного Docker Desktop; новых образов не скачивали, существующие базы сохранялись. Проверки использовали новые тестовые БД/организации; реального клиента нет. Итоговые команды и уточнения responsive-повтора: [PROGRESS](templates/PROGRESS.md), [account-security.json](artifacts/verification/account-security.json).
+
+Цель рынка остаётся активной. Следующий участок: tenant model/bootstrap, затем отдельная REAL/provenance граница и stock ledger. [Полная матрица незавершённых условий](docs/commercial/RELEASE_GATES_RU.md) не позволяет принять локальное демо за готовый коммерческий выпуск. Ниже — история предыдущих блоков, её старые BLOCKED/NOT TESTED читать с учётом этого обновления.
+
 ## Обновление 29.09.2026 — локальная коммерческая основа
 
 Продолжена существующая `main` от `f0b8354`, без реального предприятия и без Cloud. API/web теперь соблюдают read-only роль analyst; worker не публикует результат после отмены/отзыва доступа или потери своей аренды. Добавлены проверки среды до подключения к БД, запрет production demo seed, безопасные ошибки и устойчивость CSV-парсера/quality summary. Организации с одинаковыми branch/entity IDs проверены раздельно. Публичной регистрации tenant и REAL импорта пока нет.
