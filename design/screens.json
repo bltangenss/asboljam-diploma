@@ -29,7 +29,7 @@
       "/inventory"
     ],
     "root_route": "/dashboard",
-    "unknown_route": "read-only settings fallback in current app"
+    "unknown_route": "settings fallback in current app"
   },
   "role_rules": {
     "approval": [
@@ -55,6 +55,12 @@
     ],
     "warehouse_import": [
       "inventory_lots"
+    ],
+    "own_password_change": [
+      "admin",
+      "manager",
+      "analyst",
+      "warehouse"
     ],
     "scope_enforcement": "API enforces role, organization and branch on every request"
   },
@@ -435,13 +441,17 @@
         "warehouse"
       ],
       "api": [
-        "GET /settings"
+        "GET /settings",
+        "POST /account/password"
       ],
       "controls_and_data": [
         "organization",
         "locale",
         "role",
-        "branch_access"
+        "branch_access",
+        "current_password",
+        "new_password",
+        "password_confirmation"
       ],
       "states": [
         "loading",
@@ -449,7 +459,10 @@
         "API_error",
         "offline_notice",
         "forbidden",
-        "read_only"
+        "organization_read_only",
+        "password_change_pending",
+        "password_validation_error",
+        "password_changed_requires_login"
       ]
     },
     {

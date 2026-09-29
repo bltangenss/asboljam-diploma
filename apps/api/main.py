@@ -11,13 +11,16 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
+from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
-from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Plan, Record, RefreshToken, User, make_engine, migrate, now, sessions
+from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .security import password_hash, token_hash, verify_password
 
@@ -37,6 +40,9 @@ class Login(StrictModel):
     password: str = Field(min_length=1, max_length=1024)
 class Refresh(StrictModel):
     refresh_token: str = Field(min_length=20, max_length=256)
+class PasswordChange(StrictModel):
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=12, max_length=1024)
 class ImportInput(StrictModel):
     kind: str = Field(max_length=32)
     csv_text: str
@@ -92,6 +98,17 @@ def create_app(database_url=None):
     allowed_origins = list(runtime_settings.allowed_origins)
     secure = runtime_settings.cookie_secure
     app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'])
+
+    @app.exception_handler(RequestValidationError)
+    async def safe_credential_validation(request, exc):
+        if request.url.path == '/api/v1/account/password':
+            # The normal Pydantic response includes input values. Passwords stay private.
+            return JSONResponse({'detail': {'code': 'PASSWORD_INVALID',
+                'message': 'Құпиясөз өрістерін тексеріңіз: қазіргі 1–1024, жаңа 12–1024 таңба.'}}, 422)
+        if request.url.path in {'/api/v1/session/login','/api/v1/auth/token','/api/v1/auth/refresh','/api/v1/users'}:
+            return JSONResponse({'detail': {'code': 'VALIDATION_ERROR',
+                'message': 'Сұрау өрістерін тексеріңіз.'}}, 422)
+        return await request_validation_exception_handler(request, exc)
 
     @app.middleware('http')
     async def protection(request, call_next):
@@ -164,6 +181,9 @@ def create_app(database_url=None):
         db.add(LoginAttempt(id=uid(),identity=identity,timestamp=time.time()))
         db.commit()
         user = db.scalar(select(User).where(User.email==data.email.lower()))
+        if user:
+            # Hold until the session/token creation commits; reset cannot interleave.
+            user = lock_user(db,user.id)
         if not user or not verify_password(data.password,user.password_hash) or not user.active:
             fail('INVALID_CREDENTIALS','Пошта немесе құпиясөз қате.',401)
         return user
@@ -190,6 +210,18 @@ def create_app(database_url=None):
     @app.get('/api/v1/session/me')
     def me(request:Request,user=Depends(current)):
         return {'user':user_json(user),'csrf_token':request.state.auth.csrf_token,**META}
+    @app.post('/api/v1/account/password')
+    def account_password(data:PasswordChange,request:Request,response:Response,user=Depends(current),db=Depends(get_db)):
+        try:
+            result=change_password(db,organization_id=user.organization_id,user_id=user.id,
+                current_password=data.current_password,new_password=data.new_password,
+                session_id=request.state.auth.id)
+            db.commit()
+        except CredentialError as exc:
+            db.rollback()
+            fail(exc.code,exc.message,exc.status)
+        response.delete_cookie('asboljam_session',path='/api',secure=secure,httponly=True,samesite='lax')
+        return result
     @app.post('/api/v1/session/logout')
     def logout(request:Request,response:Response,user=Depends(current),db=Depends(get_db)):
         request.state.auth.revoked=True
@@ -208,6 +240,12 @@ def create_app(database_url=None):
     @app.post('/api/v1/auth/refresh')
     def refresh(data:Refresh,db=Depends(get_db)):
         old=db.get(RefreshToken,token_hash(data.refresh_token))
+        if old:
+            # All credential operations take User first, then token/session rows.
+            user=lock_user(db,old.user_id)
+            old=db.get(RefreshToken,token_hash(data.refresh_token),populate_existing=True)
+        else:
+            user=None
         if not old or old.revoked or old.expires_at<time.time():
             fail('REFRESH_INVALID','Қайта кіріңіз.',401)
         changed=db.execute(update(RefreshToken).where(RefreshToken.token_hash==old.token_hash,RefreshToken.used==False,RefreshToken.revoked==False).values(used=True)).rowcount
@@ -216,7 +254,6 @@ def create_app(database_url=None):
             db.execute(update(AuthSession).where(AuthSession.family_id==old.family_id).values(revoked=True))
             db.commit()
             fail('REFRESH_REUSED','Сессия қауіпсіздік үшін тоқтатылды.',401)
-        user=db.get(User,old.user_id)
         if not user or not user.active:
             fail('AUTH_REQUIRED','Қайта кіріңіз.',401)
         db.execute(update(AuthSession).where(AuthSession.family_id==old.family_id).values(revoked=True))
@@ -469,17 +506,10 @@ def create_app(database_url=None):
         if user_id==user.id: fail('SELF_ACCESS_CHANGE','Өз рұқсатыңызды өзгертуге болмайды.',422)
         for branch in data.branch_ids: branch_access(db,user,branch)
         # Serialize access revocation with worker publication on both supported databases.
-        found=db.execute(update(User).where(User.id==user_id,User.organization_id==user.organization_id).values(active=User.active)).rowcount
-        if not found: fail('NOT_FOUND','Пайдаланушы табылмады.',404)
-        other=db.get(User,user_id,populate_existing=True)
+        other=lock_user(db,user_id,user.organization_id)
+        if not other: fail('NOT_FOUND','Пайдаланушы табылмады.',404)
         other.role,other.branch_ids,other.active=data.role,data.branch_ids,data.active
-        db.execute(update(AuthSession).where(AuthSession.user_id==other.id).values(revoked=True))
-        db.execute(update(RefreshToken).where(RefreshToken.user_id==other.id).values(revoked=True))
-        cancelled=db.execute(update(Job).where(Job.actor_id==other.id,Job.organization_id==user.organization_id,Job.status.in_(['queued','running'])).values(
-            status='failed',result_id=None,finished_at=now(),error='JOB_ACCESS_REVOKED: Есептеуге рұқсат өзгерген. Менеджерге хабарласыңыз.'
-        ).returning(Job.id,Job.branch_id)).all()
-        for job_id,branch_id in cancelled:
-            audit(db,user,'job.cancelled',job_id,branch_id,{'code':'JOB_ACCESS_REVOKED'})
+        revoke_user_access(db,other,actor_id=user.id)
         audit(db,user,'user.access_changed',other.id,details=data.model_dump());db.commit()
         return user_json(other)
     return app
