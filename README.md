@@ -156,3 +156,5 @@ python scripts/backup_db.py restore --backup backups/demo.sqlite --destination d
 
 PostgreSQL/Docker проверяются реальным запуском, а не только конфигурацией; фактические результаты — в [FINAL_REPORT.md](FINAL_REPORT.md) и `artifacts/verification`. Подготовлен [офлайн POS-адаптер](docs/POS_ADAPTER_RU.md): он сохраняет REAL/SYNTHETIC и не обращается к БД. Его результат отдельно проходит разрешённый preview/commit в организации с подходящей политикой. Не использовать synthetic сценарий или REAL+TEST fixture как актуальный план предприятия. Stock ledger, heartbeat worker, целевое развёртывание и реальный пилот остаются отдельными незавершёнными частями коммерческой цели.
 
+
+Проверки сервиса: `/api/v1/health` — процесс API отвечает; `/api/v1/ready` — БД доступна и схема совместима (503 при проблеме). Readiness не проверяет worker или качество прогноза. Обновление/heartbeat: [WORKER_OPERATIONS_RU](docs/commercial/WORKER_OPERATIONS_RU.md).

@@ -16,8 +16,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, or_, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, or_, select, text, update
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import object_session
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
@@ -274,6 +274,20 @@ def create_app(database_url=None):
     @app.get('/api/v1/health')
     def health():
         return {'status':'ok'}
+
+    @app.get('/api/v1/ready', responses={503: {'description': 'Database unavailable or migration required'}})
+    def ready():
+        # Public probe exposes no tenant data, schema versions or connection details.
+        from .migrations import VERSIONS
+        try:
+            with engine.connect() as connection:
+                applied = tuple(connection.execute(text('SELECT version FROM schema_migrations ORDER BY version')).scalars())
+            code = None if applied == VERSIONS else 'MIGRATION_REQUIRED'
+        except SQLAlchemyError:
+            code = 'DATABASE_UNAVAILABLE'
+        return JSONResponse(status_code=503 if code else 200,
+            content={'status': 'unavailable', 'code': code} if code else {'status': 'ready'},
+            headers={'Cache-Control': 'no-store'})
     @app.post('/api/v1/session/login')
     def login(data: Login, request:Request,response:Response,db=Depends(get_db)):
         origin_check(request)

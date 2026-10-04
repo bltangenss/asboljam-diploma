@@ -22,6 +22,25 @@
         }
       }
     },
+    "/api/v1/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "ready_api_v1_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or migration required"
+          }
+        }
+      }
+    },
     "/api/v1/session/login": {
       "post": {
         "summary": "Login",

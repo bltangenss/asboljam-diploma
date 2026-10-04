@@ -46,7 +46,7 @@ if [[ "${ASBOLJAM_VERIFY_E2E:-1}" == 1 ]]; then
   "$python_bin" - <<'PY'
 import time
 from urllib.request import urlopen
-for url in ('http://127.0.0.1:8000/api/v1/health', 'http://127.0.0.1:3000'):
+for url in ('http://127.0.0.1:8000/api/v1/ready', 'http://127.0.0.1:3000'):
     deadline = time.monotonic() + 60
     while True:
         try:

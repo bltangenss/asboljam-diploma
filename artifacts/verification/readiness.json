@@ -1,0 +1,75 @@
+{
+  "status": "passed",
+  "scope": "Database readiness and HTTP acceptance synchronized with current import contract",
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_readiness.py -v",
+      "tests": 5,
+      "elapsed_seconds": 0.503,
+      "database": "SQLite",
+      "status": "passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_api.py -v",
+      "tests": 19,
+      "elapsed_seconds": 33.024,
+      "status": "passed"
+    },
+    {
+      "command": "python -X utf8 scripts/verify_postgres_security.py --suite test_readiness.py --report-name postgres-readiness.json",
+      "tests": 5,
+      "database": "PostgreSQL",
+      "status": "passed"
+    },
+    {
+      "command": "python -X utf8 scripts/verify_runtime.py --api-url http://127.0.0.1:8000/api/v1 --web-origin http://localhost:3000 --admin-email <isolated SYNTHETIC fixture> --timeout 180 --report artifacts/verification/runtime-current.json",
+      "checks": 87,
+      "status": "passed",
+      "started_at": "2026-10-04T06:12:28.017910+00:00",
+      "finished_at": "2026-10-04T06:12:44.151423+00:00"
+    }
+  ],
+  "source_sha256": {
+    "apps/api/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/api/accounts.py": "53a48bf2269e194c6ccd178503bc88c9404184def3ca511dd7092796b68444c7",
+    "apps/api/config.py": "a6fb6382cd62e22350d07ae35e7e74d7f509d37508d0ee1b843df7217d52eada",
+    "apps/api/data_policy.py": "f0ea989cf3e7bac066c487f1be6c31ef62ac7a25b7eae0dd8e3662c1106cbba2",
+    "apps/api/db.py": "5d07d2c5a22696662becc7eff3c44d6b9fbd5e3272050bd868e52c291c38768d",
+    "apps/api/engine.py": "85a670a00a622f3b04607ceaea248b345e85a18d62acbd033017b3bfaa021215",
+    "apps/api/import_service.py": "700345777b1dd85ea781747327299383dc8b8f602d3f18634d3fdd8bdf1029f8",
+    "apps/api/importing.py": "7423d343745fb56ef061d6124661300138c2ae69888dab7e540640404e6ac340",
+    "apps/api/lineage.py": "6f8d9dc83372aef23b05d86f1339782f735cc3195dbd0460662c3cea0c10eaef",
+    "apps/api/main.py": "1cd1897452bd6a42a3144546b147c72131c59f5d76c1cadc4c73d96b2dcf7bcd",
+    "apps/api/migrations.py": "b3305a689c108388784449f40528a5367ec563d72b657e22dee2367ed8293e39",
+    "apps/api/security.py": "d7cfffb4a93677da0f45e7dccf856a702c46ded9301b71038b33a1c48e7b7b80",
+    "apps/api/tenants.py": "035c7b55a92072efd06e6c7cf100d1c7bb40ccb187ba17678b50e4e10e445c30",
+    "apps/worker/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/worker/main.py": "e0b7501d4a88fbb427b110ad6ef11ad1d124d1ad8c65d826844ea716e09228d0",
+    "scripts/pilot_fixture.py": "33ff4407a7f2ccabfaabde5f1f7ad36438a86df25d232ff1da03e6774e219697",
+    "scripts/seed_demo.py": "a01ede989e4c37269d55c77cb7dcdb7eae736c151283c1ac8fcc0a263f870364",
+    "scripts/verify_postgres_security.py": "f860e4ef6c1c62ed111be1ccb22b853a850ea92b28e129c08cdb266fb23043e1",
+    "tests/database_fixture.py": "61fc7e9ee6e2466520e75ff810d0414a6acff16b572128f336c6b418ffd02f0d",
+    "tests/test_import_lineage.py": "8c799e5196e64ec43eb3aca6f81f9f1f6e26487bb66ec68520b66bc070e9eaf8",
+    "tests/test_import_migration.py": "95a6718e12c63c2e0a9f515928be15bfbd13f1ee58451a7ec0d0f2bc481df2bc",
+    "tests/test_import_transactions.py": "951b612efd04fe89ca81a05e0c606d3ca8fb32598f562f19576fdabade662450",
+    "tests/test_password_security.py": "e7260dc82b4dc614ca2597666437d784eeacaacb164a11cea326720db6011676",
+    "tests/test_readiness.py": "922fd7f8860a90ec459a4ee95d81b6d08412abb82969ebd007fa81b59c907e1a",
+    "tests/test_real_api.py": "1d71c114bb57641f5ac633559dec2a6963bdc66ad7ce7d43fd59c869f77e60a6",
+    "tests/test_real_execution.py": "824c3824e08ed99956d3498a7d968fd031f8a9b8b2200e6fe5951ed09e9da93c",
+    "tests/test_real_source.py": "27507af67af6ea491ba2c62fcff3e8332ae7cbf4ee69ddb63d8fab9c7dc03d42",
+    "tests/test_real_source_migration.py": "c8be5bb70a7c10438a9bac0cb8d800af81ee17f6855b33f5dc8a0413c47426a5",
+    "tests/test_tenant_isolation.py": "2906af66b06a25d72c46ab5dda51ae9df89ceda6277122dc59dca802a6f3dedb",
+    "tests/test_tenant_lifecycle.py": "45834a9a45514ca97af8a43ce1b07d4b3753ca5736ac273691f9d169067fafba",
+    "tests/test_tenant_migration.py": "a60efcfa3b2a58b03245e88bb515733823c16b0390da9745b92d382c35e302aa",
+    "tests/test_worker_heartbeat.py": "f9e0a102c584f184d225d70f44f5ceb1de80df3341e63c9b7ab8d4f8be8a92c8",
+    "tests/test_worker_migration.py": "3c3e800ba32c33569a288786d5f9592dda093734825c7cace8d237df08c19ddb",
+    "tests/test_worker_security.py": "8b206ea07dbb18e6ae08eff178d2f939c3cfa539f30f560b3e37b1b82503b596"
+  },
+  "limits": [
+    "Readiness checks database/schema, not worker liveness or model progress",
+    "No new full Docker deployment, HTTPS, load, APK or ZIP",
+    "Compose/cloud healthcheck commands updated; full cloud_verify.sh not rerun",
+    "Web source unchanged; no repeated build or browser suite"
+  ],
+  "runtime_report": "runtime-current.json"
+}
