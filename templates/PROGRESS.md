@@ -1,5 +1,11 @@
 # AsBoljam — журнал прогресса
 
+## Возобновление 04.10.2026 — проверки checkpoint закрыты
+
+**TESTED:** сохранённый commit `569ae904ace910c1164cd376310ee7bb947e1573`: Python304/304 PASS (139.282s); ранее упавший live correction/recompute/approval/export —1/1 PASS (43.7s) на настоящих API/worker и отдельной SYNTHETIC-базе. PostgreSQL worker/REAL execution/API —42/42 PASS:29 PG bodies и13 pure engine tests;29 PG fixture schemas. Исходники во время проверки не менялись. [Команды и границы](../artifacts/verification/resume-2026-10-04.json). Непроверенные в checkpoint последние worker/engine/API исправления теперь покрыты этими прогонами; единый новый прогон всех browser-сценариев не запускался.
+
+**IN PROGRESS:** улучшение надёжности длительных фоновых расчётов. **NOT TESTED:** реальный бизнес/эффект, production deployment, свежий APK/ZIP. Неизменённые build/mock/mobile и независимые старые PG suites без причины не повторялись. Ниже сохранена история остановки; её pending-пункты читать с учётом этого обновления.
+
 ## Актуальное продолжение — источник REAL, даты и устойчивость worker, 29.09.2026
 
 **STOP / SAVED CHECKPOINT:** пользователь попросил «стоп остановись с сохранениями». Новые проверки и разработка остановлены. API/worker/web preview и тестовый PostgreSQL остановлены, данные и volumes сохранены. Итоговая общая регрессия после последних исправлений не запускалась. При продолжении сначала повторить упавший `import_lineage_live.spec.ts` на уже подготовленной свежей small fixture в `.cache/real-live.sqlite`, затем соответствующие Python/PG проверки worker/engine/API; не считать предыдущие зелёные прогоны проверкой последних изменений.

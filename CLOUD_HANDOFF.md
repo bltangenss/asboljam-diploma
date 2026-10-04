@@ -1,5 +1,11 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## Возобновление 04.10.2026 — проверки checkpoint закрыты
+
+**TESTED:** сохранённый commit `569ae904ace910c1164cd376310ee7bb947e1573`: Python304/304 PASS (139.282s); ранее упавший live correction/recompute/approval/export —1/1 PASS (43.7s) на настоящих API/worker и отдельной SYNTHETIC-базе. PostgreSQL worker/REAL execution/API —42/42 PASS:29 PG bodies и13 pure engine tests;29 PG fixture schemas. Исходники во время проверки не менялись. [Команды и границы](artifacts/verification/resume-2026-10-04.json). Непроверенные в checkpoint последние worker/engine/API исправления теперь покрыты этими прогонами; единый новый прогон всех browser-сценариев не запускался.
+
+**IN PROGRESS:** улучшение надёжности длительных фоновых расчётов. **NOT TESTED:** реальный бизнес/эффект, production deployment, свежий APK/ZIP. Неизменённые build/mock/mobile и независимые старые PG suites без причины не повторялись. Ниже сохранена история остановки; её pending-пункты читать с учётом этого обновления.
+
 ## Текущий этап — REAL-контракт и даты, 29.09.2026
 
 **Остановлено с сохранением по просьбе пользователя.** Это checkpoint, не окончательно проверенный release. Python295 и PG158 прошли до последних исправлений; mock37 PASS; live8/9, один correction-сценарий требует повтора после исправления SQLite worker. Последние точечные проверки: contention6, worker security11, REAL execution19, REAL API12 PASS. Финальный общий/PG/browser повтор не выполнен. Запущенные тестовые сервисы остановлены, базы/volumes сохранены.

@@ -1,0 +1,67 @@
+{
+  "recorded_at": "2026-10-04T05:53:20.087843+00:00",
+  "status": "passed",
+  "source_commit": "569ae904ace910c1164cd376310ee7bb947e1573",
+  "scope": "Close checks left pending at saved checkpoint; no enterprise data",
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "tests": 304,
+      "status": "passed",
+      "elapsed_seconds": 139.282
+    },
+    {
+      "command": "npm.cmd run test:e2e -- tests/e2e/import_lineage_live.spec.ts --reporter=line --output=.cache/resume-lineage-browser",
+      "tests": 1,
+      "status": "passed",
+      "elapsed_seconds": 43.7,
+      "scope": "Previously failed correction/recompute/approval/history/export scenario, actual API+worker, existing synthetic fixture"
+    },
+    {
+      "command": "python -X utf8 scripts/verify_postgres_security.py --suite test_worker_security.py --suite test_real_execution.py --suite test_real_api.py --report-name postgres-real-worker.json",
+      "status": "passed",
+      "tests": 42,
+      "postgres_test_bodies": 29,
+      "pure_engine_tests": 13,
+      "elapsed_seconds": 51.255
+    }
+  ],
+  "not_repeated": [
+    "Unchanged web build/mock browser/mobile checks already passed at saved checkpoint",
+    "Unrelated PostgreSQL suites previously passed",
+    "APK/research benchmark/production deployment"
+  ],
+  "source_sha256": {
+    "apps/api/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/api/accounts.py": "53a48bf2269e194c6ccd178503bc88c9404184def3ca511dd7092796b68444c7",
+    "apps/api/config.py": "a6fb6382cd62e22350d07ae35e7e74d7f509d37508d0ee1b843df7217d52eada",
+    "apps/api/data_policy.py": "f0ea989cf3e7bac066c487f1be6c31ef62ac7a25b7eae0dd8e3662c1106cbba2",
+    "apps/api/db.py": "6801041ca9e2e653d7f25082596d6945f7bbbd19305d46e907ea0dac4a16eaf6",
+    "apps/api/engine.py": "85a670a00a622f3b04607ceaea248b345e85a18d62acbd033017b3bfaa021215",
+    "apps/api/import_service.py": "700345777b1dd85ea781747327299383dc8b8f602d3f18634d3fdd8bdf1029f8",
+    "apps/api/importing.py": "7423d343745fb56ef061d6124661300138c2ae69888dab7e540640404e6ac340",
+    "apps/api/lineage.py": "6f8d9dc83372aef23b05d86f1339782f735cc3195dbd0460662c3cea0c10eaef",
+    "apps/api/main.py": "f4b0f31d1f3280916f594cbbd3299332209e2417f7423a0bd25f1045cab3e2bc",
+    "apps/api/migrations.py": "a8c1a0ddb978c9a65846d2f9dc1b52f9ddaf0c7f20fe93f8d5e68e27c56d05b3",
+    "apps/api/security.py": "d7cfffb4a93677da0f45e7dccf856a702c46ded9301b71038b33a1c48e7b7b80",
+    "apps/api/tenants.py": "035c7b55a92072efd06e6c7cf100d1c7bb40ccb187ba17678b50e4e10e445c30",
+    "apps/worker/__init__.py": "f01a374e9c81e3db89b3a42940c4d6a5447684986a1296e42bf13f196eed6295",
+    "apps/worker/main.py": "fd7255867d5d19c2eaf9a9e9954e95f7d62c1c7ec43aeb656f5f1f9086b449cc",
+    "scripts/pilot_fixture.py": "33ff4407a7f2ccabfaabde5f1f7ad36438a86df25d232ff1da03e6774e219697",
+    "scripts/seed_demo.py": "a01ede989e4c37269d55c77cb7dcdb7eae736c151283c1ac8fcc0a263f870364",
+    "scripts/verify_postgres_security.py": "8b7e7793fff385a62eb166a58b0a51561d28dc1f2bff8ae46aa82e8d9f6f128d",
+    "tests/database_fixture.py": "61fc7e9ee6e2466520e75ff810d0414a6acff16b572128f336c6b418ffd02f0d",
+    "tests/test_import_lineage.py": "8c799e5196e64ec43eb3aca6f81f9f1f6e26487bb66ec68520b66bc070e9eaf8",
+    "tests/test_import_migration.py": "27ec54bd6d5cf53749fb79decaa432c55d2168954e2f58f25d762ba19119060f",
+    "tests/test_import_transactions.py": "951b612efd04fe89ca81a05e0c606d3ca8fb32598f562f19576fdabade662450",
+    "tests/test_password_security.py": "e7260dc82b4dc614ca2597666437d784eeacaacb164a11cea326720db6011676",
+    "tests/test_real_api.py": "1d71c114bb57641f5ac633559dec2a6963bdc66ad7ce7d43fd59c869f77e60a6",
+    "tests/test_real_execution.py": "824c3824e08ed99956d3498a7d968fd031f8a9b8b2200e6fe5951ed09e9da93c",
+    "tests/test_real_source.py": "27507af67af6ea491ba2c62fcff3e8332ae7cbf4ee69ddb63d8fab9c7dc03d42",
+    "tests/test_real_source_migration.py": "a2cad6c9afbd245ae31794d247b94e449947cdacf5af0d6e2c6fbab696b0d959",
+    "tests/test_tenant_isolation.py": "2906af66b06a25d72c46ab5dda51ae9df89ceda6277122dc59dca802a6f3dedb",
+    "tests/test_tenant_lifecycle.py": "45834a9a45514ca97af8a43ce1b07d4b3753ca5736ac273691f9d169067fafba",
+    "tests/test_tenant_migration.py": "6bbf01c9d53d5f15ccb8648c8d13c952a18459f82c45812fe36c9e6b8bbeaeb6",
+    "tests/test_worker_security.py": "8b206ea07dbb18e6ae08eff178d2f939c3cfa539f30f560b3e37b1b82503b596"
+  }
+}
