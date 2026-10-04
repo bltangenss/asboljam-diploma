@@ -25,7 +25,7 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_tenant_migration.py', 'test_tenant_lifecycle.py', 'test_import_migration.py',
           'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
           'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
-          'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py')
+          'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py', 'test_run_status.py')
 
 
 def source_hashes():
@@ -101,7 +101,7 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json', 'postgres-run-status.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])

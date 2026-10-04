@@ -240,7 +240,10 @@
         "queued",
         "running",
         "failed",
-        "succeeded"
+        "succeeded",
+        "heartbeat_unknown",
+        "heartbeat_delayed",
+        "retry_same_job_status"
       ]
     },
     {
@@ -307,7 +310,10 @@
         "queued",
         "running",
         "failed",
-        "succeeded"
+        "succeeded",
+        "heartbeat_unknown",
+        "heartbeat_delayed",
+        "retry_same_job_status"
       ]
     },
     {

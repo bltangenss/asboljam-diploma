@@ -85,6 +85,21 @@ class UserAccess(StrictModel):
 class QueuedResponse(BaseModel):
     run_id: str
     status: str = 'queued'
+class RunResponse(BaseModel):
+    id: str
+    run_id: str
+    kind: str
+    status: str
+    result_id: str | None
+    error: str | None
+    created_at: str
+    started_at: float | None = Field(description='Unix seconds; start of the current worker claim, not percent complete.')
+    heartbeat_at: float | None = Field(description='Unix seconds; last worker lease renewal, not proof of calculation progress.')
+    finished_at: str | None
+    observed_at: float = Field(description='Server Unix seconds when this status was read; use with heartbeat_at to avoid client clock skew.')
+    data_origin: str | None
+    usage_mode: str | None
+    scenario_date: str | None
 class CollectionResponse(BaseModel):
     items: list[dict]
     total: int
@@ -482,11 +497,12 @@ def create_app(database_url=None):
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload={**data.model_dump(mode='json'),'origin':origin},snapshot=snapshot)
         db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
-    @app.get('/api/v1/runs/{run_id}')
-    def run(run_id:str,user=Depends(current),db=Depends(get_db)):
+    @app.get('/api/v1/runs/{run_id}',response_model=RunResponse)
+    def run(run_id:str,response:Response,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
         row=scoped(db,Job,user,run_id)
-        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','finished_at')} | {'run_id':row.id,**metadata(db,user.organization_id)}
+        response.headers['Cache-Control']='no-store'
+        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','started_at','heartbeat_at','finished_at')} | {'run_id':row.id,'observed_at':time.time(),**metadata(db,user.organization_id)}
     @app.get('/api/v1/forecasts/{forecast_id}')
     def forecast_detail(forecast_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')

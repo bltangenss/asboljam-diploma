@@ -9,7 +9,12 @@ export type WorkspaceDataContext = {
  source:null|{source_id:string;mapping_version:string;branch_id:string;purpose:string;version:string|number};
 };
 export interface Prediction { meal_id: string; point_forecast: number; p10: number | null; p50: number | null; p90: number | null }
-export interface Run { id: string; run_id: string; kind: string; status: 'queued'|'running'|'succeeded'|'failed'; result_id: string | null; error: string | null }
+export interface Run {
+ id: string; run_id: string; kind: string; status: 'queued'|'running'|'succeeded'|'failed';
+ result_id: string | null; error: string | null;
+ created_at?: string; started_at?: number | null; heartbeat_at?: number | null;
+ finished_at?: string | null; observed_at?: number;
+}
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }
 export class ApiClient {
   csrf = '';
