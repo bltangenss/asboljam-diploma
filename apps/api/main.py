@@ -100,6 +100,10 @@ class RunResponse(BaseModel):
     data_origin: str | None
     usage_mode: str | None
     scenario_date: str | None
+class RunCollection(BaseModel):
+    items: list[RunResponse]
+    total: int
+    next_cursor: str | None
 class CollectionResponse(BaseModel):
     items: list[dict]
     total: int
@@ -497,12 +501,26 @@ def create_app(database_url=None):
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload={**data.model_dump(mode='json'),'origin':origin},snapshot=snapshot)
         db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
+    def run_json(row,meta,observed_at):
+        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','started_at','heartbeat_at','finished_at')} | {'run_id':row.id,'observed_at':observed_at,**meta}
+    @app.get('/api/v1/runs',response_model=RunCollection)
+    def run_list(response:Response,branch_id:str,kind:Literal['forecast','procurement'],
+                 limit:int=Query(20,ge=1,le=50),cursor:int=Query(0,ge=0),
+                 user=Depends(current),db=Depends(get_db)):
+        roles(user,'admin','manager','analyst');branch_access(db,user,branch_id)
+        scope=(Job.organization_id==user.organization_id,Job.branch_id==branch_id,Job.kind==kind)
+        total=db.scalar(select(func.count()).select_from(Job).where(*scope))
+        rows=list(db.scalars(select(Job).where(*scope).order_by(Job.created_at.desc(),Job.id.desc()).offset(cursor).limit(limit)))
+        meta=metadata(db,user.organization_id);observed=time.time()
+        response.headers['Cache-Control']='no-store'
+        return {'items':[run_json(row,meta,observed) for row in rows],'total':total,
+                'next_cursor':str(cursor+limit) if cursor+limit<total else None}
     @app.get('/api/v1/runs/{run_id}',response_model=RunResponse)
     def run(run_id:str,response:Response,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
         row=scoped(db,Job,user,run_id)
         response.headers['Cache-Control']='no-store'
-        return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','started_at','heartbeat_at','finished_at')} | {'run_id':row.id,'observed_at':time.time(),**metadata(db,user.organization_id)}
+        return run_json(row,metadata(db,user.organization_id),time.time())
     @app.get('/api/v1/forecasts/{forecast_id}')
     def forecast_detail(forecast_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')

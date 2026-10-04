@@ -9,6 +9,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from apps.api.db import Job, Organization, User
 from apps.api.main import create_app
+from apps.api.importing import insert_rows
 from apps.api.security import password_hash
 from database_fixture import isolated_database_url
 
@@ -28,6 +29,7 @@ class RunStatusTests(unittest.TestCase):
                 db.add(Organization(id=org,name=org,timezone='Asia/Qyzylorda',data_policy='synthetic_only',provenance='test_fixture'))
             db.add(User(id='actor',organization_id='A',email='status@fixture.invalid',
                         password_hash=password_hash('Fixture-status-password-42!'),role='analyst',branch_ids=['1']))
+            insert_rows(db,'A','branches',[{'branch_id':'1','branch_name':'A1','data_origin':'SYNTHETIC'}])
             for identifier,org,branch in [('visible','A','1'),('branch','A','2'),('tenant','B','1')]:
                 db.add(Job(id=identifier,organization_id=org,branch_id=branch,actor_id='actor',kind='forecast',
                            payload={'private':'private-payload'},snapshot={'private':'private-snapshot'}))
@@ -77,6 +79,50 @@ class RunStatusTests(unittest.TestCase):
         properties=schema['components']['schemas']['RunResponse']['properties']
         self.assertTrue({'started_at','heartbeat_at','observed_at'}.issubset(properties))
         self.assertFalse({'payload','snapshot','actor_id'}.intersection(properties))
+
+    def test_history_filters_kind_branch_and_tenant_and_excludes_frozen_inputs(self):
+        self.login()
+        with self.factory() as db:
+            db.add(Job(id='purchase',organization_id='A',branch_id='1',actor_id='actor',kind='procurement',
+                       payload={'private':'private-payload'},snapshot={'private':'private-snapshot'}))
+            db.commit()
+        response=self.client.get('/api/v1/runs?branch_id=1&kind=forecast')
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.headers['cache-control'],'no-store')
+        self.assertEqual([r['id'] for r in response.json()['items']],['visible'])
+        self.assertEqual(response.json()['total'],1)
+        self.assertIsNone(response.json()['next_cursor']);self.assertNotIn('private',response.text)
+        data=self.client.get('/api/v1/runs?branch_id=1&kind=procurement').json()
+        self.assertEqual([r['id'] for r in data['items']],['purchase'])
+
+    def test_history_requires_auth_scope_role_and_bounded_valid_pagination(self):
+        path='/api/v1/runs?branch_id=1&kind=forecast'
+        self.assertEqual(self.client.get(path).status_code,401)
+        self.login()
+        self.assertEqual(self.client.get('/api/v1/runs?branch_id=2&kind=forecast').status_code,403)
+        for query in ['kind=forecast','branch_id=1','branch_id=1&kind=unknown',
+                      'branch_id=1&kind=forecast&limit=51','branch_id=1&kind=forecast&cursor=-1']:
+            self.assertEqual(self.client.get('/api/v1/runs?'+query).status_code,422)
+        with self.factory() as db:
+            db.get(User,'actor').role='warehouse';db.commit()
+        self.assertEqual(self.client.get(path).status_code,403)
+
+    def test_history_order_is_stable_for_equal_timestamps_and_next_cursor_is_honest(self):
+        self.login()
+        with self.factory() as db:
+            db.get(Job,'visible').created_at='2026-01-01T00:00:00Z'
+            for identifier in ['same-a','same-z']:
+                db.add(Job(id=identifier,organization_id='A',branch_id='1',actor_id='actor',kind='forecast',
+                           created_at='2026-01-02T00:00:00Z',payload={},snapshot={}))
+            db.commit()
+        path='/api/v1/runs?branch_id=1&kind=forecast&limit=2'
+        first=self.client.get(path).json()
+        self.assertEqual([r['id'] for r in first['items']],['same-z','same-a'])
+        self.assertEqual((first['total'],first['next_cursor']),(3,'2'))
+        second=self.client.get(path+'&cursor=2').json()
+        self.assertEqual([r['id'] for r in second['items']],['visible'])
+        self.assertIsNone(second['next_cursor'])
+        self.assertEqual(self.client.get(path+'&cursor=20').json()['items'],[])
 
 
 if __name__=='__main__':

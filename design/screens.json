@@ -224,12 +224,16 @@
       "api": [
         "GET /forecasts",
         "POST /forecasts",
-        "GET /runs/{id}"
+        "GET /runs/{id}",
+        "GET /runs"
       ],
       "controls_and_data": [
         "model",
         "one_day_target",
-        "calculate"
+        "calculate",
+        "run_history",
+        "resume_run",
+        "history_pagination"
       ],
       "states": [
         "loading",
@@ -293,13 +297,17 @@
         "GET /plans",
         "GET /forecasts",
         "POST /procurement",
-        "GET /runs/{id}"
+        "GET /runs/{id}",
+        "GET /runs"
       ],
       "controls_and_data": [
         "forecast",
         "budget",
         "point_or_quantile_strategy",
-        "calculate"
+        "calculate",
+        "run_history",
+        "resume_run",
+        "history_pagination"
       ],
       "states": [
         "loading",

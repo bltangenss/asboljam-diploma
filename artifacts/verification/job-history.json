@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "timestamp": "2026-10-04T06:48:50.229386+00:00",
+  "scope": "Scoped run history, pagination and reopen after reload",
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_run_status.py -v",
+      "passed": 7,
+      "elapsed_seconds": 3.315
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_api.py -v",
+      "passed": 19,
+      "elapsed_seconds": 20.683
+    },
+    {
+      "command": "python -X utf8 scripts/verify_postgres_security.py --suite test_run_status.py --report-name postgres-run-history.json",
+      "passed": 7,
+      "report": "postgres-run-history.json"
+    },
+    {
+      "command": "npx playwright test tests/e2e/job_status.spec.ts --reporter=list,json",
+      "passed": 9,
+      "elapsed_seconds": 30.7,
+      "mode": "deterministic mock API browser tests"
+    },
+    {
+      "command": "npm run build",
+      "status": "passed"
+    }
+  ],
+  "visual_review": [
+    "Desktop1440 and mobile390 screenshots reviewed",
+    "Browser asserts no document horizontal overflow"
+  ],
+  "limits": [
+    "Latest full Python regression was330 passed and1 skipped before this block; affected API and browser checks rerun after history changes",
+    "No new live browser integration or real business data/load/deployment",
+    "No new APK/ZIP",
+    "History is refreshed explicitly and uses offset pagination; insertion while paging can shift pages"
+  ],
+  "source_sha256": {
+    "apps/api/main.py": "bbfccfda444e61a0ba6bf87551df637a313ae533bbf4e1d2d5f52d8ef893b001",
+    "apps/web/src/Planning.tsx": "ebc4e0f80f73109bcbaeb68644c0a662f3bd7eb02d9f097e1296d008b010575a",
+    "apps/web/src/JobPanel.tsx": "e37e46231ba6ed5cf95bcfa6a2b78b97caa1f325ae1ec66427cd876e431031d2",
+    "apps/web/src/RecentRuns.tsx": "ac0c13b58f2a6b9c3eba3ba02f2eb96791e1750dc936a4d0b0194af40a8e3f0f",
+    "apps/web/src/shared.tsx": "19e7ebf588b341ccddf544ed567140a4a342b8afec6f9391f3ab2c4f07d6a271",
+    "tests/test_run_status.py": "90d3e8a0f92f09cffb0958edcd6cdf0e1f8fd907f2fe0409fb1106db706c2d35",
+    "tests/e2e/job_status.spec.ts": "793d34fb7c3f976610748703318868df92e3488b8df6de96908d81a0a7deb313"
+  }
+}
