@@ -5,6 +5,7 @@ one fresh database and one schema per test, retaining them for diagnosis. It nev
 the existing application database, removes a volume, pulls an image or deploys a service.
 """
 import argparse
+import contextlib
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -24,7 +25,7 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_tenant_migration.py', 'test_tenant_lifecycle.py', 'test_import_migration.py',
           'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
           'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
-          'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py')
+          'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py')
 
 
 def source_hashes():
@@ -67,7 +68,8 @@ def inside(suites):
             identifiers = list(test_ids(suite))
             pure_engine_ids.extend(identifier for identifier in identifiers if identifier.startswith('test_real_execution.RealEngineTests.'))
             sqlite_backup_ids.extend(identifier for identifier in identifiers if 'sqlite' in identifier and 'backup' in identifier)
-            result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
             report['suites'].append({
                 'pattern': pattern, 'tests_run': result.testsRun, 'failures': len(result.failures),
                 'errors': len(result.errors), 'skipped': len(result.skipped),
@@ -99,7 +101,7 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])

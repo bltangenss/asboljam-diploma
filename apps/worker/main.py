@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
 import json
+import signal
 import sqlite3
 import threading
 import time
@@ -33,9 +34,15 @@ def sqlite_contention(exc):
             and isinstance(code, int) and code & 0xff in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED})
 
 
-def retry_sqlite_contention(operation, phase):
+class WorkerStopping(Exception):
+    """Shutdown requested before another claim could start."""
+
+
+def retry_sqlite_contention(operation, phase, stop_event=None):
     delay, reported = 0.25, False
     while True:
+        if stop_event is not None and stop_event.is_set():
+            raise WorkerStopping()
         try:
             return operation()
         except OperationalError as exc:
@@ -45,7 +52,10 @@ def retry_sqlite_contention(operation, phase):
                 # Do not emit exception text: it can contain SQL and bound secrets.
                 print(f'Worker database contention; retrying {phase}.', flush=True)
                 reported = True
-            time.sleep(delay)
+            if stop_event is None:
+                time.sleep(delay)
+            else:
+                stop_event.wait(delay)
             delay = min(delay * 2, 2.0)
 
 
@@ -258,12 +268,26 @@ def claim(factory):
         return job_id, claim_time, error, payload, snapshot, kind
 
 
-def run_once(factory):
-    claimed = retry_sqlite_contention(lambda: claim(factory), 'claim')
+def release_unstarted_claim(factory, job_id, claim_time):
+    with factory() as db:
+        db.execute(update(Job).where(Job.id == job_id, Job.status == 'running',
+                   Job.started_at == claim_time).values(status='queued', started_at=None, heartbeat_at=None))
+        db.commit()
+
+
+def run_once(factory, stop_event=None):
+    try:
+        claimed = retry_sqlite_contention(lambda: claim(factory), 'claim', stop_event)
+    except WorkerStopping:
+        return False
     if claimed is None:
         return False
     if not claimed:
         return True
+    if stop_event is not None and stop_event.is_set():
+        # Shutdown may arrive while claim is committing. Do not start fresh CPU work.
+        retry_sqlite_contention(lambda: release_unstarted_claim(factory, claimed[0], claimed[1]), 'release')
+        return False
     with keep_lease(factory, claimed[0], claimed[1]):
         return execute_claim(factory, claimed)
 
@@ -326,21 +350,36 @@ def main():
     from apps.api.config import load_settings
     settings = load_settings()
     engine = make_engine(settings.database_url)
+    stopping = threading.Event()
+    previous_handlers = {}
+
+    def request_stop(signum, frame):
+        if stopping.is_set():
+            raise KeyboardInterrupt()
+        stopping.set()
+        print('Worker stopping after the current job; no new jobs will start.', flush=True)
+
     try:
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            previous_handlers[signum] = signal.signal(signum, request_stop)
         migrate(engine)
         factory = sessions(engine)
         print('AsBoljam worker ready; durable database queue', flush=True)
         if args.once:
-            run_once(factory)
+            run_once(factory, stop_event=stopping)
             return
-        while True:
-            if not run_once(factory):
-                time.sleep(1)
+        while not stopping.is_set():
+            if not run_once(factory, stop_event=stopping):
+                stopping.wait(1)
     except KeyboardInterrupt:
         pass
     except DBAPIError:
         # Fatal database faults stay visible without leaking connection/row data.
         raise SystemExit('AsBoljam worker stopped (DATABASE_ERROR).') from None
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+        engine.dispose()
 
 
 if __name__ == '__main__':

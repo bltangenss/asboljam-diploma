@@ -41,6 +41,7 @@ services:
       context: .
       dockerfile: infra/Dockerfile.api
     command: ["python", "-m", "apps.worker.main"]
+    stop_grace_period: 120s
     environment: *backend_environment
     depends_on:
       api:

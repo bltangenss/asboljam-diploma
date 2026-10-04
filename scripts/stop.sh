@@ -6,5 +6,5 @@ cd "$project_root"
 while IFS='|' read -r pid started; do
   [[ "$pid" =~ ^[0-9]+$ ]] || continue
   actual="$(ps -p "$pid" -o lstart= 2>/dev/null || true)"
-  if [[ -n "$actual" && "$actual" == "$started" ]]; then kill "$pid"; printf 'Stopped process %s.\n' "$pid"; fi
+  if [[ -n "$actual" && "$actual" == "$started" ]]; then kill "$pid"; printf 'Requested shutdown for process %s.\n' "$pid"; fi
 done < .cache/processes.pid
