@@ -57,7 +57,8 @@ class RealSourceMigrationTests(unittest.TestCase):
     def snapshot(self):
         with self.engine.connect() as connection:
             return {name: [dict(row._mapping) for row in connection.execute(
-                select(Base.metadata.tables[name]).order_by(*Base.metadata.tables[name].primary_key.columns))]
+                select(*[c for c in Base.metadata.tables[name].columns
+                        if not (name == "jobs" and c.name == "heartbeat_at")]).order_by(*Base.metadata.tables[name].primary_key.columns))]
                 for name in (*LEGACY_TABLE_NAMES, 'organizations', *IMPORT_TABLE_NAMES)}
 
     def assert_old_policy_constraint(self):
@@ -96,7 +97,7 @@ class RealSourceMigrationTests(unittest.TestCase):
         self.prepare_v3()
         before = self.snapshot()
         self.assertTrue(all(before.values()))
-        self.assertEqual(migrate(self.engine), ('0004',))
+        self.assertEqual(migrate(self.engine), VERSIONS[3:])
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.versions(), list(VERSIONS))
         with self.engine.connect() as connection:
@@ -121,7 +122,7 @@ class RealSourceMigrationTests(unittest.TestCase):
         self.assertNotIn('organization_sources', inspect(self.engine).get_table_names())
         self.assertNotIn('organizations_v0004', inspect(self.engine).get_table_names())
         self.assert_old_policy_constraint()
-        self.assertEqual(migrate(self.engine), ('0004',))
+        self.assertEqual(migrate(self.engine), VERSIONS[3:])
 
     def test_fresh_failure_in_0004_rolls_back_every_version(self):
         apply_source = migrations._real_source_schema
@@ -147,7 +148,7 @@ class RealSourceMigrationTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=3) as pool:
             futures = [pool.submit(apply) for _ in range(3)]
             results = [future.result(timeout=25) for future in futures]
-        self.assertEqual(results.count(('0004',)), 1)
+        self.assertEqual(results.count(VERSIONS[3:]), 1)
         self.assertEqual(results.count(()), 2)
         self.assertEqual(self.snapshot(), before)
 
@@ -202,7 +203,7 @@ class RealSourceMigrationTests(unittest.TestCase):
             self.assertEqual(self.versions(), ['0001', '0002', '0003'])
             self.assertNotIn('organization_sources', inspect(self.engine).get_table_names())
         else:
-            self.assertEqual(migrate(self.engine), ('0004',))
+            self.assertEqual(migrate(self.engine), VERSIONS[3:])
         self.assertEqual(self.snapshot(), before)
         self.assertIn('custom_organization_name', {index['name'] for index in inspect(self.engine).get_indexes('organizations')})
 
@@ -217,7 +218,7 @@ class RealSourceMigrationTests(unittest.TestCase):
             before = self.snapshot()
             backup = Path(self.temp.name) / 'pre0004.sqlite'
             copy_database(Path(self.temp.name) / 'backup-source.sqlite', backup)
-            self.assertEqual(migrate(sqlite_engine), ('0004',))
+            self.assertEqual(migrate(sqlite_engine), VERSIONS[3:])
             restored = Path(self.temp.name) / 'restored0003.sqlite'
             restored_report = copy_database(backup, restored, 'restore')
             self.assertEqual(restored_report['integrity_check'], 'ok')
@@ -226,7 +227,7 @@ class RealSourceMigrationTests(unittest.TestCase):
             self.assertEqual(self.versions(), ['0001', '0002', '0003'])
             self.assertEqual(self.snapshot(), before)
             self.assert_old_policy_constraint()
-            self.assertEqual(migrate(self.engine), ('0004',))
+            self.assertEqual(migrate(self.engine), VERSIONS[3:])
             self.assertEqual(self.snapshot(), before)
         finally:
             self.engine = active_engine

@@ -44,7 +44,8 @@ class ImportMigrationTests(unittest.TestCase):
     def old_snapshot(self):
         with self.engine.connect() as connection:
             return {name: [dict(row._mapping) for row in connection.execute(
-                select(Base.metadata.tables[name]).order_by(*Base.metadata.tables[name].primary_key.columns))]
+                select(*[c for c in Base.metadata.tables[name].columns
+                        if not (name == "jobs" and c.name == "heartbeat_at")]).order_by(*Base.metadata.tables[name].primary_key.columns))]
                 for name in (*LEGACY_TABLE_NAMES, 'organizations')}
 
     def assert_empty_evidence(self):

@@ -1,18 +1,21 @@
 """Durable database job worker. Run separately: python -m apps.worker.main."""
 import argparse
+from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
 import json
 import sqlite3
+import threading
 import time
 import uuid
-from sqlalchemy import select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import DBAPIError, OperationalError
 from apps.api.accounts import lock_user
 from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, now, sessions
 from apps.api.engine import forecast, procurement, validate_calculation_context
 
 LEASE_SECONDS = 1800
+HEARTBEAT_SECONDS = 30
 PLANNING_ROLES = {'admin', 'manager'}
 ERROR_MESSAGES = {
     'JOB_ACCESS_REVOKED': 'Есептеуге рұқсат өзгерген. Менеджерге хабарласыңыз.',
@@ -44,6 +47,49 @@ def retry_sqlite_contention(operation, phase):
                 reported = True
             time.sleep(delay)
             delay = min(delay * 2, 2.0)
+
+
+def renew_lease(factory, job_id, claim_time, *, timestamp=None):
+    """Renew only this running claim; never move its publication fence."""
+    timestamp = time.time() if timestamp is None else timestamp
+    with factory() as db:
+        renewed = db.execute(update(Job).where(
+            Job.id == job_id, Job.status == 'running', Job.started_at == claim_time
+        ).values(heartbeat_at=case((Job.heartbeat_at > timestamp, Job.heartbeat_at), else_=timestamp))).rowcount
+        db.commit()
+        return bool(renewed)
+
+
+@contextmanager
+def keep_lease(factory, job_id, claim_time):
+    """A separate short transaction renews while CPU work/publication is pending.
+
+    A missed heartbeat does not grant permission to publish. If the lease is
+    reclaimed, the original started_at fence still discards this worker's result.
+    """
+    stopped = threading.Event()
+
+    def pulse():
+        reported = False
+        while not stopped.wait(HEARTBEAT_SECONDS):
+            try:
+                if not renew_lease(factory, job_id, claim_time):
+                    return
+                reported = False
+            except DBAPIError:
+                # No SQL, bound values or connection strings in background logs.
+                if not reported:
+                    print('Worker heartbeat unavailable (DATABASE_ERROR); retrying.', flush=True)
+                    reported = True
+
+    thread = threading.Thread(target=pulse, name='asboljam-job-heartbeat', daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stopped.set()
+        # A failing DB connection must not indefinitely block foreground shutdown.
+        thread.join(timeout=5)
 
 
 def access_error(db, job, actor):
@@ -192,8 +238,9 @@ def finish(factory, job_id, claim_time, result=None, error=None):
 def claim(factory):
     claim_time = time.time()
     with factory() as db:
-        db.execute(update(Job).where(Job.status == 'running', Job.started_at < claim_time - LEASE_SECONDS)
-                   .values(status='queued', started_at=None))
+        db.execute(update(Job).where(Job.status == 'running',
+                   func.coalesce(Job.heartbeat_at, Job.started_at) < claim_time - LEASE_SECONDS)
+                   .values(status='queued', started_at=None, heartbeat_at=None))
         db.commit()
         job = db.scalar(select(Job).where(Job.status == 'queued').order_by(Job.created_at).limit(1))
         if job is None:
@@ -204,7 +251,7 @@ def claim(factory):
         error = access_error(db, job, db.get(User, job.actor_id)) or snapshot_error(job)
         payload, snapshot, kind = job.payload, job.snapshot, job.kind
         claimed = db.execute(update(Job).where(Job.id == job_id, Job.status == 'queued')
-                             .values(status='running', started_at=claim_time)).rowcount
+                             .values(status='running', started_at=claim_time, heartbeat_at=claim_time)).rowcount
         db.commit()
         if not claimed:
             return ()
@@ -217,6 +264,11 @@ def run_once(factory):
         return False
     if not claimed:
         return True
+    with keep_lease(factory, claimed[0], claimed[1]):
+        return execute_claim(factory, claimed)
+
+
+def execute_claim(factory, claimed):
     job_id, claim_time, error, payload, snapshot, kind = claimed
     if error:
         retry_sqlite_contention(lambda: finish(factory, job_id, claim_time, error=error), 'publication')

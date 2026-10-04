@@ -5,13 +5,14 @@ migration. 0002 materializes tenant metadata once from pre-existing scoped rows;
 normal startup never invents organizations for subsequently orphaned records.
 0003 adds import evidence, revisions and receipts without fabricating legacy provenance.
 0004 explicitly adds a real-only policy and operator source registration, without activation.
+0005 adds a nullable job heartbeat; started_at remains the immutable claim fence.
 """
-from sqlalchemy import CheckConstraint, Column, MetaData, String, Table, case, inspect, literal, select, text, union
+from sqlalchemy import CheckConstraint, Column, Float, JSON, MetaData, String, Table, Text, case, inspect, literal, select, text, union
 
 from .db import Base, now
 
 
-VERSIONS = ('0001', '0002', '0003', '0004')
+VERSIONS = ('0001', '0002', '0003', '0004', '0005')
 LEGACY_TABLE_NAMES = (
     'users', 'auth_sessions', 'refresh_tokens', 'login_attempts',
     'operational_records', 'import_batches', 'jobs', 'forecasts',
@@ -49,9 +50,23 @@ def _organization_definition(name, *, allow_real=False):
 
 _ORGANIZATION_V2 = _organization_definition('organizations')
 
+# Preserve the original job columns even when the current ORM gains lease fields.
+_JOB_V1 = Table('jobs', MetaData(),
+    Column('id', String(64), primary_key=True),
+    Column('organization_id', String(64), nullable=False, index=True),
+    Column('branch_id', String(64), nullable=False),
+    Column('actor_id', String(64), nullable=False),
+    Column('kind', String(32), nullable=False),
+    Column('status', String(32), nullable=False, index=True),
+    Column('payload', JSON, nullable=False), Column('snapshot', JSON, nullable=False),
+    Column('result_id', String(64), nullable=True), Column('error', Text, nullable=True),
+    Column('created_at', String(64), nullable=False),
+    Column('started_at', Float, nullable=True), Column('finished_at', String(64), nullable=True))
+
 
 def _initial_schema(connection):
-    Base.metadata.create_all(connection, tables=[Base.metadata.tables[name] for name in LEGACY_TABLE_NAMES])
+    Base.metadata.create_all(connection, tables=[Base.metadata.tables[name] for name in LEGACY_TABLE_NAMES if name != 'jobs'])
+    _JOB_V1.create(connection)
 
 
 def _backfill_organizations(connection):
@@ -108,6 +123,11 @@ def _real_source_schema(connection):
         Base.metadata.tables[name].create(connection, checkfirst=False)
 
 
+def _job_heartbeat_schema(connection):
+    # Existing runs keep a null heartbeat; no worker activity is invented.
+    connection.exec_driver_sql('ALTER TABLE jobs ADD COLUMN heartbeat_at FLOAT')
+
+
 def migrate(engine):
     if engine.dialect.name not in {'sqlite', 'postgresql'}:
         raise MigrationError('Unsupported database backend for schema migrations')
@@ -125,7 +145,7 @@ def migrate(engine):
             if applied != VERSIONS[:len(applied)]:
                 raise MigrationError('Unsupported or incomplete migration history; use a compatible application version')
             completed = []
-            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema)):
+            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema, _job_heartbeat_schema)):
                 if version not in applied:
                     operation(connection)
                     connection.execute(text('INSERT INTO schema_migrations (version) VALUES (:version)'), {'version': version})

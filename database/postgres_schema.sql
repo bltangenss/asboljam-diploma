@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -97,6 +97,7 @@ CREATE TABLE jobs (
 	error TEXT, 
 	created_at VARCHAR(64) NOT NULL, 
 	started_at FLOAT, 
+	heartbeat_at FLOAT,
 	finished_at VARCHAR(64), 
 	PRIMARY KEY (id)
 )

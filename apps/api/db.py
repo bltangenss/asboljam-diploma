@@ -156,6 +156,7 @@ class Job(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(64), default=now)
     started_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    heartbeat_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     finished_at: Mapped[str | None] = mapped_column(String(64), nullable=True)
 class Forecast(Base):
     __tablename__ = 'forecasts'

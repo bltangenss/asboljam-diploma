@@ -23,7 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_security.py',
           'test_tenant_migration.py', 'test_tenant_lifecycle.py', 'test_import_migration.py',
           'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
-          'test_real_source.py', 'test_real_execution.py', 'test_real_api.py')
+          'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
+          'test_worker_heartbeat.py', 'test_worker_migration.py')
 
 
 def source_hashes():
@@ -98,7 +99,7 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])
