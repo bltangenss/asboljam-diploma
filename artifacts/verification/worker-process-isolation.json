@@ -50,5 +50,15 @@
     "No manual cancellation API/UI",
     "Web/browser, research and native/APK unchanged and not rerun/rebuilt in this block",
     "Stock storage remains an unfinished integration; no stock API/UI or procurement ledger wiring"
-  ]
+  ],
+  "external_http": {
+    "report": "runtime-worker-process.json",
+    "status": "passed",
+    "checks": 87,
+    "source_commit": "02c6cd1ee265245c232a6eb68046a236fa08c87a",
+    "setup": "New ignored SYNTHETIC SQLite fixture; separately launched uvicorn on127.0.0.1:8011 and python -m apps.worker.main; generated password existed only in memory/environment",
+    "command": "python -X utf8 scripts/verify_runtime.py --api-url http://127.0.0.1:8011/api/v1 --web-origin http://localhost:3011 --timeout 120 --report artifacts/verification/runtime-worker-process.json",
+    "cleanup": "Only spawned API/worker processes stopped; private fixture retained in ignored .cache; main application database unchanged",
+    "limits": "HTTP verifier does not independently establish backend/dialect or exercise cross-organization isolation; setup and other suites provide separate evidence"
+  }
 }

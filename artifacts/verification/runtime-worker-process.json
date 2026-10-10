@@ -1,0 +1,684 @@
+{
+  "started_at": "2026-10-10T06:27:27.397735+00:00",
+  "status": "passed",
+  "api_url": "http://127.0.0.1:8011/api/v1",
+  "web_origin": "http://localhost:3011",
+  "scope": "External HTTP API and separately running durable worker",
+  "database_backend_verified_by_this_script": false,
+  "checks": [
+    {
+      "check": "Anonymous access is denied",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.834705+00:00",
+      "method": "GET",
+      "endpoint": "/branches",
+      "http_status": 401,
+      "expected_status": 401
+    },
+    {
+      "check": "API health",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.850794+00:00",
+      "method": "GET",
+      "endpoint": "/health",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "API liveness responds",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.850841+00:00"
+    },
+    {
+      "check": "API database readiness",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.855652+00:00",
+      "method": "GET",
+      "endpoint": "/ready",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "API reports supported database schema",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.855687+00:00"
+    },
+    {
+      "check": "Admin login",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.988343+00:00",
+      "method": "POST",
+      "endpoint": "/session/login",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Admin login establishes CSRF session",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.988377+00:00"
+    },
+    {
+      "check": "Runtime fixture is explicitly synthetic",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.988389+00:00"
+    },
+    {
+      "check": "Admin identity has admin role",
+      "passed": true,
+      "at": "2026-10-10T06:27:27.988395+00:00"
+    },
+    {
+      "check": "Read seeded branches",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.005685+00:00",
+      "method": "GET",
+      "endpoint": "/branches",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Seed includes branches 1 and 2",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.005737+00:00"
+    },
+    {
+      "check": "Read branch 1 sales",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.278974+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=1&limit=2",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Sales are populated and scoped",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.279021+00:00"
+    },
+    {
+      "check": "Mutations reject incorrect CSRF",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.296399+00:00",
+      "method": "POST",
+      "endpoint": "/forecasts",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Mutations reject untrusted origin",
+      "passed": true,
+      "at": "2026-10-10T06:27:28.300776+00:00",
+      "method": "POST",
+      "endpoint": "/forecasts",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Queue real seasonal forecast",
+      "passed": true,
+      "at": "2026-10-10T06:27:29.669529+00:00",
+      "method": "POST",
+      "endpoint": "/forecasts",
+      "http_status": 202,
+      "expected_status": 202
+    },
+    {
+      "check": "forecast enters durable queue",
+      "passed": true,
+      "at": "2026-10-10T06:27:29.669659+00:00",
+      "run_id": "4ad8fe4cf60c4ba5a42102b95698dfb7"
+    },
+    {
+      "check": "forecast worker completes",
+      "passed": true,
+      "at": "2026-10-10T06:27:39.318891+00:00",
+      "run_id": "4ad8fe4cf60c4ba5a42102b95698dfb7",
+      "observed_statuses": [
+        "queued",
+        "running",
+        "succeeded"
+      ],
+      "elapsed_seconds": 9.65
+    },
+    {
+      "check": "Read completed forecast",
+      "passed": true,
+      "at": "2026-10-10T06:27:39.715089+00:00",
+      "method": "GET",
+      "endpoint": "/forecasts/4ad8fe4cf60c4ba5a42102b95698dfb7",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Forecast has predictions and reproducible snapshot",
+      "passed": true,
+      "at": "2026-10-10T06:27:39.715217+00:00"
+    },
+    {
+      "check": "Queue real procurement optimization",
+      "passed": true,
+      "at": "2026-10-10T06:27:39.961884+00:00",
+      "method": "POST",
+      "endpoint": "/procurement",
+      "http_status": 202,
+      "expected_status": 202
+    },
+    {
+      "check": "procurement enters durable queue",
+      "passed": true,
+      "at": "2026-10-10T06:27:39.961977+00:00",
+      "run_id": "3e8c92dbf6724e3f8002891ba65133d6"
+    },
+    {
+      "check": "procurement worker completes",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.333387+00:00",
+      "run_id": "3e8c92dbf6724e3f8002891ba65133d6",
+      "observed_statuses": [
+        "queued",
+        "running",
+        "succeeded"
+      ],
+      "elapsed_seconds": 5.37
+    },
+    {
+      "check": "Read optimized plan",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.795777+00:00",
+      "method": "GET",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Plan is ready with valid constraints",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.795849+00:00"
+    },
+    {
+      "check": "New plan starts at version 1",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.795864+00:00"
+    },
+    {
+      "check": "Create temporary manager",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.883457+00:00",
+      "method": "POST",
+      "endpoint": "/users",
+      "http_status": 201,
+      "expected_status": 201
+    },
+    {
+      "check": "manager is scoped to branch 1",
+      "passed": true,
+      "at": "2026-10-10T06:27:45.883501+00:00"
+    },
+    {
+      "check": "manager login",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.079092+00:00",
+      "method": "POST",
+      "endpoint": "/session/login",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "manager login establishes CSRF session",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.079131+00:00"
+    },
+    {
+      "check": "Manager reads assigned branch",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.088282+00:00",
+      "method": "GET",
+      "endpoint": "/branches",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Manager branch list excludes branch 2",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.088343+00:00"
+    },
+    {
+      "check": "Manager cannot read branch 2",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.093220+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=2",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Manager cannot export branch 2",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.100691+00:00",
+      "method": "GET",
+      "endpoint": "/exports/sales?branch_id=2",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Manager cannot list users",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.105874+00:00",
+      "method": "GET",
+      "endpoint": "/users",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Manager cannot queue branch 2 forecast",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.120762+00:00",
+      "method": "POST",
+      "endpoint": "/forecasts",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Create temporary analyst",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.195850+00:00",
+      "method": "POST",
+      "endpoint": "/users",
+      "http_status": 201,
+      "expected_status": 201
+    },
+    {
+      "check": "analyst is scoped to branch 1",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.195922+00:00"
+    },
+    {
+      "check": "analyst login",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.423020+00:00",
+      "method": "POST",
+      "endpoint": "/session/login",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "analyst login establishes CSRF session",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.423081+00:00"
+    },
+    {
+      "check": "Analyst can review plan",
+      "passed": true,
+      "at": "2026-10-10T06:27:46.966389+00:00",
+      "method": "GET",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Analyst cannot approve plan",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.001913+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Create temporary warehouse",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.103865+00:00",
+      "method": "POST",
+      "endpoint": "/users",
+      "http_status": 201,
+      "expected_status": 201
+    },
+    {
+      "check": "warehouse is scoped to branch 1",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.103908+00:00"
+    },
+    {
+      "check": "warehouse login",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.308744+00:00",
+      "method": "POST",
+      "endpoint": "/session/login",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "warehouse login establishes CSRF session",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.308777+00:00"
+    },
+    {
+      "check": "Warehouse reads assigned inventory",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.342561+00:00",
+      "method": "GET",
+      "endpoint": "/inventory?branch_id=1&limit=1",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Warehouse cannot read sales",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.370213+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=1&limit=1",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Warehouse cannot queue forecasts",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.382913+00:00",
+      "method": "POST",
+      "endpoint": "/forecasts",
+      "http_status": 403,
+      "expected_status": 403
+    },
+    {
+      "check": "Approval requires idempotency key",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.396475+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 422,
+      "expected_status": 422
+    },
+    {
+      "check": "Approval requires decision reason",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.414158+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 422,
+      "expected_status": 422
+    },
+    {
+      "check": "Approval rejects stale version",
+      "passed": true,
+      "at": "2026-10-10T06:27:47.469113+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 409,
+      "expected_status": 409
+    },
+    {
+      "check": "Manager approves plan",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.014793+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Approval advances status and version",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.014833+00:00"
+    },
+    {
+      "check": "Replay identical approval key",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.070490+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Idempotent replay returns identical response",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.070569+00:00"
+    },
+    {
+      "check": "Idempotency rejects changed payload",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.115619+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 409,
+      "expected_status": 409
+    },
+    {
+      "check": "Approved plan rejects another decision",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.146526+00:00",
+      "method": "POST",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/approve",
+      "http_status": 409,
+      "expected_status": 409
+    },
+    {
+      "check": "Export approved plan CSV",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.189315+00:00",
+      "method": "GET",
+      "endpoint": "/plans/3e8c92dbf6724e3f8002891ba65133d6/export",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "CSV preserves summary, requirements and approved status",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.189519+00:00"
+    },
+    {
+      "check": "Audit stores approval exactly once",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.199549+00:00",
+      "approval_event_count": 1
+    },
+    {
+      "check": "Audit preserves reason and shortage acknowledgment",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.199597+00:00"
+    },
+    {
+      "check": "Read existing import references",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.327961+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=1&meal_id=1&limit=1",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Import uses known branch and meal",
+      "passed": true,
+      "at": "2026-10-10T06:27:52.327999+00:00"
+    },
+    {
+      "check": "Preview valid CSV import",
+      "passed": true,
+      "at": "2026-10-10T06:27:53.184165+00:00",
+      "method": "POST",
+      "endpoint": "/imports/preview",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "CSV preview validates one row",
+      "passed": true,
+      "at": "2026-10-10T06:27:53.184289+00:00"
+    },
+    {
+      "check": "Commit valid CSV import",
+      "passed": true,
+      "at": "2026-10-10T06:27:53.786179+00:00",
+      "method": "POST",
+      "endpoint": "/imports/fd02bc7643c04826b5601f2b51bc7732/commit",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Read committed sale",
+      "passed": true,
+      "at": "2026-10-10T06:27:53.983227+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=1&meal_id=1&date_from=2026-01-04&date_to=2026-01-04",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Committed sale exists exactly once",
+      "passed": true,
+      "at": "2026-10-10T06:27:53.983263+00:00"
+    },
+    {
+      "check": "Replay committed import",
+      "passed": true,
+      "at": "2026-10-10T06:27:54.000787+00:00",
+      "method": "POST",
+      "endpoint": "/imports/fd02bc7643c04826b5601f2b51bc7732/commit",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Import replay returns the saved receipt",
+      "passed": true,
+      "at": "2026-10-10T06:27:54.000826+00:00"
+    },
+    {
+      "check": "Preview identical stored row",
+      "passed": true,
+      "at": "2026-10-10T06:27:54.730468+00:00",
+      "method": "POST",
+      "endpoint": "/imports/preview",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Identical stored row is unchanged",
+      "passed": true,
+      "at": "2026-10-10T06:27:54.730503+00:00"
+    },
+    {
+      "check": "Commit unchanged row without duplication",
+      "passed": true,
+      "at": "2026-10-10T06:27:55.446297+00:00",
+      "method": "POST",
+      "endpoint": "/imports/e08233f23368456e9c1ff82555c24ef7/commit",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Unchanged import inserts zero rows",
+      "passed": true,
+      "at": "2026-10-10T06:27:55.446361+00:00"
+    },
+    {
+      "check": "Check sale after repeat import",
+      "passed": true,
+      "at": "2026-10-10T06:27:55.692357+00:00",
+      "method": "GET",
+      "endpoint": "/sales?branch_id=1&meal_id=1&date_from=2026-01-04&date_to=2026-01-04",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Repeated imports preserve exactly one sale",
+      "passed": true,
+      "at": "2026-10-10T06:27:55.692430+00:00"
+    },
+    {
+      "check": "Preview duplicate keys within one CSV",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.632168+00:00",
+      "method": "POST",
+      "endpoint": "/imports/preview",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Duplicate keys within a CSV are rejected",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.632214+00:00"
+    },
+    {
+      "check": "Reject invalid duplicate CSV commit",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.732921+00:00",
+      "method": "POST",
+      "endpoint": "/imports/53000d9876254ac0beb76b661f730662/commit",
+      "http_status": 422,
+      "expected_status": 422
+    },
+    {
+      "check": "Deactivate temporary manager",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.802908+00:00",
+      "method": "PATCH",
+      "endpoint": "/users/c66bd2e6bc8f4f71b7a94a79dd4c03f3",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Temporary manager is inactive",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.802951+00:00"
+    },
+    {
+      "check": "Deactivate temporary analyst",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.826581+00:00",
+      "method": "PATCH",
+      "endpoint": "/users/cd3d0583c1fb471d871dac61e9464fb1",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Temporary analyst is inactive",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.826655+00:00"
+    },
+    {
+      "check": "Deactivate temporary warehouse",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.847962+00:00",
+      "method": "PATCH",
+      "endpoint": "/users/6b04542cd32f4915b1fce23fb987ccb5",
+      "http_status": 200,
+      "expected_status": 200
+    },
+    {
+      "check": "Temporary warehouse is inactive",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.848021+00:00"
+    },
+    {
+      "check": "Close admin verification session",
+      "passed": true,
+      "at": "2026-10-10T06:27:56.864844+00:00",
+      "method": "POST",
+      "endpoint": "/session/logout",
+      "http_status": 200,
+      "expected_status": 200
+    }
+  ],
+  "created_records": {
+    "forecast_id": "4ad8fe4cf60c4ba5a42102b95698dfb7",
+    "plan_id": "3e8c92dbf6724e3f8002891ba65133d6",
+    "sale": {
+      "date": "2026-01-04",
+      "branch_id": "1",
+      "meal_id": "1",
+      "import_id": "fd02bc7643c04826b5601f2b51bc7732"
+    },
+    "temporary_user_ids": [
+      "c66bd2e6bc8f4f71b7a94a79dd4c03f3",
+      "cd3d0583c1fb471d871dac61e9464fb1",
+      "6b04542cd32f4915b1fce23fb987ccb5"
+    ]
+  },
+  "limitations": [
+    "Database engine and container health require separate deployment checks.",
+    "Cross-organization access not exercised: admin API creates same-organization users only.",
+    "Shortage rejection not exercised: computed plan has no shortages."
+  ],
+  "finished_at": "2026-10-10T06:27:56.864896+00:00",
+  "passed_check_count": 87
+}

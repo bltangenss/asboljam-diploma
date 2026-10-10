@@ -1,5 +1,11 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 10.10.2026 — HTTP-приёмка worker с дочерним расчётом
+
+**TESTED:** commit02c6cd1 —87/87 HTTP checks PASS на отдельной новой SYNTHETIC SQLite: вход, readiness, scope/role/CSRF, реальный forecast и procurement через отдельный worker, утверждение с версией/причиной/idempotency, audit/export и CSV preview/commit/replay. API запущен на127.0.0.1:8011, расчёт использовал новый subprocess worker. [HTTP-отчёт](artifacts/verification/runtime-worker-process.json), [контекст запуска и ограничения](artifacts/verification/worker-process-isolation.json).
+
+Только созданные для проверки процессы API/worker остановлены, искусственная база сохранена в ignored .cache; основная база не изменялась этим прогоном. Новый browser/device/production-пилот не проверялся. Это подтверждает серверный workflow, а не готовность коммерческого запуска.
+
 ## 10.10.2026 — отдельный процесс расчёта и ограничение времени
 
 **DONE:** worker выполняет расчёт в дочернем процессе без переменных паролей/БД. Настраиваемый срок1–3600s (по умолчанию900s), остановка при утрате захвата/доступа, heartbeat и проверка права публикации сохранены. Приватные JSON-файлы с атомарным результатом не блокируют заполненную pipe. Запрос наблюдения не перечитывает весь snapshot. Первый сигнал завершает текущую работу; manual cancel API/UI не добавлены.
