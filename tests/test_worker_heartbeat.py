@@ -91,7 +91,7 @@ class WorkerHeartbeatTests(unittest.TestCase):
         with patch.object(worker, 'HEARTBEAT_SECONDS', 0.01), \
                 patch.object(worker, 'renew_lease', side_effect=observe), \
                 patch.object(worker, 'forecast', side_effect=calculate) as compute:
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         compute.assert_called_once()
         self.assertFalse(any(t.name == 'asboljam-job-heartbeat' for t in threading.enumerate()))
         with self.factory() as db:

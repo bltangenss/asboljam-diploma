@@ -26,13 +26,13 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
           'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
           'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py', 'test_run_status.py',
-          'test_stock_migration.py')
+          'test_stock_migration.py', 'test_worker_process.py')
 
 
 def source_hashes():
     paths = [*ROOT.glob('apps/api/*.py'), *ROOT.glob('apps/worker/*.py'),
              *ROOT.glob('tests/test_*security.py'), *[ROOT/'tests'/name for name in SUITES],
-             ROOT/'tests/database_fixture.py', ROOT/'scripts/pilot_fixture.py', ROOT/'scripts/seed_demo.py', Path(__file__)]
+             ROOT/'tests/database_fixture.py', ROOT/'tests/worker_process_fixture.py', ROOT/'scripts/pilot_fixture.py', ROOT/'scripts/seed_demo.py', Path(__file__)]
     return {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(set(paths))}
 

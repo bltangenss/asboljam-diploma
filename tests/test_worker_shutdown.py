@@ -98,6 +98,7 @@ class WorkerShutdownTests(unittest.TestCase):
         with patch('sys.argv', ['worker']), patch.object(worker.signal, 'signal', side_effect=register), \
                 patch('apps.api.config.load_settings', return_value=SimpleNamespace(database_url='unused')), \
                 patch.object(worker, 'make_engine', return_value=self.engine), \
+                patch.object(worker, 'run_calculation', side_effect=lambda payload, snapshot, kind, **kw: worker.inline_calculation(payload, snapshot, kind)), \
                 patch.object(worker, 'forecast', side_effect=compute) as calculate:
             worker.main()
         calculate.assert_called_once()
@@ -109,19 +110,20 @@ class WorkerShutdownTests(unittest.TestCase):
     @unittest.skipIf(os.name == 'nt', 'Real SIGTERM drain uses POSIX; Windows termination forcibly kills the process')
     def test_real_sigterm_drains_child_process_and_keeps_heartbeat_until_publication(self):
         self.add_second_job()
-        marker = Path(self.temp.name)/'calculation-active'
+        marker = (Path(self.temp.name)/'calculation-active').resolve()
         environment = dict(os.environ, DATABASE_URL=self.engine.url.render_as_string(hide_password=False),
                            ASBOLJAM_ENV='local', COOKIE_SECURE='false', ALLOWED_ORIGINS='http://localhost:3000',
                            WORKER_TEST_MARKER=str(marker))
         program = '''
 from pathlib import Path
-import os,time
+import os,subprocess,sys
 from apps.worker import main as worker
-def compute(*args, **kwargs):
-    Path(os.environ['WORKER_TEST_MARKER']).touch()
-    time.sleep(1)
-    return dict(branch_id='1',target_date='2026-01-01',data_origin='SYNTHETIC',predictions=[dict(meal_id='1',point_forecast=2)])
-worker.forecast=compute
+from apps.worker import calculation_process as calculation
+original=subprocess.Popen
+def launch(command, **kwargs):
+    return original([sys.executable,str(calculation.ROOT/'tests'/'worker_process_fixture.py'),
+        '--mode','wait-valid','--marker',os.environ['WORKER_TEST_MARKER'],*command[3:]],**kwargs)
+calculation.subprocess.Popen=launch
 worker.HEARTBEAT_SECONDS=0.02
 worker.main()
 '''

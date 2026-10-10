@@ -60,8 +60,8 @@ class WorkerSecurityTests(unittest.TestCase):
 
     def test_authorized_job_publishes_once_with_provenance(self):
         with patch.object(worker, 'forecast', return_value=deepcopy(self.result)) as compute:
-            self.assertTrue(worker.run_once(self.factory))
-            self.assertFalse(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
+            self.assertFalse(worker.run_once(self.factory, calculator=worker.inline_calculation))
         compute.assert_called_once()
         self.assertEqual(self.job().status, 'succeeded')
         with self.factory() as db:
@@ -84,7 +84,7 @@ class WorkerSecurityTests(unittest.TestCase):
                         db.delete(event)
                     db.commit()
                 with patch.object(worker, 'forecast') as compute:
-                    worker.run_once(self.factory)
+                    worker.run_once(self.factory, calculator=worker.inline_calculation)
                 compute.assert_not_called()
                 self.assert_failed('JOB_ACCESS_REVOKED')
 
@@ -95,7 +95,7 @@ class WorkerSecurityTests(unittest.TestCase):
             db.get(Job, 'job').snapshot = snapshot
             db.commit()
         with patch.object(worker, 'forecast') as compute:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         compute.assert_not_called()
         self.assert_failed('JOB_SCOPE_INVALID')
 
@@ -106,7 +106,7 @@ class WorkerSecurityTests(unittest.TestCase):
             db.get(Job, 'job').snapshot = snapshot
             db.commit()
         with patch.object(worker, 'forecast') as compute:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         compute.assert_not_called()
         self.assert_failed('JOB_INPUT_INVALID')
 
@@ -119,7 +119,7 @@ class WorkerSecurityTests(unittest.TestCase):
             job.snapshot = {'forecast_result': self.result}
             db.commit()
         with patch.object(worker, 'procurement') as compute:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         compute.assert_not_called()
         self.assert_failed('JOB_SCOPE_INVALID')
 
@@ -145,8 +145,8 @@ class WorkerSecurityTests(unittest.TestCase):
                         db.delete(event)
                     db.commit()
                 with patch.object(worker, 'procurement') as compute:
-                    self.assertTrue(worker.run_once(self.factory))
-                    self.assertFalse(worker.run_once(self.factory))
+                    self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
+                    self.assertFalse(worker.run_once(self.factory, calculator=worker.inline_calculation))
                 compute.assert_not_called()
                 self.assert_failed('JOB_INPUT_INVALID')
                 with self.factory() as db:
@@ -159,7 +159,7 @@ class WorkerSecurityTests(unittest.TestCase):
                 db.commit()
             return deepcopy(self.result)
         with patch.object(worker, 'forecast', side_effect=calculate):
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         self.assert_failed('JOB_ACCESS_REVOKED')
 
     def test_stale_worker_cannot_publish_over_reclaimed_job(self):
@@ -170,7 +170,7 @@ class WorkerSecurityTests(unittest.TestCase):
                 db.commit()
             return deepcopy(self.result)
         with patch.object(worker, 'forecast', side_effect=calculate):
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         self.assertEqual(self.job().status, 'running')
         with self.factory() as db:
             self.assertIsNone(db.get(Forecast, 'job'))
@@ -194,7 +194,7 @@ class WorkerSecurityTests(unittest.TestCase):
     def test_exception_values_are_absent_from_errors_audit_and_logs(self):
         sensitive = 'private-input-connection-string-fixture'
         with patch.object(worker, 'forecast', side_effect=RuntimeError(sensitive)), contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         self.assert_failed('JOB_CALCULATION_FAILED')
         with self.factory() as db:
             events = [event.details for event in db.scalars(select(Audit))]
@@ -206,7 +206,7 @@ class WorkerSecurityTests(unittest.TestCase):
             db.execute(update(User).where(User.id == 'actor').values(active=False))
             db.commit()
         with patch.object(worker, 'forecast') as compute:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         compute.assert_not_called()
         self.assert_failed('JOB_ACCESS_REVOKED')
 

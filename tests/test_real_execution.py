@@ -270,7 +270,7 @@ class RealWorkerTests(unittest.TestCase):
 
     def test_real_job_preserves_test_origin_timezone_and_captured_context(self):
         with patch.object(worker, 'forecast', return_value=deepcopy(self.result)) as calculate:
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         self.assertEqual(calculate.call_args.kwargs['execution_context'], context())
         with self.factory() as db:
             self.assertEqual(db.get(Job, 'job').status, 'succeeded')
@@ -284,7 +284,7 @@ class RealWorkerTests(unittest.TestCase):
     def test_real_job_without_context_is_never_accepted_as_legacy_demo(self):
         self.queue({key: value for key, value in self.snapshot.items() if key != 'execution_context'})
         with patch.object(worker, 'forecast') as calculate:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         calculate.assert_not_called()
         self.assert_failed('JOB_INPUT_INVALID')
 
@@ -299,14 +299,14 @@ class RealWorkerTests(unittest.TestCase):
                     snapshot[kind] = [{'data_origin': 'SYNTHETIC'}]
                 self.procurement_job(snapshot)
                 with patch.object(worker, 'procurement') as calculate:
-                    worker.run_once(self.factory)
+                    worker.run_once(self.factory, calculator=worker.inline_calculation)
                 calculate.assert_not_called()
                 self.assert_failed('JOB_INPUT_INVALID')
         snapshot = deepcopy(original)
         snapshot['forecast_result']['execution_context']['source']['source_id'] = 'other-source'
         self.procurement_job(snapshot)
         with patch.object(worker, 'procurement') as calculate:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         calculate.assert_not_called()
         self.assert_failed('JOB_SCOPE_INVALID')
         self.procurement_job(original)
@@ -327,7 +327,7 @@ class RealWorkerTests(unittest.TestCase):
                 snapshot[kind][0][key] = value
                 self.queue(snapshot)
                 with patch.object(worker, 'forecast') as calculate:
-                    worker.run_once(self.factory)
+                    worker.run_once(self.factory, calculator=worker.inline_calculation)
                 calculate.assert_not_called()
                 self.assert_failed('JOB_SCOPE_INVALID' if key == 'branch_id' else 'JOB_INPUT_INVALID')
         for key, value in (('organization_id', 'B'), ('branch_id', '002')):
@@ -335,7 +335,7 @@ class RealWorkerTests(unittest.TestCase):
             snapshot['execution_context'][key] = value
             self.queue(snapshot)
             with patch.object(worker, 'forecast') as calculate:
-                worker.run_once(self.factory)
+                worker.run_once(self.factory, calculator=worker.inline_calculation)
             calculate.assert_not_called()
             self.assert_failed('JOB_SCOPE_INVALID')
 
@@ -348,11 +348,11 @@ class RealWorkerTests(unittest.TestCase):
             change_source()
             return deepcopy(self.result)
         with patch.object(worker, 'forecast', side_effect=calculate):
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         self.assert_failed('JOB_ACCESS_REVOKED')
         self.queue(self.snapshot)
         with patch.object(worker, 'forecast') as calculate:
-            worker.run_once(self.factory)
+            worker.run_once(self.factory, calculator=worker.inline_calculation)
         calculate.assert_not_called()
         self.assert_failed('JOB_ACCESS_REVOKED')
 
@@ -363,7 +363,7 @@ class RealWorkerTests(unittest.TestCase):
                 self.queue(self.snapshot)
                 stream = io.StringIO()
                 with contextlib.redirect_stdout(stream), patch.object(worker, 'forecast', return_value=dict(self.result, **mutation)):
-                    worker.run_once(self.factory)
+                    worker.run_once(self.factory, calculator=worker.inline_calculation)
                 self.assert_failed('JOB_SCOPE_INVALID' if 'target_date' in mutation else 'JOB_INPUT_INVALID')
                 self.assertNotIn('private-fixture-sentinel', stream.getvalue())
         with self.factory() as db:

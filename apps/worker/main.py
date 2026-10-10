@@ -1,9 +1,6 @@
 """Durable database job worker. Run separately: python -m apps.worker.main."""
 import argparse
 from contextlib import contextmanager
-from copy import deepcopy
-import hashlib
-import json
 import signal
 import sqlite3
 import threading
@@ -14,6 +11,8 @@ from sqlalchemy.exc import DBAPIError, OperationalError
 from apps.api.accounts import lock_user
 from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, now, sessions
 from apps.api.engine import forecast, procurement, validate_calculation_context
+from apps.worker.calculation_process import (CalculationCancelled, CalculationFailed,
+    CalculationTimeout, calculate_snapshot, load_timeout, run_calculation)
 
 LEASE_SECONDS = 1800
 HEARTBEAT_SECONDS = 30
@@ -23,6 +22,7 @@ ERROR_MESSAGES = {
     'JOB_SCOPE_INVALID': 'Есептің бөлімшесі немесе дерек көзі сәйкес емес.',
     'JOB_INPUT_INVALID': 'Есептің кіріс деректерін тексеріп, қайта іске қосыңыз.',
     'JOB_CALCULATION_FAILED': 'Есептеу орындалмады. Әкімшіге есеп идентификаторын беріңіз.',
+    'JOB_TIMEOUT': 'Есептеу уақыты аяқталды. Әкімшіге есеп идентификаторын беріңіз.',
 }
 
 
@@ -275,7 +275,7 @@ def release_unstarted_claim(factory, job_id, claim_time):
         db.commit()
 
 
-def run_once(factory, stop_event=None):
+def run_once(factory, stop_event=None, *, calculator=None, timeout_seconds=None):
     try:
         claimed = retry_sqlite_contention(lambda: claim(factory), 'claim', stop_event)
     except WorkerStopping:
@@ -289,48 +289,58 @@ def run_once(factory, stop_event=None):
         retry_sqlite_contention(lambda: release_unstarted_claim(factory, claimed[0], claimed[1]), 'release')
         return False
     with keep_lease(factory, claimed[0], claimed[1]):
-        return execute_claim(factory, claimed)
+        return execute_claim(factory, claimed, calculator=calculator, timeout_seconds=timeout_seconds)
 
 
-def execute_claim(factory, claimed):
+def claim_is_active(factory, job_id, claim_time, execution_context=None):
+    with factory() as db:
+        row = db.execute(select(Job.status, Job.started_at, Job.actor_id,
+            Job.organization_id, Job.branch_id).where(Job.id == job_id)).one_or_none()
+        if row is None or row.status != 'running' or row.started_at != claim_time:
+            return False
+        organization = db.get(Organization, row.organization_id)
+        actor = db.get(User, row.actor_id)
+        if (organization is None or organization.status != 'active'
+                or actor is None or not actor.active or actor.organization_id != row.organization_id
+                or actor.role not in PLANNING_ROLES or row.branch_id not in actor.branch_ids):
+            return False
+        if execution_context is None:
+            return organization.data_policy == 'synthetic_only'
+        from apps.api.data_policy import DataPolicyError, validate_execution_context
+        try:
+            validate_execution_context(db, row.organization_id, execution_context)
+        except DataPolicyError:
+            return False
+        return execution_context.get('branch_id') == row.branch_id
+
+
+def inline_calculation(payload, snapshot, kind):
+    """Explicit injection for transaction tests; production always uses a child."""
+    return calculate_snapshot(payload, snapshot, kind, forecast_fn=forecast, procurement_fn=procurement)
+
+
+def execute_claim(factory, claimed, *, calculator=None, timeout_seconds=None):
     job_id, claim_time, error, payload, snapshot, kind = claimed
     if error:
         retry_sqlite_contention(lambda: finish(factory, job_id, claim_time, error=error), 'publication')
         return True
     result, calculation_error = None, None
     try:
-        context = snapshot.get('execution_context')
-        context_argument = {'execution_context': context} if context is not None else {}
-        if kind == 'forecast':
-            result = forecast(snapshot['sales'], payload['branch_id'], payload['origin'], payload['model'], **context_argument)
-            names = {r['meal_id']: r['meal_name'] for r in snapshot.get('meals', [])}
-            for item in result['predictions']:
-                item['meal_name'] = names.get(str(item['meal_id']), str(item['meal_id']))
+        if calculator is None:
+            result = run_calculation(payload, snapshot, kind,
+                claim_active=lambda: claim_is_active(factory, job_id, claim_time, snapshot.get('execution_context')),
+                timeout_seconds=timeout_seconds)
         else:
-            result = procurement(snapshot['forecast_result'], snapshot['ingredients'], snapshot['recipes'],
-                                 snapshot['inventory_lots'], snapshot['supplier_offers'], snapshot['suppliers'],
-                                 payload['branch_id'], snapshot['forecast_result']['target_date'],
-                                 payload['budget'], payload['strategy'], **context_argument)
-            result['recipe_versions'] = sorted({r['recipe_version'] for r in snapshot['recipes']})
-            ingredients = {str(r['ingredient_id']): r['ingredient_name'] for r in snapshot['ingredients']}
-            suppliers = {str(r['supplier_id']): r['supplier_name'] for r in snapshot['suppliers']}
-            for item in result['requirements'] + result['lines']:
-                item['ingredient_name'] = ingredients.get(str(item['ingredient_id']), str(item['ingredient_id']))
-                if 'supplier_id' in item:
-                    item['supplier_name'] = suppliers.get(str(item['supplier_id']), str(item['supplier_id']))
-        result['input_snapshot_sha256'] = hashlib.sha256(
-            json.dumps(snapshot, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-        expected_origin = context['data_origin'] if context is not None else 'SYNTHETIC'
-        if result.get('data_origin', expected_origin) != expected_origin:
-            raise ValueError('Calculation returned conflicting data origin')
-        result.setdefault('data_origin', expected_origin)
-        if context is not None:
-            if result.get('execution_context', context) != context:
-                raise ValueError('Calculation returned conflicting execution context')
-            result.setdefault('execution_context', deepcopy(context))
-        # Copy the enqueue-time lineage, even if a correction landed during compute.
-        # Freshness is derived when reading/approving, never relabelled at publication.
-        result['input_lineage'] = deepcopy(snapshot.get('input_lineage'))
+            result = calculator(payload, snapshot, kind)
+    except DBAPIError:
+        # Claim observation is a DB operation, not a model failure; child is reaped.
+        raise
+    except CalculationTimeout:
+        calculation_error = 'JOB_TIMEOUT'
+    except CalculationCancelled:
+        calculation_error = 'JOB_ACCESS_REVOKED'
+    except CalculationFailed as exc:
+        calculation_error = exc.code
     except Exception as exc:
         calculation_error = 'JOB_INPUT_INVALID' if isinstance(exc, ValueError) else 'JOB_CALCULATION_FAILED'
         result = None
@@ -349,6 +359,10 @@ def main():
     args = parser.parse_args()
     from apps.api.config import load_settings
     settings = load_settings()
+    try:
+        timeout = load_timeout()
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from None
     engine = make_engine(settings.database_url)
     stopping = threading.Event()
     previous_handlers = {}
@@ -366,10 +380,10 @@ def main():
         factory = sessions(engine)
         print('AsBoljam worker ready; durable database queue', flush=True)
         if args.once:
-            run_once(factory, stop_event=stopping)
+            run_once(factory, stop_event=stopping, timeout_seconds=timeout)
             return
         while not stopping.is_set():
-            if not run_once(factory, stop_event=stopping):
+            if not run_once(factory, stop_event=stopping, timeout_seconds=timeout):
                 stopping.wait(1)
     except KeyboardInterrupt:
         pass

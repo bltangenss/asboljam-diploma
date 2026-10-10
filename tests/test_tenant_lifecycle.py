@@ -334,7 +334,7 @@ class TenantLifecycleTests(unittest.TestCase):
                         actor_id=self.admin_ids.get(org, 'missing-user'), kind='forecast', payload={}, snapshot={}))
                     db.commit()
                 with patch.object(worker, 'forecast') as compute:
-                    self.assertTrue(worker.run_once(self.factory))
+                    self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
                 compute.assert_not_called()
                 with self.factory() as db:
                     job = db.get(Job, 'job-' + org)
@@ -357,7 +357,7 @@ class TenantLifecycleTests(unittest.TestCase):
             self.status(status='active', expected_status='suspended')
             return deepcopy(result)
         with patch.object(worker, 'forecast', side_effect=calculate):
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         with self.factory() as db:
             self.assertEqual(db.get(Job, 'job').status, 'failed')
             self.assertIsNone(db.get(Forecast, 'job'))

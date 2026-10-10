@@ -126,7 +126,7 @@ class ImportLineageTests(unittest.TestCase):
                 side_effect()
             return result
         with patch.object(worker, 'forecast', side_effect=calculation):
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         self.assertEqual(client.get('/api/v1/runs/' + identifier).json()['status'], 'succeeded')
         return identifier
 
@@ -137,7 +137,7 @@ class ImportLineageTests(unittest.TestCase):
         result = dict(branch_id='1', target_date='2026-01-01', constraints_valid=True, shortage_count=0,
                       total_cost='100', budget='200', requirements=[], lines=[])
         with patch.object(worker, 'procurement', return_value=result):
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         self.assertEqual(client.get('/api/v1/runs/' + identifier).json()['status'], 'succeeded')
         return identifier
 
@@ -299,7 +299,7 @@ class ImportLineageTests(unittest.TestCase):
             job.snapshot = snapshot
             db.commit()
         with patch.object(worker, 'forecast') as calculate:
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         calculate.assert_not_called()
         with self.factory() as db:
             self.assertEqual(db.get(Job, identifier).status, 'failed')

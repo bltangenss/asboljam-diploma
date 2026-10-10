@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "changes": [
+    "Production calculations execute in a hidden isolated child with finite deadline, cancellation on lost claim/access and final publication fence",
+    "Minimal child environment excludes database/API credentials; atomic JSON output avoids full pipe deadlock",
+    "Heartbeat and first-signal drain remain; narrow monitor queries do not load operational snapshot repeatedly",
+    "Compose and example environment expose WORKER_CALCULATION_TIMEOUT_SECONDS=900; valid range1..3600"
+  ],
+  "focused_windows": {
+    "command": "python -X utf8 -m unittest discover -s tests -p \"test_worker_*.py\" -v",
+    "tests": 48,
+    "passed": 47,
+    "skipped": 1,
+    "elapsed_seconds": 16.98
+  },
+  "full_regression": {
+    "report": "python-regression-20261010.json",
+    "tests": 371,
+    "passed": 370,
+    "skipped": 1,
+    "elapsed_seconds": 172.918,
+    "source_changed_during_run": false,
+    "subsequent_test_only_fix": "POSIX shutdown fixture now resolves helper from calculation.ROOT instead of cwd; marker absolute. Production source unchanged."
+  },
+  "postgres_linux": {
+    "initial_report": "postgres-worker-deadlines-initial.json",
+    "initial_tests": 82,
+    "initial_passed": 81,
+    "initial_failures": 1,
+    "failure": "SIGTERM test helper incorrectly resolved /tmp/tests/worker_process_fixture.py; corrected test path only",
+    "recheck_report": "postgres-worker-deadlines.json",
+    "recheck_command": "python -X utf8 scripts/verify_postgres_security.py --suite test_worker_shutdown.py --report-name postgres-worker-deadlines.json",
+    "recheck_tests": 6,
+    "recheck_passed": 6,
+    "recheck_elapsed_seconds": 19.96,
+    "coverage": "59 PostgreSQL fixture bodies +13 pure engine +10 pure process cases in initial selection; six PostgreSQL shutdown tests rechecked after path fix",
+    "unchanged_successful_suites_not_repeated": true
+  },
+  "compose": {
+    "command": "docker compose config --quiet",
+    "status": "passed_with_ephemeral_validation_password",
+    "initial_attempt": "Refused missing POSTGRES_PASSWORD as designed; private deployment password was not created or changed",
+    "services_deployed": false
+  },
+  "limits": [
+    "No production deployment, TLS/load/failover, real enterprise pilot or measured savings",
+    "Timeout bounds child calculation, not database publication waits",
+    "Forced OS kill/power loss may retain private temporary files; parent-death watcher depends on Python scheduling if native extension holds GIL",
+    "No manual cancellation API/UI",
+    "Web/browser, research and native/APK unchanged and not rerun/rebuilt in this block",
+    "Stock storage remains an unfinished integration; no stock API/UI or procurement ledger wiring"
+  ]
+}

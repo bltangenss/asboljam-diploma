@@ -65,8 +65,8 @@ class WorkerContentionTests(unittest.TestCase):
         with contextlib.redirect_stdout(output), patch.object(worker.time, 'sleep', side_effect=self.release_writer) as pause, \
                 patch.object(worker, 'sqlite_contention', wraps=worker.sqlite_contention) as classify, \
                 patch.object(worker, 'forecast', return_value=deepcopy(self.result)) as calculate:
-            self.assertTrue(worker.run_once(self.factory))
-            self.assertFalse(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
+            self.assertFalse(worker.run_once(self.factory, calculator=worker.inline_calculation))
         self.assertEqual(pause.call_count, 1)
         self.assertEqual(classify.call_args.args[0].orig.sqlite_errorcode & 0xff, sqlite3.SQLITE_BUSY)
         calculate.assert_called_once()
@@ -82,7 +82,7 @@ class WorkerContentionTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output), patch.object(worker.time, 'sleep', side_effect=self.release_writer) as pause, \
                 patch.object(worker, 'forecast', side_effect=calculate) as compute:
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         self.assertEqual(pause.call_count, 1)
         compute.assert_called_once()
         self.assertIn('retrying publication', output.getvalue())
@@ -101,7 +101,7 @@ class WorkerContentionTests(unittest.TestCase):
             return deepcopy(self.result)
         with contextlib.redirect_stdout(io.StringIO()), patch.object(worker.time, 'sleep', side_effect=self.release_writer), \
                 patch.object(worker, 'forecast', side_effect=calculate) as compute:
-            self.assertTrue(worker.run_once(self.factory))
+            self.assertTrue(worker.run_once(self.factory, calculator=worker.inline_calculation))
         compute.assert_called_once()
         with self.factory() as db:
             self.assertEqual(db.get(Job, 'job').status, 'failed')
@@ -123,7 +123,7 @@ class WorkerContentionTests(unittest.TestCase):
         self.assertFalse(worker.sqlite_contention(fault))
         with patch.object(worker, 'claim', side_effect=fault), patch.object(worker.time, 'sleep') as pause:
             with self.assertRaises(OperationalError) as raised:
-                worker.run_once(self.factory)
+                worker.run_once(self.factory, calculator=worker.inline_calculation)
         self.assertIs(raised.exception, fault)
         pause.assert_not_called()
 
