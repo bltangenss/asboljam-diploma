@@ -26,6 +26,9 @@ from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, vali
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
 from .lineage import capture_lineage, input_freshness, input_provenance
 from .security import password_hash, token_hash, verify_password
+from .stock import StockError
+from .stock_api import register_stock_routes
+from .stock_dependencies import prepare_procurement_stock
 from .tenants import organization_active, organization_json
 from .data_policy import (DataPolicyError, ensure_rows, execution_context, metadata,
                           policy_context, validate_execution_context, workspace_context)
@@ -173,6 +176,7 @@ def create_app(database_url=None):
 
     @app.exception_handler(ImportProblem)
     @app.exception_handler(DataPolicyError)
+    @app.exception_handler(StockError)
     async def import_problem(request:Request,exc:ImportProblem):
         return JSONResponse(status_code=exc.status,content={'detail':{'code':exc.code,'message':exc.message}})
     @app.exception_handler(RequestValidationError)
@@ -263,6 +267,7 @@ def create_app(database_url=None):
             fail('BRANCH_NOT_FOUND','Бөлімше табылмады.',404)
     def audit(db,user,action,entity,branch=None,details=None):
         db.add(Audit(id=uid(),organization_id=user.organization_id,branch_id=branch,actor_id=user.id,action=action,entity_id=entity,details=details or {}))
+    register_stock_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access)
     def scoped(db,model,user,entity_id):
         row = db.get(model,entity_id)
         if not row or row.organization_id != user.organization_id or row.branch_id not in user.branch_ids:
@@ -552,6 +557,7 @@ def create_app(database_url=None):
         for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers'): ensure_rows(context,snapshot[kind])
         snapshot['inventory_lots']=[r for r in snapshot['inventory_lots'] if r['snapshot_date']==forecast.result['target_date']]
         if not snapshot['inventory_lots']: fail('STALE_INVENTORY','Қойма кесіндісі мақсат күніне сәйкес емес.',422)
+        active_recipes=prepare_procurement_stock(db,user,snapshot)
         if context['data_origin']=='REAL':
             meals={row['meal_id'] for row in forecast.result['predictions']}
             required={row['ingredient_id'] for row in snapshot['recipes'] if row['meal_id'] in meals}
@@ -559,9 +565,10 @@ def create_app(database_url=None):
             if not required<=present: fail('INVENTORY_COVERAGE_REQUIRED','Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жоқ жазба нөл емес.',422)
         collections=[{'kind':kind,'rows':snapshot[kind],**(
             {'branch_id':data.branch_id,'snapshot_date':forecast.result['target_date']} if kind=='inventory_lots' else {})}
-            for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers')]
+            for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers')
+            if kind!='recipes' or not active_recipes]
         snapshot['input_lineage']=capture_lineage(db,user.organization_id,collections,
-            inherited=forecast.result.get('input_lineage') or {})
+            inherited=forecast.result.get('input_lineage') or {},stock_dependencies=snapshot['stock_dependencies'])
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='procurement',payload=data.model_dump(mode='json'),snapshot=snapshot)
         db.add(job);audit(db,user,'procurement.queued',job.id,data.branch_id);db.commit()
         return {'run_id':job.id,'status':'queued'}
@@ -648,6 +655,10 @@ def create_app(database_url=None):
     def export_plan(plan_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst');plan=scoped(db,Plan,user,plan_id)
         common={'plan_id':plan.id,'status':plan.status,'version':plan.version,'target_date':plan.result.get('target_date'),**result_metadata(plan.result)}
+        stock=plan.result.get('stock_evidence') or {}; recipe=plan.result.get('recipe_evidence') or {}
+        common.update(stock_basis=stock.get('source'),stock_ledger_id=stock.get('ledger_id'),
+            stock_fingerprint=stock.get('fingerprint'),recipe_basis=recipe.get('source'),
+            recipe_fingerprint=recipe.get('fingerprint'),recipe_versions='; '.join(plan.result.get('recipe_versions') or []))
         rows=[{**common,'row_type':'summary','total_cost':plan.result.get('total_cost'),'budget':plan.result.get('budget'),'shortage_count':plan.result.get('shortage_count'),'constraints_valid':plan.result.get('constraints_valid')}]
         rows += [{**common,'row_type':'requirement',**r} for r in plan.result.get('requirements',[])]
         rows += [{**common,'row_type':'purchase',**r} for r in plan.result.get('lines',[])]

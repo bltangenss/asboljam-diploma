@@ -109,7 +109,7 @@ def _selected(row, selector):
     return True
 
 
-def capture_lineage(db, organization_id, collections, *, inherited=None):
+def capture_lineage(db, organization_id, collections, *, inherited=None, stock_dependencies=None):
     """collections contain kind/rows and the same selection filters as the snapshot.
 
     inherited is an earlier forecast lineage. A missing legacy forecast lineage
@@ -140,6 +140,8 @@ def capture_lineage(db, organization_id, collections, *, inherited=None):
         selector['natural_keys'] = sorted(keys)
         result['selectors'].append(selector)
     result['records'].sort(key=lambda entry: (entry['kind'], entry['natural_key']))
+    if stock_dependencies is not None:
+        result['stock_dependencies'] = deepcopy(stock_dependencies)
     return result
 
 
@@ -182,6 +184,15 @@ def input_freshness(db, organization_id, lineage, *, state_cache=None):
                 return 'changed'
     except (KeyError, TypeError, ValueError):
         return 'unknown'
+    from .stock_dependencies import dependency_freshness, legacy_dependencies_present
+    if 'stock_dependencies' in lineage:
+        return dependency_freshness(db, organization_id, lineage['stock_dependencies'])
+    # Baseline snapshot evidence is also canonical lineage, but must not recurse
+    # into a check of its own journal. Only procurement lineage includes a sales
+    # selector inherited from a forecast as well as the target stock selector.
+    if any(selector.get('kind') == 'daily_sales' for selector in selectors):
+        if legacy_dependencies_present(db, organization_id, selectors):
+            return 'changed'
     return 'unchanged'
 
 

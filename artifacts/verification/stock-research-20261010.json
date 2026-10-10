@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "command": "python -X utf8 scripts/run_research.py --output .cache/research-stock-20261010",
+  "forecast_runs": 9,
+  "procurement_runs": 36,
+  "elapsed_seconds": 11.759934,
+  "csv_comparison_to_committed_research": {
+    "forecast_predictions.csv": {
+      "rows": 108,
+      "equal_excluding_elapsed_seconds": true,
+      "sha256": "4ae7e821afcb1e406dbc4c5748a60ebf32c1644dc24299c528c29948cc74acc1"
+    },
+    "metrics.csv": {
+      "rows": 9,
+      "equal_excluding_elapsed_seconds": true,
+      "sha256": "849227ec162cb965c7d76f7d81c8687e871e16a469e22aa4a4be74b202f2e66d"
+    },
+    "procurement_lines.csv": {
+      "rows": 308,
+      "equal_excluding_elapsed_seconds": true,
+      "sha256": "a10239c2addfc1f528a92ff9913dd0f63ba473e01321f168b9c7c3cbf04663e4"
+    },
+    "procurement_requirements.csv": {
+      "rows": 360,
+      "equal_excluding_elapsed_seconds": true,
+      "sha256": "23e019888e45ccc71bf157f2f0ef2ddca8d001ed1ceffd368f97851029889803"
+    },
+    "procurement_scenarios.csv": {
+      "rows": 36,
+      "equal_excluding_elapsed_seconds": true,
+      "sha256": "9f951489975496d30801f94c103b4733db70872066d6eb5a201f16e55a7ff8fe"
+    }
+  },
+  "provenance": {
+    "created_at": "2026-10-10T07:51:12.800934+00:00",
+    "data_origin": "SYNTHETIC",
+    "mode": "LIVE_COMPUTE",
+    "seed": 42,
+    "forecast_origin": "2025-12-31",
+    "forecast_target": "2026-01-01",
+    "inventory_snapshot": "2026-01-01",
+    "branches": [
+      "1",
+      "2",
+      "3"
+    ],
+    "models": [
+      "seasonal_naive_7",
+      "rolling_mean_28",
+      "hist_gradient_boosting"
+    ],
+    "input_files": {
+      "daily_sales.csv": {
+        "sha256": "88f1264c92ec6789a27831b8eb83af556740e20f384c32e13c8114fe9d19b5b1",
+        "rows": 26316
+      },
+      "ingredients.csv": {
+        "sha256": "e23b30ae373818d2940409b45d8c3e505714436b1f1a6d00111ca3627be42207",
+        "rows": 10
+      },
+      "recipes.csv": {
+        "sha256": "cf44bd505c3b9c7988cde04eaf262d88bc9c05d339d4c2974aede413391b5ab6",
+        "rows": 48
+      },
+      "inventory_lots.csv": {
+        "sha256": "4b807006f7ee4c45d283f403945d88684250291f8e6ed96f8b0812c0d3d5d6be",
+        "rows": 60
+      },
+      "supplier_offers.csv": {
+        "sha256": "e4ff462698c2b85f40c8aecdc9dce100821820d4679a2e30aca23e510b5daa3f",
+        "rows": 30
+      },
+      "suppliers.csv": {
+        "sha256": "f189799fe3cdf07cb44238296d32e87ea92db54200ec1c958c1f5ca8f39da9a4",
+        "rows": 3
+      }
+    },
+    "engine_sha256": "6f6d3fccd25ba342676e246ed76790eb12e3f293976bab4a52abb5b720d112de",
+    "script_sha256": "79c9aeccc99a3fe4e38cfe8e7c724582374f9d7b7acf21d22c399f5f63846d21",
+    "runtime_versions": {
+      "python": "3.13.9",
+      "numpy": "2.4.2",
+      "scipy": "1.17.0",
+      "scikit-learn": "1.8.0",
+      "threadpoolctl": "3.6.0"
+    },
+    "forecast_runs": 9,
+    "procurement_runs": 36,
+    "duration_seconds": 11.759934,
+    "metric_units": {
+      "mae": "portions",
+      "rmse": "portions",
+      "bias": "portions, predicted minus observed",
+      "wape": "fraction; null for zero observed sales",
+      "coverage": "fraction",
+      "crossing_rate": "fraction of raw quantile triplets"
+    },
+    "protocol": "28 identical one-step test days; HGB fit frozen before test; previous test sales are legal past lags. Final HGB refit through origin.",
+    "interpretation": [
+      "Synthetic demonstration; not external validation or measured savings at a real enterprise.",
+      "Observed sales are potentially stockout-censored; they are not latent demand.",
+      "Baselines have no uncertainty intervals. HGB p10-p90 is an 80% nominal central interval.",
+      "Summed marginal p90 is a stress heuristic, not a joint 90% availability guarantee.",
+      "Ingredient shortages/excesses retain their kg/L units; unlike units are never summed.",
+      "No shipping/tax data exist; purchase costs cover base unit prices times pack quantities only.",
+      "Budgets are declared synthetic scenarios. Metrics are measured; no superiority is assumed."
+    ]
+  },
+  "limits": [
+    "SYNTHETIC only; no enterprise savings claim",
+    "Dated recipe yield cases covered separately by API and engine tests"
+  ]
+}

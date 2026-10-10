@@ -68,6 +68,9 @@ def calculate_snapshot(payload, snapshot, kind, *, forecast_fn=None, procurement
             payload['branch_id'], snapshot['forecast_result']['target_date'],
             payload['budget'], payload['strategy'], **context_argument)
         result['recipe_versions'] = sorted({r['recipe_version'] for r in snapshot['recipes']})
+        for name in ('stock_evidence', 'recipe_evidence'):
+            if name in snapshot:
+                result[name] = deepcopy(snapshot[name])
         ingredients = {str(r['ingredient_id']): r['ingredient_name'] for r in snapshot['ingredients']}
         suppliers = {str(r['supplier_id']): r['supplier_name'] for r in snapshot['suppliers']}
         for item in result['requirements'] + result['lines']:

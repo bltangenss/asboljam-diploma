@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-10-10T07:51:45.413093+00:00",
+  "status": "passed",
+  "database": "data/asboljam.sqlite",
+  "executed": "apps.api.db.make_engine + migrate; no apps.api.main import",
+  "process_preflight": "No Python API/worker/test processes observed; verification application containers stopped.",
+  "versions_before": [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005",
+    "0006"
+  ],
+  "versions_after": [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005",
+    "0006",
+    "0007"
+  ],
+  "applied_versions": [
+    "0007"
+  ],
+  "backup_path": "backups/pre-recipes-0007-20261010T075134167574Z.sqlite",
+  "backup_sha256": "9535fb5fcea506b1ff683c60ee0fe46092cbcbbeef470d9cccf50232f26000c0",
+  "backup_integrity_check": "ok",
+  "backup_foreign_key_check": "ok",
+  "backup_row_hashes_match_before": true,
+  "previous_table_count": 19,
+  "previous_tables_unchanged": true,
+  "previous_table_sha256": {
+    "audit_events": "7571271f59f2abd15fd387597a22f93cf2a7296fe59a293dae4cbb303d4eede9",
+    "auth_sessions": "03213dc51efd4ff8e8d301ff04eade19443023ffa2b68ed520ca81e9a2b188f6",
+    "forecasts": "40ed9a24412951f24fc49ea361c4ac556e494bb160e878a735870362a06f5315",
+    "idempotency_keys": "54fdd53d99a84bc6d7e382537aca196930329e7f88d700da4d0f7515ff8c66f0",
+    "import_batches": "1cd1eefbfe26af5ca1ea90baa241b033d7d3e3547d76ed373617aac80c568fc0",
+    "import_evidence": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "import_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "jobs": "305632c3adef271fd9fd24728e021c8bc10671e7b705250c5f8399f8b0678119",
+    "login_attempts": "9c5acfd346dfe5715209bf72325fbd3650cd0488d2ca0ac1fdd5881f68769b7b",
+    "operational_records": "a49e54f6ef62a13e3804a1faa598347193a88c0d26f9d6b38b7d153b49fe04bd",
+    "organization_sources": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "organizations": "5a363ba7d3d72bd63dd3a51faf58515c57636e00a3a548cba676832258818878",
+    "plans": "a7d5acb1d38a57ce8ce37d800691f2321050bcc117bf38d218ed85aec62fba01",
+    "record_revisions": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "refresh_tokens": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_command_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_ledgers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_movements": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "users": "e9d059ee03471e993e75d90ddf263b28a474120b63492360a0956d0b89a65d43"
+  },
+  "new_tables": {
+    "recipe_activations": 0,
+    "recipe_command_receipts": 0
+  },
+  "integrity_check": "ok",
+  "foreign_key_check": "ok",
+  "limits": [
+    "This is a local SQLite migration and verified backup, not production deployment or business-pilot evidence.",
+    "No recipe activation, stock movement, or operational data was invented."
+  ]
+}

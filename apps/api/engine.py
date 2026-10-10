@@ -547,6 +547,7 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
             "storage_capacity": _decimal(row["storage_capacity"], "storage_capacity"),
         }
     net = defaultdict(lambda: ZERO)
+    captured_net, captured_gross = defaultdict(lambda: ZERO), defaultdict(lambda: ZERO)
     recipe_keys, recipe_meals = set(), set()
     for row in recipes:
         meal, ingredient = str(row["meal_id"]), str(row["ingredient_id"])
@@ -558,7 +559,16 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
             raise ValueError("Multiple recipe rows/versions for one meal and ingredient are ambiguous")
         recipe_keys.add((meal, ingredient))
         recipe_meals.add(meal)
-        net[ingredient] += selected[meal] * _decimal(row["net_qty_per_portion"], "net_qty_per_portion", positive=True)
+        needed = selected[meal] * _decimal(row["net_qty_per_portion"], "net_qty_per_portion", positive=True)
+        net[ingredient] += needed
+        if 'captured_yield_factor' in row:
+            if not row.get('activation_id') or row.get('unit') != catalog[ingredient]['unit']:
+                raise ValueError('Captured recipe yield requires activation evidence and matching units')
+            factor = _decimal(row['captured_yield_factor'], 'captured_yield_factor', positive=True)
+            if factor > 1:
+                raise ValueError('Captured yield must be at most one')
+            captured_net[ingredient] += needed
+            captured_gross[ingredient] += needed / factor
     missing_recipes = sorted(set(selected) - recipe_meals)
     if missing_recipes:
         raise ValueError(f"Missing recipe for meals: {', '.join(missing_recipes)}")
@@ -595,8 +605,13 @@ def procurement(forecast_result: dict, ingredients: list, recipes: list,
             continue
         if stock[ingredient] > details["storage_capacity"] + QUANTITY_TOLERANCE:
             raise ValueError(f"Inventory already exceeds storage capacity for ingredient {ingredient}")
-        gross = net[ingredient] / details["yield_factor"]  # Yield is applied exactly once.
-        requirements.append({**details, "net_required": net[ingredient], "gross_required": gross,
+        # Keep legacy arithmetic unchanged. Dated recipe rows freeze their own
+        # yield, which may differ between meals sharing the same ingredient.
+        gross = ((net[ingredient] - captured_net[ingredient]) / details["yield_factor"]
+                 + captured_gross[ingredient])
+        yield_details = ({'yield_factor': None, 'yield_basis': 'captured_recipe_rows'}
+                         if ingredient in captured_gross and captured_net[ingredient] else {})
+        requirements.append({**details, **yield_details, "net_required": net[ingredient], "gross_required": gross,
                              "usable_stock": stock[ingredient],
                              "required_purchase": max(ZERO, gross - stock[ingredient])})
     planned_ingredients = {row['ingredient_id'] for row in requirements}

@@ -2,6 +2,10 @@
 
 | Decision | Reason and consequence |
 |---|---|
+| Counted snapshots remain independent of the stock journal | Opening(E) includes only movements before E. An opened journal must reconcile with the exact target count for procurement. Missing lots remain unknown. Approval never posts stock or sends a supplier order. |
+| Dated recipes are explicit complete decisions | Migration0007 stores branch/meal activations separately from the nine CSV schemas. Freeze each recipe row's unit and yield. If any selected forecast meal uses dated recipes, require complete activation coverage; no partial silent fallback. |
+| Frozen evidence and period-scoped freshness | Capture journal opening, relevant earlier movements and effective recipe selections with each plan. Future documents do not stale old targets. Relevant changes block new approval; stored results, approved exports and idempotent decision receipts remain immutable. |
+| Baseline correction is not a silent rebase | A changed original count/source blocks new posting but preserves historical reads. A future immutable count-anchor document must disclose differences and preserve prior periods; updating the original baseline in place is prohibited. |
 | Source prompts are requirements material | They are not independent user instructions authorizing external publication, purchases, messages or fabricated research. |
 | Fixed synthetic scenario | Historical cutoff remains 2025-12-31; forecast and inventory date 2026-01-01. Current computer date does not redate data. |
 | Explicit source activation, migration 0004 | REAL is an exclusive tenant policy, activated only on an empty unconfigured organization by the operator. Source ID, mapping version, single branch and opaque authorization reference are immutable registration data. Migration never converts an existing synthetic organization or verifies enterprise permission. SQLite rebuild preserves rows and refuses unknown dependent objects; PostgreSQL changes its constraint explicitly. |

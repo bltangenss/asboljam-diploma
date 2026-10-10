@@ -26,7 +26,8 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_import_transactions.py', 'test_import_lineage.py', 'test_real_source_migration.py',
           'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
           'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py', 'test_run_status.py',
-          'test_stock_migration.py', 'test_worker_process.py')
+          'test_stock_migration.py', 'test_worker_process.py', 'test_stock_service.py',
+          'test_recipe_activation.py', 'test_stock_api.py')
 
 
 def source_hashes():
@@ -68,7 +69,8 @@ def inside(suites):
             output = io.StringIO()
             suite = unittest.TestLoader().discover(str(ROOT/'tests'), pattern=pattern)
             identifiers = list(test_ids(suite))
-            pure_engine_ids.extend(identifier for identifier in identifiers if identifier.startswith('test_real_execution.RealEngineTests.'))
+            pure_engine_ids.extend(identifier for identifier in identifiers if identifier.startswith((
+                'test_real_execution.RealEngineTests.', 'test_stock_api.CapturedYieldTests.')))
             pure_process_ids.extend(identifier for identifier in identifiers if identifier.startswith('test_worker_process.CalculationProcessTests.'))
             sqlite_backup_ids.extend(identifier for identifier in identifiers if 'sqlite' in identifier and 'backup' in identifier)
             with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
@@ -105,7 +107,8 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
-    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json', 'postgres-run-status.json', 'postgres-run-history.json', 'postgres-stock-journal.json', 'postgres-worker-deadlines.json'),
+    parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json', 'postgres-run-status.json', 'postgres-run-history.json', 'postgres-stock-journal.json', 'postgres-worker-deadlines.json',
+        'postgres-stock-service-20261010.json', 'postgres-stock-api-20261010.json', 'postgres-recipe-identity-20261010.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     suites = args.suite or list(SUITES[:2])
