@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "command": "python -X utf8 scripts/package_release.py --output releases/2026-10-10-stock/AsBoljam_Final.zip",
+  "archive": "releases/2026-10-10-stock/AsBoljam_Final.zip",
+  "source_commit": "3c642defa09638aa844ef316b8fe22493bc542c9",
+  "packaging_mode": "committed_blobs",
+  "includes_uncommitted_changes": false,
+  "source_files": 290,
+  "bytes": 1730125,
+  "sha256": "25f83dda0acfbf2dab900b06fc5fa00bc764a0810e4c0816952dfbf91a5ab66f",
+  "crc_and_all_file_hashes": "PASS",
+  "secret_scan": {"checked_files": 290, "findings": [], "scope": "known credential patterns and configured local secret values"},
+  "limits": [
+    "Local source archive; installed dependencies, credentials, databases, backups and traces excluded",
+    "No fresh installation from the extracted archive was executed",
+    "No enterprise pilot, production deployment or new Android build certified",
+    "This report and the following documentation-only commit postdate the archive source commit"
+  ]
+}
