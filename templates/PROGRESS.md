@@ -1,5 +1,11 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — общая регрессия после пересчётов
+
+**TESTED:** `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` —454 случая за512.179s:453 PASS,0 failures/errors,1 POSIX-only SIGTERM skip на Windows. Все API/worker/test/script исходники неизменны в течение прогона, временный global API import направлен в `.cache/count-anchor-full-regression-import.sqlite`. [Отчёт](../artifacts/verification/count-anchor-regression-20261010.json). Это новый фактический полный прогон; прежние неуспешные отчёты сохранены как история.
+
+**IN PROGRESS:** новая live browser приёмка на отдельном generated REAL/TEST fixture; она не подтверждает бизнес-пилот. **NOT TESTED:** production/load/device; научные расчётные алгоритмы не менялись, research без причины не повторялся.
+
 ## 10.10.2026 — API подтверждённого пересчёта и PostgreSQL
 
 **DONE:** preview → явное подтверждение полного пересчёта → неизменяемый документ/аудит/receipt. Раздельные sequence движений и version журнала, чтение по датам, запрет обратной записи через принятый срез, строгая полнота партий и неизменность источника. Закупка сохраняет выбранный срез своего периода; поздние пересчёты не устаревают прежний план, утверждённая выгрузка сохраняется.
