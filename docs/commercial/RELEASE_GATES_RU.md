@@ -21,7 +21,7 @@ SYNTHETIC workflow, REAL-протокол на TEST-fixtures и зелёные �
 | Тарифный контур | Реального платежного подключения и API-лимитов тарифа нет | Manual pilot/invoice status, согласованные ограничения филиалов/пользователей/retention без блокировки audit/export; цены и платежи определяет владелец |
 | Онбординг и поддержка | Security/tenant runbooks, создание пустой организации, первый импорт филиала и восстановление доступа реализованы | Приёмка на целевой среде, обучение, incident/escalation, export/offboarding и удаление tenant с учётом backups |
 | Приёмка клиента и эффект | Полный browser путь проверен на SYNTHETIC, но нет бизнес-пилота или измеренной экономии | Согласованный pilot charter и baseline, shadow mode, реальные циклы, feedback и решение владельца; недостаточные данные прямо обозначать |
-| Release package | Архив исходников releases/2026-10-10/AsBoljam_Final.zip проверен CRC/SHA256 и закреплён за commit1e49912; прежний APK не пересобирался | После прохождения остальных gates проверить установку/целевую среду и подготовить новый архив выбранного release commit; текущий source ZIP не подтверждает commercial deployment. Mobile store release не входит в первый web-пилот |
+| Release package | Архив исходников releases/2026-10-10-count-anchor/AsBoljam_Final.zip: 303 файла из commit a3d5038, CRC/SHA256/состав проверены упаковщиком и независимо; прежний APK не пересобирался | Проверить новую установку/целевую среду после прохождения остальных gates; source ZIP не подтверждает commercial deployment. Mobile store release не входит в первый web-пилот |
 
 Для заявления о выполнении каждого условия нужны код/миграция, релевантные проверки
 и фактический результат в [PROGRESS](../../templates/PROGRESS.md). Deployment, account

@@ -1,0 +1,29 @@
+{
+  "verified_at_utc": "2026-10-10T09:00:33.015992+00:00",
+  "status": "passed",
+  "archive": "releases/2026-10-10-count-anchor/AsBoljam_Final.zip",
+  "source_commit": "a3d5038fde409a913dd48d45f2dc4570fb19d1e7",
+  "packaging_mode": "committed_blobs",
+  "includes_uncommitted_changes": false,
+  "source_files": 303,
+  "zip_entries": 304,
+  "bytes": 1791761,
+  "sha256": "45da77922c55e19a66048e8dc4c9b112e7ea7ffa59028891c3c62b3bc5066e01",
+  "checks": {
+    "packager_crc_and_file_hashes": "PASS",
+    "independent_crc": "PASS",
+    "independent_entry_membership_and_uniqueness": "PASS",
+    "independent_all_sha256_and_sizes": "PASS",
+    "checksum_sidecar": "PASS",
+    "source_commit_and_mode": "PASS",
+    "secret_scan": "303 candidate files; zero findings under scanner rules"
+  },
+  "verification_method": "Independent Python zipfile/hashlib read after scripts/package_release.py completed; compared every entry, CRC, manifest hash, byte size and checksum sidecar.",
+  "not_tested": [
+    "Fresh installation from extracted ZIP",
+    "Production deployment, TLS, load or failover",
+    "Real POS or enterprise pilot",
+    "New Android APK or native device execution"
+  ],
+  "note": "Source snapshot, not a production-readiness claim. A following documentation/evidence commit records packaging without changing application code. Older archives and private backups are preserved."
+}

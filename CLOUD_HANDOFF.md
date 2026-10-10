@@ -1,6 +1,6 @@
 # AsBoljam — передача проекта для продолжения разработки
 
-Последний локальный source ZIP: `releases/2026-10-10-stock/AsBoljam_Final.zip`, source commit `3c642defa09638aa844ef316b8fe22493bc542c9`,290 файлов. CRC/все хеши PASS. [Манифест результата упаковки](artifacts/verification/release-20261010-stock.json). Последующий commit содержит свидетельство упаковки, не новую функциональность. Продолжать с текущего Git HEAD, сохраняя исходный ZIP и приватные backup.
+Последний локальный source ZIP: `releases/2026-10-10-count-anchor/AsBoljam_Final.zip`, source commit `a3d5038fde409a913dd48d45f2dc4570fb19d1e7`, 303 файла, 1791761 байт. CRC/все хеши и независимая проверка PASS. SHA256: `45da77922c55e19a66048e8dc4c9b112e7ea7ffa59028891c3c62b3bc5066e01`. [Манифест результата упаковки](artifacts/verification/release-20261010-count-anchor.json). Последующий commit содержит свидетельство упаковки, не новую функциональность. Продолжать с текущего Git HEAD, сохраняя исходные ZIP и приватные backup. Установка из архива, production и новый APK не проверялись.
 
 ## 10.10.2026 — текущее продолжение полностью локально
 
