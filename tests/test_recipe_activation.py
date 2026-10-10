@@ -264,12 +264,13 @@ class RecipeMigrationTests(unittest.TestCase):
     def snapshot(self):
         with self.engine.connect() as db:
             return {name: [dict(row) for row in db.execute(select(table).order_by(*table.primary_key.columns)).mappings()]
-                    for name, table in Base.metadata.tables.items() if name not in migrations.RECIPE_TABLE_NAMES}
+                    for name, table in Base.metadata.tables.items()
+                    if name not in migrations.RECIPE_TABLE_NAMES + migrations.COUNT_ANCHOR_TABLE_NAMES}
 
     def test_upgrade_preserves_prior_rows_and_creates_no_implicit_recipe_versions(self):
         self.prepare()
         before = self.snapshot()
-        self.assertEqual(migrate(self.engine), ('0007',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[6:])
         self.assertEqual(before, self.snapshot())
         self.assertEqual(self.versions(), migrations.VERSIONS)
         self.assertEqual(migrate(self.engine), ())
@@ -289,7 +290,7 @@ class RecipeMigrationTests(unittest.TestCase):
         self.assertEqual(self.versions(), migrations.VERSIONS[:6])
         self.assertTrue(set(migrations.RECIPE_TABLE_NAMES).isdisjoint(inspect(self.engine).get_table_names()))
         self.assertEqual(before, self.snapshot())
-        self.assertEqual(migrate(self.engine), ('0007',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[6:])
 
     def test_fresh_failure_rolls_back_even_initial_schema(self):
         with patch.object(migrations, '_dated_recipes_schema', side_effect=RuntimeError('Controlled failure')):
@@ -303,7 +304,7 @@ class RecipeMigrationTests(unittest.TestCase):
         before = self.snapshot()
         with ThreadPoolExecutor(max_workers=3) as pool:
             outcomes = list(pool.map(lambda _: migrate(self.engine), range(3)))
-        self.assertCountEqual(outcomes, [('0007',), (), ()])
+        self.assertCountEqual(outcomes, [migrations.VERSIONS[6:], (), ()])
         self.assertEqual(before, self.snapshot())
 
     def test_unknown_existing_table_is_preserved_and_not_stamped(self):

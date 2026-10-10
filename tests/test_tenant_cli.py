@@ -10,7 +10,7 @@ from unittest.mock import patch
 from sqlalchemy import delete, select, text
 
 from apps.api.db import (Audit, Organization, OrganizationSource, RecipeActivation, RecipeCommandReceipt,
-                         Record, StockCommandReceipt, StockLedger, StockMovement, User, make_engine, migrate, sessions)
+                         Record, StockCommandReceipt, StockCountAnchor, StockLedger, StockMovement, User, make_engine, migrate, sessions)
 from apps.api.security import verify_password
 from scripts import manage_tenant, seed_demo
 
@@ -85,6 +85,10 @@ class TenantCliTests(unittest.TestCase):
                 source_reference='orphan', entries=[], actor_id='fixture'),
             StockCommandReceipt(id='orphan-stock-receipt', organization_id=org, actor_id='fixture', key='key',
                 payload_hash='a' * 64, ledger_id='parent-ledger', response={}),
+            StockCountAnchor(id='orphan-count', ledger_id='parent-ledger', organization_id=org, branch_id='001',
+                sequence=1, ledger_version=2, through_movement_sequence=0, count_date='2026-01-01',
+                counted_rows=[], count_lineage={}, data_context={}, differences=[], previous_fingerprint='a' * 64,
+                reason='Generated orphan count', actor_id='fixture'),
             RecipeActivation(id='orphan-recipe', organization_id=org, branch_id='001', meal_id='01', sequence=1,
                 recipe_version='orphan', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
                 data_context={}, reason='Generated orphan', actor_id='fixture'),

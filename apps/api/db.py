@@ -183,6 +183,35 @@ class StockMovement(Base):
         UniqueConstraint('ledger_id', 'reverses_id', name='uq_stock_movement_reversal'),
         Index('ix_stock_movement_scope', 'organization_id', 'branch_id', 'business_date'),
     )
+class StockCountAnchor(Base):
+    """An explicitly accepted counted opening; previous stock history is retained."""
+    __tablename__ = 'stock_count_anchors'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    ledger_id: Mapped[str] = mapped_column(String(64), ForeignKey('stock_ledgers.id'))
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    sequence: Mapped[int] = mapped_column(Integer)
+    ledger_version: Mapped[int] = mapped_column(Integer)
+    through_movement_sequence: Mapped[int] = mapped_column(Integer)
+    count_date: Mapped[str] = mapped_column(String(10))
+    counted_rows: Mapped[list] = mapped_column(JSON)
+    count_lineage: Mapped[dict] = mapped_column(JSON)
+    data_context: Mapped[dict] = mapped_column(JSON)
+    differences: Mapped[list] = mapped_column(JSON)
+    previous_fingerprint: Mapped[str] = mapped_column(String(64))
+    reason: Mapped[str] = mapped_column(Text)
+    actor_id: Mapped[str] = mapped_column(String(64))
+    recorded_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint('sequence >= 1', name='ck_stock_count_anchor_sequence'),
+        CheckConstraint('ledger_version >= 2', name='ck_stock_count_anchor_version'),
+        CheckConstraint('through_movement_sequence >= 0', name='ck_stock_count_anchor_watermark'),
+        CheckConstraint('ledger_version = sequence + through_movement_sequence + 1', name='ck_stock_count_anchor_counters'),
+        UniqueConstraint('ledger_id', 'sequence', name='uq_stock_count_anchor_sequence'),
+        UniqueConstraint('ledger_id', 'ledger_version', name='uq_stock_count_anchor_version'),
+        UniqueConstraint('ledger_id', 'count_date', name='uq_stock_count_anchor_date'),
+        Index('ix_stock_count_anchor_scope', 'organization_id', 'branch_id', 'count_date'),
+    )
 class StockCommandReceipt(Base):
     __tablename__ = 'stock_command_receipts'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006 + 0007. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006 + 0007 + 0008. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -374,3 +374,35 @@ CREATE TABLE recipe_command_receipts (
 	CONSTRAINT uq_recipe_command_receipt_key UNIQUE (organization_id, actor_id, key),
 	FOREIGN KEY(activation_id) REFERENCES recipe_activations (id)
 );
+
+-- Added by migration 0008. Count anchors are explicit; original baselines and movements are retained.
+
+CREATE TABLE stock_count_anchors (
+	id VARCHAR(64) NOT NULL,
+	ledger_id VARCHAR(64) NOT NULL,
+	organization_id VARCHAR(64) NOT NULL,
+	branch_id VARCHAR(64) NOT NULL,
+	sequence INTEGER NOT NULL,
+	ledger_version INTEGER NOT NULL,
+	through_movement_sequence INTEGER NOT NULL,
+	count_date VARCHAR(10) NOT NULL,
+	counted_rows JSON NOT NULL,
+	count_lineage JSON NOT NULL,
+	data_context JSON NOT NULL,
+	differences JSON NOT NULL,
+	previous_fingerprint VARCHAR(64) NOT NULL,
+	reason TEXT NOT NULL,
+	actor_id VARCHAR(64) NOT NULL,
+	recorded_at VARCHAR(64) NOT NULL,
+	PRIMARY KEY (id),
+	CONSTRAINT ck_stock_count_anchor_sequence CHECK (sequence >= 1),
+	CONSTRAINT ck_stock_count_anchor_version CHECK (ledger_version >= 2),
+	CONSTRAINT ck_stock_count_anchor_watermark CHECK (through_movement_sequence >= 0),
+	CONSTRAINT ck_stock_count_anchor_counters CHECK (ledger_version = sequence + through_movement_sequence + 1),
+	CONSTRAINT uq_stock_count_anchor_sequence UNIQUE (ledger_id, sequence),
+	CONSTRAINT uq_stock_count_anchor_version UNIQUE (ledger_id, ledger_version),
+	CONSTRAINT uq_stock_count_anchor_date UNIQUE (ledger_id, count_date),
+	FOREIGN KEY(ledger_id) REFERENCES stock_ledgers (id)
+);
+
+CREATE INDEX ix_stock_count_anchor_scope ON stock_count_anchors (organization_id, branch_id, count_date);

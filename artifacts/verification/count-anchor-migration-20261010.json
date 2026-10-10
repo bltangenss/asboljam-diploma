@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-10-10T08:29:31.325589+00:00",
+  "status": "passed",
+  "scope": "Isolated SQLite migration0008 and changed schema/tenant guard expectations",
+  "source_commit": "d92f718cc22abd8f1f3cdc13905808d66447d528",
+  "source_sha256_at_report": {
+    "apps/api/db.py": "b623b77bdeb8cc628c9ceb30d02f8990ab650972cf8dea5c7fd644532b12b5bf",
+    "apps/api/migrations.py": "924d9810950544df4daa39db9bdf0d3d683641c2a7cfa4b9813de890e7d2ea60",
+    "apps/api/tenants.py": "641a7e42d40d2e5b7aede1dfa54d1847a2367d8d116891159cd121b224b86a17",
+    "database/postgres_schema.sql": "161fdb646196a685c8894a9c5df1d54d9da2715ace4997f5bf660b45df637992",
+    "tests/test_count_anchor_migration.py": "007d45ea4b9dd39327aeee5490c9f034aab7a68288cccf0e5e19a8c3a8d0dd24",
+    "tests/test_recipe_activation.py": "f34de2d1ac4a94086dd5c0ed246bbfa97805e0bb00d6075a75ea44dc46de4984",
+    "tests/test_import_migration.py": "a5a360c1bf32d416b7e6e60171769be8f07544382f074a0b01ebe259380e0c45",
+    "tests/test_tenant_migration.py": "e5f0a7a896741a8904f02aa0b238e8daecd3cb62f8057eb626e5d1b395febcfb",
+    "tests/test_tenant_cli.py": "bd29c8dfdf4f62fea1cb9716151db523769f2973c75f166579983f411ec9361b",
+    "tests/test_real_source.py": "df40e202dd19f959476500246b2918a301dfa63220e0251fe2a07e32f4ea1c34",
+    "tests/test_stock_migration.py": "19864d482ae1e2027d9292731dd05a5c6059d16d102e07eda9f081f8634d8d3e",
+    "tests/database_fixture.py": "61fc7e9ee6e2466520e75ff810d0414a6acff16b572128f336c6b418ffd02f0d"
+  },
+  "source_hash_note": "Hashes captured when writing this evidence; before/after hash instrumentation was not used for the two original commands. Owned schema and test files were not edited between the runs and this report.",
+  "tests_run": 17,
+  "passed": 17,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "runs": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_count_anchor_migration.py -v",
+      "tests_run": 7,
+      "elapsed_seconds": 0.748,
+      "exit_code": 0,
+      "output_tail": "Ran 7 tests in 0.748s\n\nOK",
+      "coverage": [
+        "Populated0007 upgrade preserves prior rows and leaves anchors empty",
+        "Fresh installation has no fabricated stock/counts",
+        "Interrupted upgrade rolls back table, rows and marker",
+        "Fresh interrupted migration rolls back all DDL",
+        "Concurrent upgrades apply0008 once",
+        "Unknown existing anchor table is preserved and not stamped",
+        "Positive counters, counter identity, unique ledger sequence/version/date, parent FK, exact decimal JSON roundtrip"
+      ]
+    },
+    {
+      "command": "$env:PYTHONPATH='tests;.'; python -X utf8 -m unittest test_recipe_activation.RecipeMigrationTests test_import_migration.ImportMigrationTests.test_fresh_database_creates_sidecars_only_in_version_0003 test_tenant_migration.TenantMigrationTests.test_fresh_database_applies_current_versions_without_inventing_a_tenant test_tenant_cli.TenantCliTests.test_orphan_stock_and_recipe_history_cannot_acquire_a_new_tenant_owner test_real_source.RealSourceTests.test_each_stock_and_recipe_sidecar_blocks_source_activation -v",
+      "tests_run": 10,
+      "elapsed_seconds": 0.974,
+      "exit_code": 0,
+      "output_tail": "Ran 10 tests in 0.974s\n\nOK",
+      "coverage": [
+        "Six dated recipe migration cases with current schema expectation",
+        "Two fresh-schema allowlist cases",
+        "Orphan count anchor independently blocks organization takeover",
+        "Existing count anchor independently blocks REAL-source activation"
+      ]
+    }
+  ],
+  "diff_check": "git diff --check on changed schema and test files: exit0; only CRLF normalization warnings",
+  "not_tested": [
+    "PostgreSQL for migration0008",
+    "Main SQLite migration0007 to0008",
+    "Anchor service/API/browser workflow",
+    "Production or real business pilot"
+  ],
+  "side_effects": "Only isolated temporary SQLite test stores were created. Main application database, Docker containers/databases/volumes and Git history were not modified by these checks."
+}

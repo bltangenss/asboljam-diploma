@@ -15,7 +15,7 @@ from apps.api import tenants
 from apps.api.db import (Audit, AuthSession, Base, Forecast, Idempotency, ImportBatch, ImportEvidence,
                          ImportReceipt, Job, Organization, OrganizationSource, Plan, Record,
                          RecordRevision, RefreshToken, RecipeActivation, RecipeCommandReceipt,
-                         StockCommandReceipt, StockLedger, StockMovement, User, make_engine, migrate, sessions)
+                         StockCommandReceipt, StockCountAnchor, StockLedger, StockMovement, User, make_engine, migrate, sessions)
 from database_fixture import isolated_database_url
 
 
@@ -109,6 +109,10 @@ class RealSourceTests(unittest.TestCase):
                 kind='receipt', business_date='2026-01-01', reason='Generated old', source_reference='old', entries=[], actor_id='fixture'),
             StockCommandReceipt(id='old-stock-receipt', organization_id='A', actor_id='fixture', key='key',
                 payload_hash='a' * 64, ledger_id='parent-ledger', response={}),
+            StockCountAnchor(id='old-count', ledger_id='parent-ledger', organization_id='A', branch_id='001',
+                sequence=1, ledger_version=2, through_movement_sequence=0, count_date='2026-01-01',
+                counted_rows=[], count_lineage={}, data_context={}, differences=[], previous_fingerprint='a' * 64,
+                reason='Generated old count', actor_id='fixture'),
             RecipeActivation(id='old-recipe', organization_id='A', branch_id='001', meal_id='01', sequence=1,
                 recipe_version='old', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
                 data_context={}, reason='Generated old', actor_id='fixture'),
