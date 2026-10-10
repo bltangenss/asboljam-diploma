@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006 + 0007. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -334,3 +334,43 @@ CREATE TABLE stock_command_receipts (
     CONSTRAINT uq_stock_command_receipt_key UNIQUE (organization_id, actor_id, key)
 );
 CREATE INDEX ix_stock_command_receipt_ledger ON stock_command_receipts (organization_id, ledger_id);
+
+
+-- Added by migration 0007. Complete recipe versions require explicit dated activation.
+
+CREATE TABLE recipe_activations (
+	id VARCHAR(64) NOT NULL,
+	organization_id VARCHAR(64) NOT NULL,
+	branch_id VARCHAR(64) NOT NULL,
+	meal_id VARCHAR(64) NOT NULL,
+	sequence INTEGER NOT NULL,
+	recipe_version VARCHAR(255) NOT NULL,
+	effective_date VARCHAR(10) NOT NULL,
+	rows JSON NOT NULL,
+	snapshot_sha256 VARCHAR(64) NOT NULL,
+	data_context JSON NOT NULL,
+	reason TEXT NOT NULL,
+	actor_id VARCHAR(64) NOT NULL,
+	created_at VARCHAR(64) NOT NULL,
+	PRIMARY KEY (id),
+	CONSTRAINT ck_recipe_activation_sequence CHECK (sequence >= 1),
+	CONSTRAINT uq_recipe_activation_sequence UNIQUE (organization_id, branch_id, meal_id, sequence),
+	CONSTRAINT uq_recipe_activation_date UNIQUE (organization_id, branch_id, meal_id, effective_date),
+	CONSTRAINT uq_recipe_activation_label UNIQUE (organization_id, branch_id, meal_id, recipe_version)
+);
+
+CREATE INDEX ix_recipe_activation_scope ON recipe_activations (organization_id, branch_id, effective_date);
+
+CREATE TABLE recipe_command_receipts (
+	id VARCHAR(64) NOT NULL,
+	organization_id VARCHAR(64) NOT NULL,
+	actor_id VARCHAR(64) NOT NULL,
+	key VARCHAR(128) NOT NULL,
+	payload_hash VARCHAR(64) NOT NULL,
+	activation_id VARCHAR(64) NOT NULL,
+	response JSON NOT NULL,
+	created_at VARCHAR(64) NOT NULL,
+	PRIMARY KEY (id),
+	CONSTRAINT uq_recipe_command_receipt_key UNIQUE (organization_id, actor_id, key),
+	FOREIGN KEY(activation_id) REFERENCES recipe_activations (id)
+);

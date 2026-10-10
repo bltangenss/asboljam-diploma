@@ -197,6 +197,40 @@ class StockCommandReceipt(Base):
         UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_stock_command_receipt_key'),
         Index('ix_stock_command_receipt_ledger', 'organization_id', 'ledger_id'),
     )
+class RecipeActivation(Base):
+    """Immutable complete recipe effective from a business date in one branch."""
+    __tablename__ = 'recipe_activations'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    meal_id: Mapped[str] = mapped_column(String(64))
+    sequence: Mapped[int] = mapped_column(Integer)
+    recipe_version: Mapped[str] = mapped_column(String(255))
+    effective_date: Mapped[str] = mapped_column(String(10))
+    rows: Mapped[list] = mapped_column(JSON)
+    snapshot_sha256: Mapped[str] = mapped_column(String(64))
+    data_context: Mapped[dict] = mapped_column(JSON)
+    reason: Mapped[str] = mapped_column(Text)
+    actor_id: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint('sequence >= 1', name='ck_recipe_activation_sequence'),
+        UniqueConstraint('organization_id', 'branch_id', 'meal_id', 'sequence', name='uq_recipe_activation_sequence'),
+        UniqueConstraint('organization_id', 'branch_id', 'meal_id', 'effective_date', name='uq_recipe_activation_date'),
+        UniqueConstraint('organization_id', 'branch_id', 'meal_id', 'recipe_version', name='uq_recipe_activation_label'),
+        Index('ix_recipe_activation_scope', 'organization_id', 'branch_id', 'effective_date'),
+    )
+class RecipeCommandReceipt(Base):
+    __tablename__ = 'recipe_command_receipts'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    key: Mapped[str] = mapped_column(String(128))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    activation_id: Mapped[str] = mapped_column(String(64), ForeignKey('recipe_activations.id'))
+    response: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_recipe_command_receipt_key'),)
 class Job(Base):
     __tablename__ = 'jobs'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

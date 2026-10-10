@@ -7,9 +7,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 
-from apps.api.db import Audit, Organization, OrganizationSource, Record, User, make_engine, migrate, sessions
+from apps.api.db import (Audit, Organization, OrganizationSource, RecipeActivation, RecipeCommandReceipt,
+                         Record, StockCommandReceipt, StockLedger, StockMovement, User, make_engine, migrate, sessions)
 from apps.api.security import verify_password
 from scripts import manage_tenant, seed_demo
 
@@ -64,6 +65,45 @@ class TenantCliTests(unittest.TestCase):
         self.assertEqual((code, prompts), (0, 0), output)
         self.assertIn('Preflight only', output)
         self.assert_empty()
+
+    def test_orphan_stock_and_recipe_history_cannot_acquire_a_new_tenant_owner(self):
+        # Deliberately inconsistent legacy fixtures: the organization ID is
+        # absent, and FK parents belong to another scope, so each sidecar must
+        # independently block takeover without relying on a parent or audit.
+        with self.factory.begin() as db:
+            db.add(StockLedger(id='parent-ledger', organization_id='parent-scope', branch_id='001',
+                baseline_date='2026-01-01', baseline_rows=[], baseline_lineage={}, data_context={}, created_by='fixture'))
+            db.add(RecipeActivation(id='parent-recipe', organization_id='parent-scope', branch_id='001', meal_id='01',
+                sequence=1, recipe_version='parent', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
+                data_context={}, reason='Generated parent', actor_id='fixture'))
+        org = 'empty_fixture'
+        blockers = [
+            StockLedger(id='orphan-ledger', organization_id=org, branch_id='001', baseline_date='2026-01-01',
+                baseline_rows=[], baseline_lineage={}, data_context={}, created_by='fixture'),
+            StockMovement(id='orphan-movement', ledger_id='parent-ledger', organization_id=org, branch_id='001',
+                sequence=1, kind='waste', business_date='2026-01-01', reason='Generated orphan',
+                source_reference='orphan', entries=[], actor_id='fixture'),
+            StockCommandReceipt(id='orphan-stock-receipt', organization_id=org, actor_id='fixture', key='key',
+                payload_hash='a' * 64, ledger_id='parent-ledger', response={}),
+            RecipeActivation(id='orphan-recipe', organization_id=org, branch_id='001', meal_id='01', sequence=1,
+                recipe_version='orphan', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
+                data_context={}, reason='Generated orphan', actor_id='fixture'),
+            RecipeCommandReceipt(id='orphan-recipe-receipt', organization_id=org, actor_id='fixture', key='key',
+                payload_hash='a' * 64, activation_id='parent-recipe', response={}),
+        ]
+        for blocker in blockers:
+            model = type(blocker)
+            with self.subTest(model=model.__name__):
+                with self.factory.begin() as db:
+                    db.add(blocker)
+                code, output, prompts = self.invoke(self.args + ['--apply'], [PASSWORD, PASSWORD])
+                self.assertEqual((code, prompts), (2, 0), output)
+                self.assertIn('ORGANIZATION_ORPHANED', output)
+                with self.factory.begin() as db:
+                    self.assertIsNone(db.get(Organization, org))
+                    self.assertFalse(list(db.scalars(select(User))))
+                    self.assertIsNotNone(db.get(model, blocker.id))
+                    db.execute(delete(model).where(model.id == blocker.id))
 
     def test_bootstrap_creates_only_empty_organization_and_hashed_admin(self):
         self.create()

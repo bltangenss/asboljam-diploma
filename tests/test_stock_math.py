@@ -122,6 +122,19 @@ class StockMathTests(unittest.TestCase):
         required,_=recipe_requirements(recipes,catalog,{'a':1},{'a':'v1'})
         self.assertEqual(required[0]['gross_required'],'0.333333334')
 
+    def test_dated_recipes_use_each_captured_yield_and_enforce_captured_unit(self):
+        recipes=[dict(meal_id='a',ingredient_id='flour',recipe_version='v1',net_qty_per_portion='0.08',
+                      captured_yield_factor='0.8',unit='kg'),
+                 dict(meal_id='b',ingredient_id='flour',recipe_version='v2',net_qty_per_portion='0.08',
+                      captured_yield_factor='0.4',unit='kg')]
+        requirements,evidence=recipe_requirements(recipes,{'flour':{'unit':'kg','yield_factor':'1'}},
+                                                {'a':10,'b':10},{'a':'v1','b':'v2'})
+        self.assertEqual(requirements[0]['gross_required'],'3')
+        self.assertEqual([row['yield_factor'] for row in evidence['rows']],['0.8','0.4'])
+        recipes[1]['unit']='L'
+        self.error('STOCK_UNIT_MISMATCH',lambda:recipe_requirements(recipes,CATALOG,
+                   {'a':10,'b':10},{'a':'v1','b':'v2'}))
+
     def test_recipe_selection_ambiguity_and_invalid_yield_are_rejected(self):
         recipe=dict(meal_id='meal',ingredient_id='flour',recipe_version='v1',net_qty_per_portion='1')
         self.error('STOCK_RECIPE_AMBIGUOUS',lambda:recipe_requirements([recipe,recipe],CATALOG,{'meal':1},{'meal':'v1'}))

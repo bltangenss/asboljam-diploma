@@ -12,7 +12,8 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from .db import (Audit, Forecast, Idempotency, ImportBatch, ImportEvidence, ImportReceipt,
-                 Job, Organization, OrganizationSource, Plan, Record, RecordRevision, User, now)
+                 Job, Organization, OrganizationSource, Plan, RecipeActivation, RecipeCommandReceipt,
+                 Record, RecordRevision, StockCommandReceipt, StockLedger, StockMovement, User, now)
 from .security import password_hash
 
 
@@ -77,7 +78,8 @@ def preflight_bootstrap(db, **metadata):
         raise TenantError('ORGANIZATION_EXISTS', 'Organization identifier already exists.', 409)
     # Legacy/orphan objects must never silently acquire a new administrator.
     for model in (User, Record, ImportBatch, Job, Forecast, Plan, Audit, Idempotency,
-                  ImportEvidence, RecordRevision, ImportReceipt, OrganizationSource):
+                  ImportEvidence, RecordRevision, ImportReceipt, OrganizationSource,
+                  StockLedger, StockMovement, StockCommandReceipt, RecipeActivation, RecipeCommandReceipt):
         if db.scalar(select(model.organization_id).where(model.organization_id == organization_id).limit(1)) is not None:
             raise TenantError('ORGANIZATION_ORPHANED', 'Organization identifier is already referenced; reconcile the store first.', 409)
     if db.scalar(select(User.id).where(User.email == values['email'])) is not None:
@@ -144,7 +146,8 @@ def preflight_configure_real_source(db, *, organization_id, source_id, mapping_v
     except (ZoneInfoNotFoundError, ValueError):
         raise TenantError('TENANT_METADATA_REQUIRED', 'A valid IANA timezone is required.') from None
     for model in (Record, ImportBatch, Job, Forecast, Plan, Idempotency,
-                  ImportEvidence, RecordRevision, ImportReceipt):
+                  ImportEvidence, RecordRevision, ImportReceipt,
+                  StockLedger, StockMovement, StockCommandReceipt, RecipeActivation, RecipeCommandReceipt):
         if db.scalar(select(model.organization_id).where(model.organization_id == organization_id).limit(1)) is not None:
             raise TenantError('TENANT_NOT_EMPTY', 'Operational data or history already exists; create a separate organization.', 409)
     # Identity and tenant administration are expected before configuration. Any

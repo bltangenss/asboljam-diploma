@@ -208,8 +208,11 @@ def recipe_requirements(recipes, ingredients, portions, versions):
             catalog = ingredients[ingredient]
             if catalog.get('unit') not in {'kg', 'L'}:
                 reject('STOCK_UNIT_MISMATCH', 'Recipe stock unit is unsupported.')
+            if 'unit' in row and row['unit'] != catalog['unit']:
+                reject('STOCK_UNIT_MISMATCH', 'The captured recipe unit differs from the ingredient unit.')
             net = quantity(row.get('net_qty_per_portion'), positive=True, allow_zero=False)
-            yield_factor = quantity(catalog.get('yield_factor'), positive=True, allow_zero=False)
+            yield_factor = quantity(row.get('captured_yield_factor', catalog.get('yield_factor')),
+                                    positive=True, allow_zero=False)
             if yield_factor > 1:
                 reject('STOCK_YIELD_INVALID', 'Yield must be greater than zero and at most one.')
             gross = Fraction(net) * count / Fraction(yield_factor)

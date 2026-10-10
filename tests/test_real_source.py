@@ -14,7 +14,8 @@ from sqlalchemy import delete, select
 from apps.api import tenants
 from apps.api.db import (Audit, AuthSession, Base, Forecast, Idempotency, ImportBatch, ImportEvidence,
                          ImportReceipt, Job, Organization, OrganizationSource, Plan, Record,
-                         RecordRevision, RefreshToken, User, make_engine, migrate, sessions)
+                         RecordRevision, RefreshToken, RecipeActivation, RecipeCommandReceipt,
+                         StockCommandReceipt, StockLedger, StockMovement, User, make_engine, migrate, sessions)
 from database_fixture import isolated_database_url
 
 
@@ -93,6 +94,35 @@ class RealSourceTests(unittest.TestCase):
             result = tenants.preflight_configure_real_source(db, **self.metadata())
             self.assertEqual(result['actor_id'], 'operator:fixture-owner')
         self.assertEqual(self.snapshot(), before)
+
+    def test_each_stock_and_recipe_sidecar_blocks_source_activation(self):
+        with self.factory.begin() as db:
+            db.add(StockLedger(id='parent-ledger', organization_id='B', branch_id='001', baseline_date='2026-01-01',
+                baseline_rows=[], baseline_lineage={}, data_context={}, created_by='fixture'))
+            db.add(RecipeActivation(id='parent-recipe', organization_id='B', branch_id='001', meal_id='01',
+                sequence=1, recipe_version='parent', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
+                data_context={}, reason='Generated parent', actor_id='fixture'))
+        blockers = [
+            StockLedger(id='old-ledger', organization_id='A', branch_id='001', baseline_date='2026-01-01',
+                baseline_rows=[], baseline_lineage={}, data_context={}, created_by='fixture'),
+            StockMovement(id='old-movement', ledger_id='parent-ledger', organization_id='A', branch_id='001', sequence=1,
+                kind='receipt', business_date='2026-01-01', reason='Generated old', source_reference='old', entries=[], actor_id='fixture'),
+            StockCommandReceipt(id='old-stock-receipt', organization_id='A', actor_id='fixture', key='key',
+                payload_hash='a' * 64, ledger_id='parent-ledger', response={}),
+            RecipeActivation(id='old-recipe', organization_id='A', branch_id='001', meal_id='01', sequence=1,
+                recipe_version='old', effective_date='2026-01-01', rows=[], snapshot_sha256='a' * 64,
+                data_context={}, reason='Generated old', actor_id='fixture'),
+            RecipeCommandReceipt(id='old-recipe-receipt', organization_id='A', actor_id='fixture', key='key',
+                payload_hash='a' * 64, activation_id='parent-recipe', response={}),
+        ]
+        for blocker in blockers:
+            model = type(blocker)
+            with self.subTest(model=model.__name__):
+                with self.factory.begin() as db:
+                    db.add(blocker)
+                self.assert_denied_without_changes('TENANT_NOT_EMPTY')
+                with self.factory.begin() as db:
+                    db.execute(delete(model).where(model.id == blocker.id))
 
     def test_activation_records_declared_source_and_revokes_only_selected_tenant_sessions(self):
         result = self.configure()
