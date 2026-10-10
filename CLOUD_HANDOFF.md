@@ -1,5 +1,11 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 10.10.2026 — проверенный архив текущих исходников
+
+**DONE / TESTED:** `releases/2026-10-10/AsBoljam_Final.zip` создан из чистого commit `1e49912fe2985eb518971fdd24251766eb21a7d4`:264 файла,1612448 байт. CRC и SHA256 каждого файла проверены упаковщиком и повторным чтением; секретов по правилам сканера не обнаружено. SHA256 ZIP: `bc2ee5e7097bac7fed857aa274d9567133a9ca7f9907a57be4d931ed2036546a`. Старые архивы сохранены. [Отчёт](artifacts/verification/release-20261010.json).
+
+**NOT TESTED:** новая установка из распакованного ZIP, production и свежая native-сборка. ZIP содержит исходники и известные ограничения, а не подтверждение коммерческого запуска. Следующий commit фиксирует только свидетельство упаковки; точный source commit указан в RELEASE_MANIFEST.json внутри ZIP. Пилот, полный складской workflow и эксплуатационная приёмка остаются незавершёнными.
+
 ## 10.10.2026 — HTTP-приёмка worker с дочерним расчётом
 
 **TESTED:** commit02c6cd1 —87/87 HTTP checks PASS на отдельной новой SYNTHETIC SQLite: вход, readiness, scope/role/CSRF, реальный forecast и procurement через отдельный worker, утверждение с версией/причиной/idempotency, audit/export и CSV preview/commit/replay. API запущен на127.0.0.1:8011, расчёт использовал новый subprocess worker. [HTTP-отчёт](artifacts/verification/runtime-worker-process.json), [контекст запуска и ограничения](artifacts/verification/worker-process-isolation.json).

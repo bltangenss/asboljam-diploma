@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "command": "python -X utf8 scripts/package_release.py --output releases/2026-10-10/AsBoljam_Final.zip",
+  "archive": "releases/2026-10-10/AsBoljam_Final.zip",
+  "source_commit": "1e49912fe2985eb518971fdd24251766eb21a7d4",
+  "packaging_mode": "committed_blobs",
+  "includes_uncommitted_changes": false,
+  "files": 264,
+  "bytes": 1612448,
+  "sha256": "bc2ee5e7097bac7fed857aa274d9567133a9ca7f9907a57be4d931ed2036546a",
+  "crc_and_all_file_hashes": "passed",
+  "secret_scan": {
+    "checked_files": 264,
+    "findings": 0,
+    "scope": "archived Git blobs and local credential-pattern preflight; not comprehensive audit"
+  },
+  "preserved_previous_releases": true,
+  "limits": [
+    "Source snapshot of stated commit, not commercial launch certification",
+    "No installed dependencies, databases, credentials or APK bundled",
+    "Subsequent Git commit records packaging evidence only; manifest identifies exact source commit",
+    "No fresh extraction/install/browser/device test performed for this archive"
+  ]
+}
