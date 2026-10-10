@@ -1,5 +1,13 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — хранилище складского журнала
+
+**DONE (хранилище):** migration0006 добавляет пустые stock_ledgers, stock_movements и stock_command_receipts. Ограничения защищают версию, порядок, номер исходного документа и повтор обратной записи. Старые снимки не превращаются в вымышленные движения.
+
+**TESTED:** migration suites45/45 SQLite (8.208s),45/45 PostgreSQL (17.086s;43 PG bodies и2 SQLite backup tests). Проверены сохранение старых строк, rollback, повтор и конкуренция миграции, ограничения новых таблиц. Основная SQLite обновлена с0005 до0006 после проверенной резервной копии; SHA256 содержимого всех16 прежних таблиц совпали, integrity/FK PASS, новые таблицы пусты. См. [отчёт миграции](../artifacts/verification/stock-migration.json) и [PostgreSQL](../artifacts/verification/postgres-stock-journal.json).
+
+**IN PROGRESS / NOT TESTED:** API/UI складских документов, датированные рецепты, сверка и связь с procurement ещё не реализованы. Миграция не доказывает готовность полного склада или production deployment.
+
 ## 10.10.2026 — арифметика складских движений
 
 **DONE (расчётный модуль):** явные партии, receipt/waste/adjustment/recipe_usage/reversal, gross decimal quantities, запрет отрицательного остатка и смены kg/L/expiry; неизвестная партия не выдаётся за ноль. Opening-сверка использует движения D..E−1 и сохраняет missing/mismatch. Рецептурный yield применяется один раз, дроби суммируются точно и округляются вверх до1e−9 только после агрегации.

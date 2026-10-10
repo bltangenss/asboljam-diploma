@@ -40,7 +40,7 @@ class WorkerMigrationTests(unittest.TestCase):
     def test_populated_upgrade_preserves_rows_and_initial_heartbeat_is_unknown(self):
         self.prepare()
         before = self.jobs()
-        self.assertEqual(migrate(self.engine), ('0005',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[4:])
         self.assertEqual(self.jobs(), before)
         with self.engine.connect() as db:
             self.assertIsNone(db.execute(text('SELECT heartbeat_at FROM jobs')).scalar_one())
@@ -61,14 +61,14 @@ class WorkerMigrationTests(unittest.TestCase):
         self.assertNotIn('heartbeat_at', {c['name'] for c in inspect(self.engine).get_columns('jobs')})
         with self.engine.connect() as db:
             self.assertEqual(db.execute(text('SELECT count(*) FROM schema_migrations')).scalar_one(), 4)
-        self.assertEqual(migrate(self.engine), ('0005',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[4:])
 
     def test_concurrent_upgrade_adds_heartbeat_once(self):
         self.prepare()
         before = self.jobs()
         with ThreadPoolExecutor(max_workers=3) as pool:
             outcomes = list(pool.map(lambda _: migrate(self.engine), range(3)))
-        self.assertEqual(outcomes.count(('0005',)), 1)
+        self.assertEqual(outcomes.count(migrations.VERSIONS[4:]), 1)
         self.assertEqual(outcomes.count(()), 2)
         self.assertEqual(self.jobs(), before)
 

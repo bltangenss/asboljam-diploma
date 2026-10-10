@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "sqlite_migration_tests": {
+    "tests": 45,
+    "passed": 45,
+    "elapsed_seconds": 8.208,
+    "command": "python -X utf8 -m unittest discover -s tests -p \"test_*migration.py\" -v"
+  },
+  "postgres_report": "postgres-stock-journal.json",
+  "main_sqlite": {
+    "backup_path": "backups/pre-stock-0006-20261010T061903Z.sqlite",
+    "backup_sha256": "9ed654a556598fd3a661335b161f7a5967a21784da3a43ce3c544195d8844e4b",
+    "before_versions": [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005"
+    ],
+    "after_versions": [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005",
+      "0006"
+    ],
+    "applied": [
+      "0006"
+    ],
+    "old_table_count": 16,
+    "all_previous_rows_sha256_equal": true,
+    "integrity_check": "ok",
+    "foreign_key_check": "ok",
+    "empty_stock_tables": {
+      "stock_ledgers": 0,
+      "stock_movements": 0,
+      "stock_command_receipts": 0
+    }
+  },
+  "limits": [
+    "Storage foundation only; no stock API/UI, dated recipe activation or procurement integration yet",
+    "No production migration or enterprise pilot"
+  ]
+}

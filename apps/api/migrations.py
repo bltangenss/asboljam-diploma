@@ -6,13 +6,14 @@ normal startup never invents organizations for subsequently orphaned records.
 0003 adds import evidence, revisions and receipts without fabricating legacy provenance.
 0004 explicitly adds a real-only policy and operator source registration, without activation.
 0005 adds a nullable job heartbeat; started_at remains the immutable claim fence.
+0006 adds empty stock journal tables, without asserting existing stock or movements.
 """
 from sqlalchemy import CheckConstraint, Column, Float, JSON, MetaData, String, Table, Text, case, inspect, literal, select, text, union
 
 from .db import Base, now
 
 
-VERSIONS = ('0001', '0002', '0003', '0004', '0005')
+VERSIONS = ('0001', '0002', '0003', '0004', '0005', '0006')
 LEGACY_TABLE_NAMES = (
     'users', 'auth_sessions', 'refresh_tokens', 'login_attempts',
     'operational_records', 'import_batches', 'jobs', 'forecasts',
@@ -24,6 +25,7 @@ ORGANIZATION_TABLE_NAMES = (
 )
 IMPORT_TABLE_NAMES = ('import_evidence', 'record_revisions', 'import_receipts')
 SOURCE_TABLE_NAMES = ('organization_sources',)
+STOCK_TABLE_NAMES = ('stock_ledgers', 'stock_movements', 'stock_command_receipts')
 # Stable per-database PostgreSQL transaction lock shared by API/worker/migration CLI.
 _MIGRATION_LOCK = 0x4153424F4C4A414D
 
@@ -128,6 +130,13 @@ def _job_heartbeat_schema(connection):
     connection.exec_driver_sql('ALTER TABLE jobs ADD COLUMN heartbeat_at FLOAT')
 
 
+def _stock_journal_schema(connection):
+    # Foundation only: existing snapshots, calculations and approvals stay intact.
+    # An operator must explicitly open a ledger from evidenced stock later.
+    for name in STOCK_TABLE_NAMES:
+        Base.metadata.tables[name].create(connection, checkfirst=False)
+
+
 def migrate(engine):
     if engine.dialect.name not in {'sqlite', 'postgresql'}:
         raise MigrationError('Unsupported database backend for schema migrations')
@@ -145,7 +154,7 @@ def migrate(engine):
             if applied != VERSIONS[:len(applied)]:
                 raise MigrationError('Unsupported or incomplete migration history; use a compatible application version')
             completed = []
-            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema, _job_heartbeat_schema)):
+            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema, _job_heartbeat_schema, _stock_journal_schema)):
                 if version not in applied:
                     operation(connection)
                     connection.execute(text('INSERT INTO schema_migrations (version) VALUES (:version)'), {'version': version})

@@ -14,7 +14,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from apps.api.db import Base, Idempotency, ImportBatch, ImportEvidence, ImportReceipt, RecordRevision, make_engine, migrate
-from apps.api.migrations import IMPORT_TABLE_NAMES, LEGACY_TABLE_NAMES, SOURCE_TABLE_NAMES, VERSIONS, _tenant_schema
+from apps.api.migrations import IMPORT_TABLE_NAMES, LEGACY_TABLE_NAMES, SOURCE_TABLE_NAMES, STOCK_TABLE_NAMES, VERSIONS, _tenant_schema
 from database_fixture import isolated_database_url
 import test_tenant_migration as legacy_fixture
 
@@ -58,7 +58,7 @@ class ImportMigrationTests(unittest.TestCase):
         self.assertEqual(migrate(self.engine), VERSIONS)
         self.assertEqual(self.versions(), list(VERSIONS))
         self.assertEqual(set(inspect(self.engine).get_table_names()),
-                         set(LEGACY_TABLE_NAMES) | set(IMPORT_TABLE_NAMES) | set(SOURCE_TABLE_NAMES) | {'organizations', 'schema_migrations'})
+                         set(LEGACY_TABLE_NAMES) | set(IMPORT_TABLE_NAMES) | set(SOURCE_TABLE_NAMES) | set(STOCK_TABLE_NAMES) | {'organizations', 'schema_migrations'})
         self.assert_empty_evidence()
 
     def test_populated_v2_upgrade_preserves_every_original_row_and_fabricates_nothing(self):

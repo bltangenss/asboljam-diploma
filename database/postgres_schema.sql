@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -277,3 +277,60 @@ CREATE TABLE organization_sources (
     CONSTRAINT ck_organization_source_purpose CHECK (purpose IN ('pilot', 'test_fixture')),
     CONSTRAINT ck_organization_source_version CHECK (version >= 1)
 );
+
+-- Added by migration 0006. Empty journal foundation; no stock or movements are invented.
+
+CREATE TABLE stock_ledgers (
+    id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    branch_id VARCHAR(64) NOT NULL,
+    baseline_date VARCHAR(10) NOT NULL,
+    baseline_rows JSON NOT NULL,
+    baseline_lineage JSON NOT NULL,
+    data_context JSON NOT NULL,
+    version INTEGER DEFAULT '1' NOT NULL,
+    created_by VARCHAR(64) NOT NULL,
+    created_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT ck_stock_ledger_version CHECK (version >= 1),
+    CONSTRAINT uq_stock_ledger_scope UNIQUE (organization_id, branch_id)
+);
+
+CREATE TABLE stock_movements (
+    id VARCHAR(64) NOT NULL,
+    ledger_id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    branch_id VARCHAR(64) NOT NULL,
+    sequence INTEGER NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    business_date VARCHAR(10) NOT NULL,
+    reason TEXT NOT NULL,
+    source_reference VARCHAR(128) NOT NULL,
+    entries JSON NOT NULL,
+    recipe_evidence JSON,
+    reverses_id VARCHAR(64),
+    actor_id VARCHAR(64) NOT NULL,
+    recorded_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT ck_stock_movement_sequence CHECK (sequence >= 1),
+    CONSTRAINT ck_stock_movement_kind CHECK (kind IN ('receipt', 'recipe_usage', 'waste', 'adjustment', 'reversal')),
+    CONSTRAINT uq_stock_movement_sequence UNIQUE (ledger_id, sequence),
+    CONSTRAINT uq_stock_movement_source UNIQUE (ledger_id, source_reference),
+    CONSTRAINT uq_stock_movement_reversal UNIQUE (ledger_id, reverses_id),
+    FOREIGN KEY(ledger_id) REFERENCES stock_ledgers (id)
+);
+CREATE INDEX ix_stock_movement_scope ON stock_movements (organization_id, branch_id, business_date);
+
+CREATE TABLE stock_command_receipts (
+    id VARCHAR(64) NOT NULL,
+    organization_id VARCHAR(64) NOT NULL,
+    actor_id VARCHAR(64) NOT NULL,
+    key VARCHAR(128) NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    ledger_id VARCHAR(64) NOT NULL,
+    response JSON NOT NULL,
+    created_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_stock_command_receipt_key UNIQUE (organization_id, actor_id, key)
+);
+CREATE INDEX ix_stock_command_receipt_ledger ON stock_command_receipts (organization_id, ledger_id);

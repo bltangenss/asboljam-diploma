@@ -2,7 +2,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlalchemy import Boolean, CheckConstraint, Float, Index, Integer, JSON, String, Text, UniqueConstraint, create_engine, event
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -142,6 +142,61 @@ class ImportReceipt(Base):
     response: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[str] = mapped_column(String(64), default=now)
     __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_import_receipt_key'),)
+class StockLedger(Base):
+    """Explicitly opened stock journal; migration never fabricates a baseline."""
+    __tablename__ = 'stock_ledgers'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    baseline_date: Mapped[str] = mapped_column(String(10))
+    baseline_rows: Mapped[list] = mapped_column(JSON)
+    baseline_lineage: Mapped[dict] = mapped_column(JSON)
+    data_context: Mapped[dict] = mapped_column(JSON)
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint('version >= 1', name='ck_stock_ledger_version'),
+        UniqueConstraint('organization_id', 'branch_id', name='uq_stock_ledger_scope'),
+    )
+class StockMovement(Base):
+    __tablename__ = 'stock_movements'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    ledger_id: Mapped[str] = mapped_column(String(64), ForeignKey('stock_ledgers.id'))
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    sequence: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(32))
+    business_date: Mapped[str] = mapped_column(String(10))
+    reason: Mapped[str] = mapped_column(Text)
+    source_reference: Mapped[str] = mapped_column(String(128))
+    entries: Mapped[list] = mapped_column(JSON)
+    recipe_evidence: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    reverses_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    actor_id: Mapped[str] = mapped_column(String(64))
+    recorded_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        CheckConstraint('sequence >= 1', name='ck_stock_movement_sequence'),
+        CheckConstraint("kind IN ('receipt', 'recipe_usage', 'waste', 'adjustment', 'reversal')", name='ck_stock_movement_kind'),
+        UniqueConstraint('ledger_id', 'sequence', name='uq_stock_movement_sequence'),
+        UniqueConstraint('ledger_id', 'source_reference', name='uq_stock_movement_source'),
+        UniqueConstraint('ledger_id', 'reverses_id', name='uq_stock_movement_reversal'),
+        Index('ix_stock_movement_scope', 'organization_id', 'branch_id', 'business_date'),
+    )
+class StockCommandReceipt(Base):
+    __tablename__ = 'stock_command_receipts'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    key: Mapped[str] = mapped_column(String(128))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    ledger_id: Mapped[str] = mapped_column(String(64))
+    response: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_stock_command_receipt_key'),
+        Index('ix_stock_command_receipt_ledger', 'organization_id', 'ledger_id'),
+    )
 class Job(Base):
     __tablename__ = 'jobs'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
