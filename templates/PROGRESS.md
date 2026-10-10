@@ -1,5 +1,9 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — безопасный JSON-вывод диагностики
+
+**DONE:** отдельный allowlisted emitter: только известные события/поля, допустимые server IDs/коды, конечные числа; неизвестные поля не сериализуются. Ошибка вывода не меняет результат транзакции. **TESTED:** `python -X utf8 -m unittest discover -s tests -p test_observability.py -v` —5/5 PASS,0.022s; секретные sentinels,100 конкурентных строк, закрытый/неисправный stream. [Отчёт](../artifacts/verification/observability-emitter-20261010.json). **IN PROGRESS / NOT TESTED:** интеграция HTTP/requestID и worker lifecycle, production logging/retention.
+
 ## 10.10.2026 — проверенный исходный архив пересчётов
 
 **DONE / TESTED:** `releases/2026-10-10-count-anchor/AsBoljam_Final.zip` создан из чистого commit `a3d5038fde409a913dd48d45f2dc4570fb19d1e7`: 303 исходных файла, 1791761 байт. CRC, состав архива, размеры и SHA256 каждого файла проверены упаковщиком и независимым повторным чтением. SHA256 ZIP: `45da77922c55e19a66048e8dc4c9b112e7ea7ffa59028891c3c62b3bc5066e01`. [Свидетельство упаковки](../artifacts/verification/release-20261010-count-anchor.json). Следующий commit фиксирует только документацию и результат упаковки; код приложения совпадает с source_commit архива. Старые ZIP и приватные backup сохранены. **NOT TESTED:** новая установка из распакованного ZIP, production, реальный пилот и новый APK/device.

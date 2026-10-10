@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "verified_at_utc": "2026-10-10T09:06:47.467719+00:00",
+  "command": "python -X utf8 -m unittest discover -s tests -p test_observability.py -v",
+  "tests_run": 5,
+  "passed": 5,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "duration_seconds": 0.022,
+  "source_sha256_after_test": {
+    "apps/api/observability.py": "a42213cebb2ee039507c8a95c94f17c528e0cb0d499bbb14a96ee8cb37acdaf0",
+    "tests/test_observability.py": "4b29f62b9d2848d5ba6a3e50642ecc79ed81d1ff7e57d2ed7ba2868daee51f44"
+  },
+  "checks": [
+    "Explicit field allowlist omits unknown private fields without reading/stringifying values",
+    "Invalid identifiers, control characters, routes, methods and nonfinite quantities are rejected",
+    "Terminal events require consistent status and known failure code",
+    "100 concurrent writes produce 100 independent JSON lines",
+    "Closed/failed output stream does not raise"
+  ],
+  "not_tested": [
+    "API request integration and worker publication lifecycle in this focused run",
+    "Production log collection, rotation and retention"
+  ],
+  "note": "Hashes were captured after this focused test, not before/after instrumentation."
+}
