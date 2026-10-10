@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from sqlalchemy import select
 
-from .db import RecipeActivation, StockLedger, StockMovement
+from .db import RecipeActivation, StockCountAnchor, StockLedger, StockMovement
 from .stock import day, fingerprint, identifier, reject
 
 
@@ -15,19 +15,37 @@ def capture_dependencies(db, organization_id, branch_id, target_date, meal_ids):
     stock = None
     if ledger is not None:
         from .lineage import input_freshness
+        anchor = db.scalar(select(StockCountAnchor).where(
+            StockCountAnchor.ledger_id == ledger.id, StockCountAnchor.count_date <= target_date)
+            .order_by(StockCountAnchor.count_date.desc()).limit(1))
+        if anchor is not None and (anchor.organization_id != organization_id or anchor.branch_id != branch_id):
+            reject('STOCK_HISTORY_INVALID', 'Count anchor scope is inconsistent.', 409)
+        baseline_date = anchor.count_date if anchor is not None else ledger.baseline_date
+        baseline_rows = anchor.counted_rows if anchor is not None else ledger.baseline_rows
+        baseline_lineage = anchor.count_lineage if anchor is not None else ledger.baseline_lineage
+        context = anchor.data_context if anchor is not None else ledger.data_context
+        watermark = anchor.through_movement_sequence if anchor is not None else 0
         movements = list(db.scalars(select(StockMovement).where(
-            StockMovement.ledger_id == ledger.id, StockMovement.business_date < target_date)
+            StockMovement.ledger_id == ledger.id, StockMovement.business_date < target_date,
+            StockMovement.sequence > watermark)
             .order_by(StockMovement.sequence)))
         if any(row.organization_id != organization_id or row.branch_id != branch_id for row in movements):
             reject('STOCK_HISTORY_INVALID', 'Journal scope is inconsistent.', 409)
-        stock = dict(id=ledger.id, baseline_date=ledger.baseline_date,
-            baseline_sha256=fingerprint(ledger.baseline_rows),
-            baseline_lineage_sha256=fingerprint(ledger.baseline_lineage),
-            baseline_freshness=input_freshness(db, organization_id, ledger.baseline_lineage),
-            context_sha256=fingerprint(ledger.data_context),
+        stock = dict(id=ledger.id, baseline_date=baseline_date,
+            baseline_sha256=fingerprint(baseline_rows),
+            baseline_lineage_sha256=fingerprint(baseline_lineage),
+            baseline_freshness=input_freshness(db, organization_id, baseline_lineage),
+            context_sha256=fingerprint(context),
             movements=[dict(id=row.id, sequence=row.sequence, business_date=row.business_date,
                 sha256=fingerprint(dict(kind=row.kind, entries=row.entries,
                     recipe_evidence=row.recipe_evidence, reverses_id=row.reverses_id))) for row in movements])
+        # Preserve the pre-anchor payload exactly for already saved plans. A later
+        # count anchor/version is irrelevant to targets before its opening date.
+        if anchor is not None:
+            stock['count_anchor'] = dict(id=anchor.id, sequence=anchor.sequence,
+                count_date=anchor.count_date, through_movement_sequence=watermark,
+                previous_fingerprint=anchor.previous_fingerprint,
+                differences_sha256=fingerprint(anchor.differences))
     recipes = []
     for meal_id in meals:
         row = db.scalar(select(RecipeActivation).where(RecipeActivation.organization_id == organization_id,
@@ -98,6 +116,8 @@ def prepare_procurement_stock(db, user, snapshot):
             ledger_id=checked['ledger_id'], baseline_date=checked['baseline_date'],
             reconciliation_status='matched', fingerprint=checked['stock_fingerprint'],
             movement_count=len(checked['stock_evidence']['movements']))
+        if checked.get('count_anchor') is not None:
+            snapshot['stock_evidence']['count_anchor'] = deepcopy(checked['count_anchor'])
         # Preserve complete reconciliation as private enqueue-time evidence.
         snapshot['stock_reconciliation'] = checked['stock_evidence']
     else:

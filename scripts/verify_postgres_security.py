@@ -27,7 +27,8 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_real_source.py', 'test_real_execution.py', 'test_real_api.py',
           'test_worker_heartbeat.py', 'test_worker_migration.py', 'test_readiness.py', 'test_worker_shutdown.py', 'test_run_status.py',
           'test_stock_migration.py', 'test_worker_process.py', 'test_stock_service.py',
-          'test_recipe_activation.py', 'test_stock_api.py')
+          'test_recipe_activation.py', 'test_stock_api.py', 'test_count_anchor_migration.py',
+          'test_stock_anchor.py', 'test_stock_anchor_api.py')
 
 
 def source_hashes():
@@ -111,7 +112,8 @@ def main():
                         help='Bounded container-run deadline, 30–900 seconds (default: 300).')
     parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json', 'postgres-run-status.json', 'postgres-run-history.json', 'postgres-stock-journal.json', 'postgres-worker-deadlines.json',
         'postgres-stock-service-20261010.json', 'postgres-stock-api-20261010.json',
-        'postgres-stock-api-20261010-retry.json', 'postgres-recipe-identity-20261010.json'),
+        'postgres-stock-api-20261010-retry.json', 'postgres-recipe-identity-20261010.json',
+        'postgres-count-anchor-20261010.json', 'postgres-count-anchor-20261010-retry.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     if not 30 <= args.timeout_seconds <= 900:

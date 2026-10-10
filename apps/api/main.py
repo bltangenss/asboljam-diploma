@@ -659,6 +659,12 @@ def create_app(database_url=None):
         common.update(stock_basis=stock.get('source'),stock_ledger_id=stock.get('ledger_id'),
             stock_fingerprint=stock.get('fingerprint'),recipe_basis=recipe.get('source'),
             recipe_fingerprint=recipe.get('fingerprint'),recipe_versions='; '.join(plan.result.get('recipe_versions') or []))
+        if stock.get('count_anchor'):
+            # Only plans calculated from this evidence get the new columns;
+            # existing frozen exports retain their previous schema and bytes.
+            anchor=stock['count_anchor']
+            common.update(stock_count_anchor_id=anchor.get('id'),
+                stock_count_anchor_date=anchor.get('count_date'))
         rows=[{**common,'row_type':'summary','total_cost':plan.result.get('total_cost'),'budget':plan.result.get('budget'),'shortage_count':plan.result.get('shortage_count'),'constraints_valid':plan.result.get('constraints_valid')}]
         rows += [{**common,'row_type':'requirement',**r} for r in plan.result.get('requirements',[])]
         rows += [{**common,'row_type':'purchase',**r} for r in plan.result.get('lines',[])]

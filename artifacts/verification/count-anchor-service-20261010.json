@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-10T08:33:54.7285234Z",
+  "scope": "Immutable counted-anchor service and exact stock arithmetic",
+  "database": "Isolated temporary SQLite fixtures; main application database not opened",
+  "status": "PASS_FOCUSED",
+  "source_sha256_at_report": {
+    "apps/api/stock_service.py": "e87fc9e562198f44205ac4febd5eea04ef88a4a453e84783da756332e098be55",
+    "tests/test_stock_anchor.py": "caf41f995eaf6a06e4bd11175bfd1d75d778946147464a7e1d35b2d9d12becae",
+    "apps/api/stock.py": "1652ff0e73cd6d0f1f8772d54f30db84f743df7e3ba5bc18632bd95dca32e570",
+    "tests/test_stock_service.py": "f4b0e65b7abd0a424e96febbc67ab85e48aeac5fa1bde91e78c96f01713c2f17"
+  },
+  "runs": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_stock_anchor.py -v",
+      "status": "PASS",
+      "tests_run": 16,
+      "seconds": 5.911
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_stock_math.py -v",
+      "status": "PASS",
+      "tests_run": 16,
+      "seconds": 0.518
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tests -p test_stock_service.py -v",
+      "status": "PASS",
+      "tests_run": 20,
+      "seconds": 2.484
+    }
+  ],
+  "initial_service_regression": {
+    "command": "python -X utf8 -m unittest discover -s tests -p test_stock_service.py -v",
+    "status": "FAIL",
+    "tests_run": 20,
+    "passed": 19,
+    "failed": 1,
+    "seconds": 3.64,
+    "failed_test": "test_baseline_correction_and_context_change_block_new_posting_keep_historical_reads",
+    "cause": "Whole opening-object equality included newly added source_freshness which correctly changes after CSV correction; rows, date and selected count anchor were unchanged",
+    "resolution": "Compare preserved rows/date/count_anchor and explicitly assert source_freshness unchanged before correction and changed after it; rerun20/20passed"
+  },
+  "covered": [
+    "Immutable original baseline and dated count anchors",
+    "Explicit acknowledgement and complete counted snapshots with explicit zero for all known lots",
+    "Missing previous quantity remains unknown for newly counted lots; kg/L and decimal precision retained",
+    "Source context, stale identity and current role/scope revalidation",
+    "Atomic version compare, same-key idempotent concurrency, different-key anchor race and anchor-versus-movement race",
+    "Caller and audit-failure rollback",
+    "Movement sequences independent from ledger version",
+    "Cross-anchor reversal prohibited, old successful receipt still replayable",
+    "Period-aware stock reads/freshness and effective source dates",
+    "Future anchors and superseded baseline corrections do not change earlier/relevant fingerprints"
+  ],
+  "not_tested_by_this_report": [
+    "PostgreSQL counted-anchor workflow; delegated separately",
+    "Full Python suite after counted-anchor implementation",
+    "Browser workflow"
+  ],
+  "integrity_note": "Final source hashes were recorded after the focused runs. Per-run pre/post source hashes were not captured."
+}

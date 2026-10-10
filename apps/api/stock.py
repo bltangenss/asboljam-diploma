@@ -150,7 +150,7 @@ def reverse_entries(stored_entries):
             for entry in stored_entries]
 
 
-def replay(baseline, movements, *, baseline_date, target_date, ingredients):
+def replay(baseline, movements, *, baseline_date, target_date, ingredients, starting_sequence=0):
     """Build an opening stock position using D <= movement date < target date.
 
     Movement posting is chronological. A correction is a later linked operation,
@@ -159,7 +159,9 @@ def replay(baseline, movements, *, baseline_date, target_date, ingredients):
     day(baseline_date);day(target_date)
     if target_date < baseline_date:
         reject('STOCK_DATE_BEFORE_BASELINE', 'There is no journal position before its baseline.')
-    state, selected, previous_day, sequence = deepcopy(baseline), [], baseline_date, 0
+    if type(starting_sequence) is not int or starting_sequence < 0:
+        reject('STOCK_HISTORY_INVALID', 'The stock replay watermark is invalid.', 409)
+    state, selected, previous_day, sequence = deepcopy(baseline), [], baseline_date, starting_sequence
     for movement in movements:
         effective = day(movement['business_date'])
         if movement['sequence'] != sequence + 1 or effective < previous_day:

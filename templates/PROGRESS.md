@@ -1,5 +1,15 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — API подтверждённого пересчёта и PostgreSQL
+
+**DONE:** preview → явное подтверждение полного пересчёта → неизменяемый документ/аудит/receipt. Раздельные sequence движений и version журнала, чтение по датам, запрет обратной записи через принятый срез, строгая полнота партий и неизменность источника. Закупка сохраняет выбранный срез своего периода; поздние пересчёты не устаревают прежний план, утверждённая выгрузка сохраняется.
+
+**TESTED:** SQLite anchor16/16 (5.911s), arithmetic16/16 (0.518s), service20/20 (2.484s), HTTP6/6 (15.955s). Первоначальный service19/20 FAIL из-за ожидания целого объекта после добавления source_freshness сохранён; уточнены проверки неизменных rows/date/anchor и изменившейся свежести. [Focused отчёт](../artifacts/verification/count-anchor-service-20261010.json). PostgreSQL80/80 PASS (122.146s):79 реальных PG bodies и1 pure engine, стабильные исходники, без skips/errors/failures. [PG отчёт](../artifacts/verification/postgres-count-anchor-20261010.json).
+
+**DONE / TESTED:** основная SQLite0007→0008 после verified backup `backups/pre-count-anchor-0008-20261010T083943699092Z.sqlite`. Хеши и количество строк всех21 старых таблиц совпали, новая таблица пуста, integrity/FK PASS. [Отчёт миграции](../artifacts/verification/count-anchor-main-migration-20261010.json). Контейнер PostgreSQL остановлен, прежние БД/volumes сохранены.
+
+**IN PROGRESS:** финальная Python-регрессия и новая live browser приёмка. **NOT TESTED:** production/реальный пилот/device. Численные forecast/procurement алгоритмы не менялись; успешный research без причины не повторялся.
+
 ## 10.10.2026 — хранилище подтверждённых пересчётов
 
 **DONE:** migration0008 добавляет пустую таблицу stock_count_anchors с зафиксированными строками, происхождением, расхождениями, причиной и границей прежних движений. Исходный baseline и движения не переписываются. Ограничения базы связывают версию журнала с отдельными последовательностями пересчётов и движений; tenant/orphan guards учитывают новую историю.

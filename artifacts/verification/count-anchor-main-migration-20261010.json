@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-10-10T08:39:39.323581+00:00",
+  "status": "passed",
+  "database": "data/asboljam.sqlite",
+  "executed": "scripts/backup_db.copy_database, then apps.api.db.make_engine + migrate; no apps.api.main import",
+  "process_preflight": "External PowerShell inspection immediately before invocation found no Python API/worker/test processes; verification application containers stopped.",
+  "source_sha256": {
+    "apps/api/db.py": "b623b77bdeb8cc628c9ceb30d02f8990ab650972cf8dea5c7fd644532b12b5bf",
+    "apps/api/migrations.py": "924d9810950544df4daa39db9bdf0d3d683641c2a7cfa4b9813de890e7d2ea60",
+    "scripts/backup_db.py": "08f5265fc273f6ea71abc17d33fa02ae9a5c011c0f7c37ac64990b331da094cd"
+  },
+  "pg_evidence": "artifacts/verification/postgres-count-anchor-20261010.json",
+  "limits": [
+    "Local SQLite migration only; not production or a real-business pilot.",
+    "No counted anchor, movement or operational row is invented."
+  ],
+  "versions_before": [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005",
+    "0006",
+    "0007"
+  ],
+  "backup_path": "backups/pre-count-anchor-0008-20261010T083943699092Z.sqlite",
+  "backup_sha256": "ba482197f660bc667ab14a7303d13488ab39dc47c642c605007db6e39617f2b2",
+  "backup_integrity_check": "ok",
+  "backup_foreign_key_check": "ok",
+  "backup_row_hashes_match_before": true,
+  "versions_after": [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005",
+    "0006",
+    "0007",
+    "0008"
+  ],
+  "applied_versions": [
+    "0008"
+  ],
+  "previous_table_count": 21,
+  "previous_tables_unchanged": true,
+  "previous_table_sha256": {
+    "audit_events": "adc33fec8785ecb49f3f96895ac62971f3eadcbf1cbb816748f940de6282d2fd",
+    "auth_sessions": "f444db1c1859f4ed938ba51d48bc8f458abfb74c0203d967ca236212998c22c5",
+    "forecasts": "9bb6bb4d006297294a229bb4721c3e47bb2b2b7ebd3bc0fc5109b8484aa3b088",
+    "idempotency_keys": "b2bd0e9cede811aefcf3fee109b979b0779ef6ea5df1964e753bff5b3b5a6a5f",
+    "import_batches": "996e13a7a1a135fd0496441870eca8a22fb24e176229daf5d7acbdbc7504856d",
+    "import_evidence": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "import_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "jobs": "7f478b00e75ffc5f797c6cb2b754ad019864d634bc888074126fd2f5757bf15a",
+    "login_attempts": "0f8a3f6a23b50eb73801838ac52dc6ebef9bbb93c21f7e5c32728a4f3bb903f8",
+    "operational_records": "3e9c07c93793fc7b6c9a2dc110c6cdf5e4203da68a50a78325bd252ccf1d4a9b",
+    "organization_sources": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "organizations": "8144d258b3737f4a3e2e979afced08a8860a52d97c6ca8e843ecccd126cde94d",
+    "plans": "27f44af24b78c1175bfb1c2b2311327b29489c96c962f20792ea05eae0fcaca6",
+    "recipe_activations": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "recipe_command_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "record_revisions": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "refresh_tokens": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_command_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_ledgers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stock_movements": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "users": "13da5909ad168bb3fee5189477ef05c1327db53d68675e7b43077e43a3c27fbd"
+  },
+  "new_tables": {
+    "stock_count_anchors": 0
+  },
+  "integrity_check": "ok",
+  "foreign_key_check": "ok"
+}

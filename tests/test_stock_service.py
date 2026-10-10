@@ -202,7 +202,10 @@ class StockServiceTests(unittest.TestCase):
         self.open(); self.post(); before = self.position()
         self.correct_baseline('999')
         changed = self.position()
-        self.assertEqual(changed['opening'], before['opening'])
+        for key in ('rows', 'date', 'count_anchor'):
+            self.assertEqual(changed['opening'][key], before['opening'][key])
+        self.assertEqual(before['opening']['source_freshness'], 'unchanged')
+        self.assertEqual(changed['opening']['source_freshness'], 'changed')
         self.assertEqual(changed['baseline_freshness'], 'changed')
         self.error('STOCK_BASELINE_CHANGED', lambda:self.call('preview_movement', **self.options(expected_version=2, source_reference='next')))
         with self.factory() as db:

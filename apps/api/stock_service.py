@@ -20,7 +20,7 @@ from sqlalchemy import func, or_, select, update
 
 from .accounts import lock_user
 from .data_policy import (DEMO_TARGET, business_clock, ensure_rows, policy_context)
-from .db import Audit, StockCommandReceipt, StockLedger, StockMovement, User
+from .db import Audit, StockCommandReceipt, StockCountAnchor, StockLedger, StockMovement, User
 from .importing import rows_for
 from .lineage import capture_lineage, input_freshness
 from .stock import (StockError, apply_document, check_recipe_allocation, day,
@@ -58,7 +58,7 @@ def _actor(db, user, branch_id, *, write=False, kind=None):
     if (actor is None or actor.organization_id != original_org or not actor.active
             or not organization_active(db, original_org)):
         reject('AUTH_REQUIRED', 'The account or organization is unavailable.', 401)
-    allowed = {'admin', 'manager'} if kind in {'adjustment', 'reversal'} else WRITE_ROLES if write else READ_ROLES
+    allowed = {'admin', 'manager'} if kind in {'adjustment', 'reversal', 'count_anchor'} else WRITE_ROLES if write else READ_ROLES
     if actor.role not in allowed:
         reject('ROLE_FORBIDDEN', 'This role cannot perform the stock operation.', 403)
     if branch_id not in actor.branch_ids:
@@ -126,16 +126,18 @@ def _ledger_view(ledger):
             ('id', 'branch_id', 'baseline_date', 'version', 'created_by', 'created_at')}
 
 
-def _freshness(db, ledger, context):
-    return dict(baseline_freshness=input_freshness(db, ledger.organization_id, ledger.baseline_lineage),
+def _freshness(db, ledger, context, anchor=None):
+    baseline = input_freshness(db, ledger.organization_id, ledger.baseline_lineage)
+    return dict(baseline_freshness=baseline,
+                effective_freshness=input_freshness(db, ledger.organization_id, anchor.count_lineage) if anchor else baseline,
                 context_freshness='unchanged' if ledger.data_context == context else 'changed')
 
 
-def _require_fresh(db, ledger, context):
-    freshness = _freshness(db, ledger, context)
+def _require_fresh(db, ledger, context, anchor=None):
+    freshness = _freshness(db, ledger, context, anchor)
     if freshness['context_freshness'] != 'unchanged':
         reject('STOCK_CONTEXT_CHANGED', 'The journal source policy changed; explicit reconciliation is required.', 409)
-    if freshness['baseline_freshness'] != 'unchanged':
+    if freshness['effective_freshness'] != 'unchanged':
         reject('STOCK_BASELINE_CHANGED', 'The counted baseline changed; its frozen opening stock cannot be replaced silently.', 409)
     return freshness
 
@@ -146,21 +148,67 @@ def _movement_view(row):
              'entries', 'recipe_evidence', 'reverses_id', 'actor_id', 'recorded_at')}
 
 
-def _history(db, ledger):
+def _anchor_summary(anchor):
+    return None if anchor is None else {name: getattr(anchor, name) for name in
+        ('id', 'sequence', 'ledger_version', 'count_date', 'through_movement_sequence')}
+
+
+def _anchor_view(anchor):
+    return {name: deepcopy(getattr(anchor, name)) for name in
+        ('id', 'ledger_id', 'sequence', 'ledger_version', 'count_date', 'through_movement_sequence',
+         'counted_rows', 'differences', 'previous_fingerprint', 'reason', 'actor_id', 'recorded_at')}
+
+
+def _anchors(db, ledger):
+    """Internal immutable anchor selection; callers must already scope the ledger."""
+    rows = list(db.scalars(select(StockCountAnchor).where(StockCountAnchor.ledger_id == ledger.id)
+                          .order_by(StockCountAnchor.sequence)))
+    previous_date, watermark = None, 0
+    for sequence, row in enumerate(rows, 1):
+        if (row.organization_id != ledger.organization_id or row.branch_id != ledger.branch_id
+                or row.sequence != sequence or row.count_date < ledger.baseline_date
+                or previous_date is not None and row.count_date <= previous_date
+                or row.through_movement_sequence < watermark
+                or row.ledger_version != row.sequence + row.through_movement_sequence + 1
+                or row.data_context != ledger.data_context):
+            reject('STOCK_HISTORY_INVALID', 'Stored counted-anchor history is inconsistent.', 409)
+        day(row.count_date)
+        previous_date, watermark = row.count_date, row.through_movement_sequence
+    return rows
+
+
+def _selected_anchor(anchors, target_date):
+    return next((row for row in reversed(anchors) if row.count_date <= target_date), None)
+
+
+def _history(db, ledger, anchors=None):
+    anchors = _anchors(db, ledger) if anchors is None else anchors
     rows = list(db.scalars(select(StockMovement).where(StockMovement.ledger_id == ledger.id)
                           .order_by(StockMovement.sequence)))
     if any(row.organization_id != ledger.organization_id or row.branch_id != ledger.branch_id for row in rows):
         reject('STOCK_HISTORY_INVALID', 'Stored journal scope is inconsistent.', 409)
-    if ledger.version != len(rows) + 1:
+    if ledger.version != len(rows) + len(anchors) + 1:
         reject('STOCK_HISTORY_INVALID', 'Journal version and movement history disagree.', 409)
+    previous_date = ledger.baseline_date
+    for sequence, row in enumerate(rows, 1):
+        if row.sequence != sequence or row.business_date < previous_date:
+            reject('STOCK_HISTORY_INVALID', 'Journal movement order is inconsistent.', 409)
+        previous_date = day(row.business_date)
+    for anchor in anchors:
+        watermark = anchor.through_movement_sequence
+        if (watermark > len(rows)
+                or watermark and rows[watermark - 1].business_date >= anchor.count_date
+                or watermark < len(rows) and rows[watermark].business_date < anchor.count_date):
+            reject('STOCK_HISTORY_INVALID', 'Counted-anchor movement boundary is inconsistent.', 409)
     return [_movement_view(row) for row in rows]
 
 
-def _frozen_catalog(ledger, history):
+def _frozen_catalog(ledger, history, anchors=()):
     # Historical reading uses the units actually captured in its stock evidence.
     # A later catalog edit must not rewrite or prevent reading that history.
     result = {}
-    for row in [*ledger.baseline_rows, *(entry for movement in history for entry in movement['entries'])]:
+    for row in [*ledger.baseline_rows, *(row for anchor in anchors for row in anchor.counted_rows),
+                *(entry for movement in history for entry in movement['entries'])]:
         ingredient, unit = row['ingredient_id'], row['unit']
         if ingredient in result and result[ingredient]['unit'] != unit:
             reject('STOCK_HISTORY_INVALID', 'A journal ingredient has conflicting units.', 409)
@@ -168,12 +216,16 @@ def _frozen_catalog(ledger, history):
     return result
 
 
-def _position(ledger, history, opening_date):
-    catalog = _frozen_catalog(ledger, history)
-    baseline = opening_state(ledger.baseline_rows, branch_id=ledger.branch_id,
-        snapshot_date=ledger.baseline_date, data_origin=ledger.data_context['data_origin'], ingredients=catalog)
-    state, selected = replay(baseline, history, baseline_date=ledger.baseline_date,
-                             target_date=opening_date, ingredients=catalog)
+def _position(ledger, history, opening_date, anchors=()):
+    catalog = _frozen_catalog(ledger, history, anchors)
+    anchor = _selected_anchor(anchors, opening_date)
+    source_date = anchor.count_date if anchor else ledger.baseline_date
+    source_rows = anchor.counted_rows if anchor else ledger.baseline_rows
+    watermark = anchor.through_movement_sequence if anchor else 0
+    baseline = opening_state(source_rows, branch_id=ledger.branch_id,
+        snapshot_date=source_date, data_origin=ledger.data_context['data_origin'], ingredients=catalog)
+    state, selected = replay(baseline, [row for row in history if row['sequence'] > watermark],
+        baseline_date=source_date, target_date=opening_date, ingredients=catalog, starting_sequence=watermark)
     return state, selected
 
 
@@ -181,10 +233,11 @@ def _rows(state):
     return [deepcopy(state[key]) for key in sorted(state)]
 
 
-def _latest(ledger, history):
-    last_day = history[-1]['business_date'] if history else ledger.baseline_date
+def _latest(ledger, history, anchors=()):
+    last_day = max(history[-1]['business_date'] if history else ledger.baseline_date,
+                   anchors[-1].count_date if anchors else ledger.baseline_date)
     through = (date.fromisoformat(last_day) + timedelta(days=1)).isoformat()
-    return _position(ledger, history, through)[0], history[-1]['business_date'] if history else None
+    return _position(ledger, history, through, anchors)[0], last_day if history or anchors else None
 
 
 def _snapshot(db, organization_id, branch_id, snapshot_date, context, ingredients):
@@ -262,6 +315,92 @@ def open_ledger(db, user, *, branch_id, baseline_date, reason, expected_fingerpr
                  details={'reason': reason, 'baseline_date': baseline_date, 'preview_fingerprint': expected})
 
 
+def preview_count_anchor(db, user, *, branch_id, count_date, expected_version, reason):
+    """Disclose a complete exact count replacing only the next stock foundation.
+
+    Missing formerly known lots must be explicitly counted as zero. A new lot
+    may be disclosed by the count, with its previous quantity remaining unknown.
+    Old rows, movements and anchors are never rewritten or deleted.
+    """
+    actor, context = _actor(db, user, branch_id, write=True, kind='count_anchor')
+    reason = _reason(reason); _business_date(context, count_date)
+    ledger = _ledger(db, actor.organization_id, branch_id)
+    if type(expected_version) is not int or expected_version < 1 or ledger.version != expected_version:
+        reject('STOCK_VERSION_CONFLICT', 'Stock changed; review a new counted-anchor preview.', 409)
+    if ledger.data_context != context:
+        reject('STOCK_CONTEXT_CHANGED', 'A stock count cannot change the journal source policy.', 409)
+    anchors = _anchors(db, ledger)
+    history = _history(db, ledger, anchors)
+    if (count_date < ledger.baseline_date
+            or anchors and count_date <= anchors[-1].count_date
+            or history and count_date <= history[-1]['business_date']):
+        reject('STOCK_ANCHOR_DATE_ORDER', 'Use a count after the last movement and previous counted anchor.', 409)
+    before, selected = _position(ledger, history, count_date, anchors)
+    rows, counted, lineage = _snapshot(db, actor.organization_id, branch_id, count_date, context,
+                                     _ingredients(db, actor.organization_id, context))
+    differences = reconciliation(before, counted, baseline_date=ledger.baseline_date, target_date=count_date)['lines']
+    if any(row['status'] == 'missing_count' for row in differences):
+        reject('STOCK_ANCHOR_INCOMPLETE', 'Count every known lot explicitly, including zero for absent stock.', 409)
+    if any(row['status'] == 'lot_metadata_changed' for row in differences):
+        reject('STOCK_LOT_METADATA_CHANGED', 'A counted anchor cannot change a known lot unit or expiry.', 409)
+    previous_anchor = _selected_anchor(anchors, count_date)
+    previous = dict(ledger_id=ledger.id, count_date=count_date, baseline_date=ledger.baseline_date,
+        baseline_rows=ledger.baseline_rows, baseline_lineage=ledger.baseline_lineage,
+        data_context=ledger.data_context, count_anchor=_anchor_view(previous_anchor) if previous_anchor else None,
+        movements=selected, balances=_rows(before))
+    if previous_anchor:
+        previous['count_anchor']['count_lineage'] = previous_anchor.count_lineage
+    evidence = dict(operation='count_anchor', organization_id=actor.organization_id, actor_id=actor.id,
+        ledger_id=ledger.id, branch_id=branch_id, version=ledger.version, anchor_sequence=len(anchors) + 1,
+        count_date=count_date, through_movement_sequence=len(history), previous_fingerprint=fingerprint(previous),
+        balances_before=_rows(before), counted_rows=sorted(rows, key=lambda row: (row['ingredient_id'], row['lot_id'])),
+        differences=differences, count_lineage=lineage, reason=reason, data_context=context)
+    return {name: deepcopy(value) for name, value in evidence.items()
+            if name not in {'organization_id', 'actor_id', 'data_context'}} | {
+        'preview_fingerprint': fingerprint(evidence), 'public_context': public_context(context)}
+
+
+def post_count_anchor(db, user, *, branch_id, count_date, expected_version, reason,
+                      expected_fingerprint, idempotency_key, acknowledge_differences):
+    """Post an immutable count and receipt/audit atomically in the caller transaction."""
+    actor, context = _actor(db, user, branch_id, write=True, kind='count_anchor')
+    if acknowledge_differences is not True:
+        reject('STOCK_ANCHOR_ACK_REQUIRED', 'Explicitly acknowledge the complete counted stock and differences.')
+    key = _key(idempotency_key); expected = _expected_fingerprint(expected_fingerprint)
+    reason = _reason(reason)
+    options = dict(branch_id=branch_id, count_date=count_date, expected_version=expected_version, reason=reason)
+    payload_hash = fingerprint(dict(operation='count_anchor', **options,
+        expected_fingerprint=expected, acknowledge_differences=True))
+    prior = _receipt(db, actor, key, payload_hash, branch_id)
+    if prior is not None:
+        return prior
+    preview = preview_count_anchor(db, actor, **options)
+    if preview['preview_fingerprint'] != expected:
+        reject('STOCK_PREVIEW_STALE', 'The count or prior position changed; review a new preview.', 409)
+    ledger = _ledger(db, actor.organization_id, branch_id)
+    changed = db.execute(update(StockLedger).where(StockLedger.id == ledger.id,
+        StockLedger.organization_id == actor.organization_id, StockLedger.branch_id == branch_id,
+        StockLedger.version == expected_version).values(version=expected_version + 1)).rowcount
+    if changed != 1:
+        reject('STOCK_VERSION_CONFLICT', 'Another stock command was posted; review a new preview.', 409)
+    anchor = StockCountAnchor(id=uuid.uuid4().hex, ledger_id=ledger.id,
+        organization_id=actor.organization_id, branch_id=branch_id, sequence=preview['anchor_sequence'],
+        ledger_version=expected_version + 1, count_date=count_date,
+        through_movement_sequence=preview['through_movement_sequence'], counted_rows=deepcopy(preview['counted_rows']),
+        count_lineage=deepcopy(preview['count_lineage']), data_context=deepcopy(context),
+        differences=deepcopy(preview['differences']), previous_fingerprint=preview['previous_fingerprint'],
+        reason=reason, actor_id=actor.id)
+    db.add(anchor); db.flush()
+    response = dict(status='anchored', anchor_id=anchor.id, ledger_id=ledger.id, branch_id=branch_id,
+        version=expected_version + 1, anchor_sequence=anchor.sequence, count_date=count_date,
+        previous_fingerprint=anchor.previous_fingerprint, public_context=public_context(context))
+    return _save(db, actor, ledger, key, payload_hash, response, action='stock.count_anchored', entity_id=anchor.id,
+        details=dict(ledger_id=ledger.id, anchor_sequence=anchor.sequence, count_date=count_date,
+            through_movement_sequence=anchor.through_movement_sequence, version=anchor.ledger_version,
+            previous_fingerprint=anchor.previous_fingerprint, reason=reason, acknowledge_differences=True,
+            preview_fingerprint=expected))
+
+
 def recipe_requirements_view(db, user, *, branch_id, business_date, portions):
     """Resolve dated recipe versions; this helper never posts or assumes lot allocation."""
     from .stock_recipes import resolve_recipes
@@ -287,9 +426,11 @@ def preview_movement(db, user, *, branch_id, expected_version, kind, business_da
     ledger = _ledger(db, actor.organization_id, branch_id)
     if type(expected_version) is not int or expected_version < 1 or ledger.version != expected_version:
         reject('STOCK_VERSION_CONFLICT', 'Stock changed; reload and review a new movement preview.', 409)
-    _require_fresh(db, ledger, context)
-    history = _history(db, ledger)
-    latest, last_day = _latest(ledger, history)
+    anchors = _anchors(db, ledger)
+    active_anchor = anchors[-1] if anchors else None
+    _require_fresh(db, ledger, context, active_anchor)
+    history = _history(db, ledger, anchors)
+    latest, last_day = _latest(ledger, history, anchors)
     if business_date < (last_day or ledger.baseline_date):
         reject('STOCK_BACKDATED', 'Post a later correcting operation instead of changing prior stock history.', 409)
     if any(row['source_reference'] == source_reference for row in history):
@@ -303,6 +444,8 @@ def preview_movement(db, user, *, branch_id, expected_version, kind, business_da
         original = next((row for row in history if row['id'] == reverses_id), None)
         if original is None:
             reject('STOCK_MOVEMENT_NOT_FOUND', 'The original scoped movement does not exist.', 404)
+        if active_anchor and original['sequence'] <= active_anchor.through_movement_sequence:
+            reject('STOCK_REVERSAL_BEFORE_ANCHOR', 'This movement predates the accepted count; post a new explicit adjustment instead.', 409)
         if original['kind'] == 'reversal' or any(row['reverses_id'] == reverses_id for row in history):
             reject('STOCK_REVERSAL_INVALID', 'A reversal cannot be reversed or applied twice.', 409)
         effective_lines = reverse_entries(original['entries'])
@@ -323,12 +466,12 @@ def preview_movement(db, user, *, branch_id, expected_version, kind, business_da
     if kind == 'recipe_usage':
         check_recipe_allocation(entries, recipe['requirements'])
     evidence = dict(operation='movement', organization_id=actor.organization_id, actor_id=actor.id,
-        ledger_id=ledger.id, branch_id=branch_id, version=ledger.version, kind=kind,
+        ledger_id=ledger.id, branch_id=branch_id, version=ledger.version, sequence=len(history) + 1, kind=kind,
         business_date=business_date, source_reference=source_reference, reason=reason,
         reverses_id=reverses_id, entries=entries, recipe_evidence=recipe_evidence,
-        baseline_lineage=ledger.baseline_lineage, data_context=context,
+        baseline_lineage=ledger.baseline_lineage, count_anchor=_anchor_summary(active_anchor), data_context=context,
         balances_before=_rows(latest), balances_after=_rows(after))
-    return {name: deepcopy(evidence[name]) for name in ('operation', 'ledger_id', 'branch_id', 'version',
+    return {name: deepcopy(evidence[name]) for name in ('operation', 'ledger_id', 'branch_id', 'version', 'sequence',
             'kind', 'business_date', 'source_reference', 'reason', 'reverses_id', 'entries',
             'recipe_evidence', 'balances_before', 'balances_after')} | {
                 'preview_fingerprint': fingerprint(evidence), 'public_context': public_context(context)}
@@ -357,15 +500,15 @@ def post_movement(db, user, *, branch_id, expected_version, kind, business_date,
     if updated != 1:
         reject('STOCK_VERSION_CONFLICT', 'Another movement was posted; review a new preview.', 409)
     movement = StockMovement(id=uuid.uuid4().hex, ledger_id=ledger.id, organization_id=actor.organization_id,
-        branch_id=branch_id, sequence=expected_version, kind=kind, business_date=business_date,
+        branch_id=branch_id, sequence=preview['sequence'], kind=kind, business_date=business_date,
         reason=reason, source_reference=source_reference, entries=deepcopy(preview['entries']),
         recipe_evidence=deepcopy(preview['recipe_evidence']), reverses_id=reverses_id, actor_id=actor.id)
     db.add(movement); db.flush()
     response = dict(ledger_id=ledger.id, movement_id=movement.id, branch_id=branch_id,
-        version=expected_version + 1, sequence=expected_version, status='posted',
+        version=expected_version + 1, sequence=movement.sequence, status='posted',
         entries=deepcopy(movement.entries), public_context=public_context(context))
     return _save(db, actor, ledger, key, payload_hash, response, action='stock.movement_posted',
-        entity_id=movement.id, details=dict(ledger_id=ledger.id, sequence=expected_version, kind=kind,
+        entity_id=movement.id, details=dict(ledger_id=ledger.id, sequence=movement.sequence, kind=kind,
             business_date=business_date, reason=reason, source_reference=source_reference,
             reverses_id=reverses_id, preview_fingerprint=expected))
 
@@ -375,15 +518,22 @@ def get_position(db, user, *, branch_id, opening_date):
     actor, context = _actor(db, user, branch_id)
     ledger = _ledger(db, actor.organization_id, branch_id, required=False)
     if ledger is None:
-        return dict(ledger=None, version=None, baseline_freshness='unknown', context_freshness='unknown',
-            opening={'date': opening_date, 'rows': None}, latest={'through_business_date': None, 'rows': None},
+        return dict(ledger=None, version=None, baseline_freshness='unknown', effective_freshness='unknown', context_freshness='unknown',
+            opening={'date': opening_date, 'rows': None, 'count_anchor': None, 'source_freshness': 'unknown'},
+            latest={'through_business_date': None, 'rows': None, 'count_anchor': None, 'source_freshness': 'unknown'},
             public_context=public_context(context))
-    history = _history(db, ledger)
-    opening, _ = _position(ledger, history, opening_date)
-    latest, through = _latest(ledger, history)
-    return dict(ledger=_ledger_view(ledger), version=ledger.version, **_freshness(db, ledger, context),
-        opening={'date': opening_date, 'rows': _rows(opening)},
-        latest={'through_business_date': through, 'rows': _rows(latest)},
+    anchors = _anchors(db, ledger)
+    history = _history(db, ledger, anchors)
+    opening, _ = _position(ledger, history, opening_date, anchors)
+    latest, through = _latest(ledger, history, anchors)
+    opening_anchor, latest_anchor = _selected_anchor(anchors, opening_date), anchors[-1] if anchors else None
+    freshness = _freshness(db, ledger, context, latest_anchor)
+    opening_freshness = _freshness(db, ledger, context, opening_anchor)['effective_freshness']
+    return dict(ledger=_ledger_view(ledger), version=ledger.version, **freshness,
+        opening={'date': opening_date, 'rows': _rows(opening), 'count_anchor': _anchor_summary(opening_anchor),
+                 'source_freshness': opening_freshness},
+        latest={'through_business_date': through, 'rows': _rows(latest), 'count_anchor': _anchor_summary(latest_anchor),
+                'source_freshness': freshness['effective_freshness']},
         public_context=public_context(ledger.data_context))
 
 
@@ -399,7 +549,8 @@ def list_movements(db, user, *, branch_id, limit=50, cursor=0):
         invalid = db.scalar(select(StockMovement.id).where(StockMovement.ledger_id == ledger.id,
             or_(StockMovement.organization_id != actor.organization_id, StockMovement.branch_id != branch_id)).limit(1))
         total = db.scalar(select(func.count()).select_from(StockMovement).where(*scope))
-        if invalid or ledger.version != total + 1:
+        anchors = _anchors(db, ledger)
+        if invalid or ledger.version != total + len(anchors) + 1:
             reject('STOCK_HISTORY_INVALID', 'Stored journal scope or version is inconsistent.', 409)
         history = [_movement_view(row) for row in db.scalars(select(StockMovement).where(*scope)
             .order_by(StockMovement.sequence.desc()).offset(cursor).limit(limit))]
@@ -407,7 +558,31 @@ def list_movements(db, user, *, branch_id, limit=50, cursor=0):
             *scope, StockMovement.reverses_id.in_([row['id'] for row in history]))).all()) if history else {}
         for row in history:
             row['reversed_by_id'] = reversal_links.get(row['id'])
+            row['before_count_anchor'] = bool(anchors and row['sequence'] <= anchors[-1].through_movement_sequence)
     return dict(ledger_id=ledger.id if ledger else None, items=history, total=total,
+        next_cursor=str(cursor + limit) if cursor + limit < total else None,
+        public_context=public_context(ledger.data_context if ledger else context))
+
+
+def list_count_anchors(db, user, *, branch_id, limit=20, cursor=0):
+    """Read frozen accepted counts and disclosed differences, newest first."""
+    if type(limit) is not int or not 1 <= limit <= 100 or type(cursor) is not int or cursor < 0:
+        reject('STOCK_PAGE_INVALID', 'Use a page size of 1–100 and a nonnegative cursor.')
+    actor, context = _actor(db, user, branch_id)
+    ledger = _ledger(db, actor.organization_id, branch_id, required=False)
+    total, items = 0, []
+    if ledger:
+        scope = (StockCountAnchor.ledger_id == ledger.id,
+                 StockCountAnchor.organization_id == actor.organization_id, StockCountAnchor.branch_id == branch_id)
+        invalid = db.scalar(select(StockCountAnchor.id).where(StockCountAnchor.ledger_id == ledger.id,
+            or_(StockCountAnchor.organization_id != actor.organization_id, StockCountAnchor.branch_id != branch_id)).limit(1))
+        total = db.scalar(select(func.count()).select_from(StockCountAnchor).where(*scope))
+        movements = db.scalar(select(func.count()).select_from(StockMovement).where(StockMovement.ledger_id == ledger.id))
+        if invalid or ledger.version != total + movements + 1:
+            reject('STOCK_HISTORY_INVALID', 'Stored counted-anchor scope or version is inconsistent.', 409)
+        items = [_anchor_view(row) for row in db.scalars(select(StockCountAnchor).where(*scope)
+            .order_by(StockCountAnchor.sequence.desc()).offset(cursor).limit(limit))]
+    return dict(ledger_id=ledger.id if ledger else None, items=items, total=total,
         next_cursor=str(cursor + limit) if cursor + limit < total else None,
         public_context=public_context(ledger.data_context if ledger else context))
 
@@ -417,8 +592,10 @@ def reconcile(db, user, *, branch_id, count_date):
     actor, context = _actor(db, user, branch_id)
     day(count_date)
     ledger = _ledger(db, actor.organization_id, branch_id)
-    history = _history(db, ledger)
-    calculated, selected = _position(ledger, history, count_date)
+    anchors = _anchors(db, ledger)
+    history = _history(db, ledger, anchors)
+    anchor = _selected_anchor(anchors, count_date)
+    calculated, selected = _position(ledger, history, count_date, anchors)
     counted_rows = sorted((row for row in rows_for(db, actor.organization_id, 'inventory_lots', branch_id)
                            if row['snapshot_date'] == count_date),
                           key=lambda row: (row['ingredient_id'], row['lot_id']))
@@ -427,13 +604,25 @@ def reconcile(db, user, *, branch_id, count_date):
         data_origin=context['data_origin'], ingredients=_ingredients(db, actor.organization_id, context)) if counted_rows else {}
     count_lineage = capture_lineage(db, actor.organization_id, [dict(kind='inventory_lots', rows=counted_rows,
                                       branch_id=branch_id, snapshot_date=count_date)])
-    freshness = _freshness(db, ledger, context)
-    result = reconciliation(calculated, counted, baseline_date=ledger.baseline_date, target_date=count_date)
-    if any(value != 'unchanged' for value in freshness.values()):
+    freshness = _freshness(db, ledger, context, anchor)
+    source_date = anchor.count_date if anchor else ledger.baseline_date
+    result = reconciliation(calculated, counted, baseline_date=source_date, target_date=count_date)
+    if freshness['effective_freshness'] != 'unchanged' or freshness['context_freshness'] != 'unchanged':
         result['status'] = 'unresolved'
-    evidence = dict(ledger_id=ledger.id, baseline_date=ledger.baseline_date, baseline_rows=ledger.baseline_rows,
-        baseline_lineage=ledger.baseline_lineage, data_context=ledger.data_context, target_date=count_date,
+    evidence = dict(ledger_id=ledger.id, baseline_date=source_date,
+        baseline_rows=anchor.counted_rows if anchor else ledger.baseline_rows,
+        baseline_lineage=anchor.count_lineage if anchor else ledger.baseline_lineage,
+        data_context=ledger.data_context, target_date=count_date,
         movements=selected, counted_lineage=count_lineage, counted_rows=counted_rows, **freshness)
+    if anchor:
+        evidence['count_anchor'] = dict(**_anchor_view(anchor), count_lineage=anchor.count_lineage)
+        evidence['original_baseline_date'] = ledger.baseline_date
+        evidence['original_baseline_rows'] = ledger.baseline_rows
+        evidence['original_baseline_lineage'] = ledger.baseline_lineage
+        # A superseded CSV baseline may be corrected later without changing this
+        # accepted count's period evidence. Its warning remains in the response.
+        evidence.pop('baseline_freshness')
     return dict(result, ledger_id=ledger.id, schema_version=result['version'], version=ledger.version, **freshness,
+        count_anchor=_anchor_summary(anchor),
         stock_fingerprint=fingerprint(evidence), stock_evidence=_public_evidence(evidence),
         public_context=public_context(ledger.data_context))

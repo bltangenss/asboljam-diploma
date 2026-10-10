@@ -31,6 +31,18 @@ class StockOpenCommit(StockOpen):
     expected_fingerprint: Fingerprint
 
 
+class StockCountAnchorInput(StockInput):
+    branch_id: SourceId
+    count_date: BusinessDate
+    expected_version: Annotated[int, Field(strict=True, ge=1)]
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+class StockCountAnchorCommit(StockCountAnchorInput):
+    expected_fingerprint: Fingerprint
+    acknowledge_differences: Annotated[bool, Field(strict=True)]
+
+
 class StockLine(StockInput):
     ingredient_id: SourceId
     lot_id: SourceId
@@ -135,6 +147,25 @@ def register_stock_routes(app, *, current, get_db, roles, branch_access):
     def preview_movement(data: StockMovementInput, request: Request, user=Depends(current), db=Depends(get_db)):
         access(request, db, user, data.branch_id, write=True, elevated=data.kind in {'adjustment', 'reversal'})
         return service.preview_movement(db, user, **data.model_dump())
+
+    @app.post('/api/v1/stock/count-anchors/preview')
+    def preview_count_anchor(data: StockCountAnchorInput, request: Request,
+                             user=Depends(current), db=Depends(get_db)):
+        access(request, db, user, data.branch_id, elevated=True)
+        return service.preview_count_anchor(db, user, **data.model_dump())
+
+    @app.post('/api/v1/stock/count-anchors')
+    def post_count_anchor(data: StockCountAnchorCommit, request: Request,
+                          key: str = Header(alias='Idempotency-Key', min_length=1, max_length=128),
+                          user=Depends(current), db=Depends(get_db)):
+        access(request, db, user, data.branch_id, elevated=True)
+        return commit(db, service.post_count_anchor, user, data, key)
+
+    @app.get('/api/v1/stock/count-anchors')
+    def count_anchors(request: Request, branch_id: SourceId, limit: int = Query(20, ge=1, le=100),
+                      cursor: int = Query(0, ge=0), user=Depends(current), db=Depends(get_db)):
+        access(request, db, user, branch_id)
+        return service.list_count_anchors(db, user, branch_id=branch_id, limit=limit, cursor=cursor)
 
     @app.post('/api/v1/stock/movements')
     def post_movement(data: StockMovementCommit, request: Request,
