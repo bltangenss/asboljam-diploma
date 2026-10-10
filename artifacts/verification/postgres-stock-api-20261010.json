@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-10-10T07:53:55.932264+00:00",
+  "status": "failed",
+  "database": "asboljam_security_cc6aeee4231d48b19f136cfe1f4751c8",
+  "suites_requested": [
+    "test_stock_api.py",
+    "test_recipe_activation.py"
+  ],
+  "limits": [
+    "Local PostgreSQL in Docker; no production deployment or TLS/load verification.",
+    "Security fixtures use synthetic organizations; forecast calculations are stubbed where the suite specifies.",
+    "Existing operational databases and volumes are preserved; fresh test database/schemas retained."
+  ],
+  "source_commit": "0729910c4042942e24dbbbca48b5f31561f2c70e",
+  "working_tree_changes": [
+    "M README.md",
+    " M apps/api/engine.py",
+    " M apps/api/lineage.py",
+    " M apps/api/main.py",
+    " M apps/web/src/DataPages.tsx",
+    " M apps/web/src/Planning.tsx",
+    " M apps/worker/calculation_process.py",
+    " M contracts/data_manifest.json",
+    " M contracts/openapi.json",
+    " M design/copy.kk.json",
+    " M design/copy.ru.json",
+    " M design/screens.json",
+    " M design/tokens.json",
+    " M docs/commercial/STOCK_LEDGER_DESIGN_RU.md",
+    " M scripts/generate_contracts.py",
+    " M scripts/verify_postgres_security.py",
+    "?? apps/api/stock_api.py",
+    "?? apps/api/stock_dependencies.py",
+    "?? apps/web/src/StockLedger.tsx",
+    "?? apps/web/src/StockPlanEvidence.tsx",
+    "?? apps/web/src/StockRecipes.tsx",
+    "?? apps/web/src/stock-ledger.css",
+    "?? apps/web/src/stockCopy.ts",
+    "?? artifacts/verification/recipe-migration-20261010.json",
+    "?? scripts/prepare_stock_e2e.py",
+    "?? tests/e2e/stock_ledger.spec.ts",
+    "?? tests/e2e/stock_ledger_live.spec.ts",
+    "?? tests/test_stock_api.py"
+  ],
+  "image_id": "sha256:640d5dbd8e7acfc05deea1ce26dbf8f95756b39a9cd79ee1f4abe5e043c5cf14",
+  "docker_server_version": "29.8.0",
+  "database_created": true,
+  "error": "Command '['docker', 'run', '--rm', '--pull=never', '--network', 'asboljam-verification_default', '--env', 'ASBOLJAM_SECURITY_TEST_DATABASE_URL', '--env', 'DATABASE_URL', '--env', 'ASBOLJAM_ENV=local', '--env', 'COOKIE_SECURE=false', '--env', 'ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000', '--env', 'PYTHONPATH=/workspace:/workspace/tests', '--volume', 'C:\\\\Users\\\\ASUS\\\\Desktop\\\\Diplomwork:/workspace:ro', '--workdir', '/tmp', 'sha256:640d5dbd8e7acfc05deea1ce26dbf8f95756b39a9cd79ee1f4abe5e043c5cf14', 'python', '/workspace/scripts/verify_postgres_security.py', '--inside', '--suite', 'test_stock_api.py', '--suite', 'test_recipe_activation.py']' timed out after 300 seconds",
+  "elapsed_seconds": 304.595
+}

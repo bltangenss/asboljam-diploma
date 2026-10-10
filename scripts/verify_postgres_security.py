@@ -107,10 +107,15 @@ def main():
     parser.add_argument('--postgres-container', default='asboljam-verification-postgres-1')
     parser.add_argument('--network', default='asboljam-verification_default')
     parser.add_argument('--image', default='asboljam-verification-api:latest')
+    parser.add_argument('--timeout-seconds', type=int, default=300,
+                        help='Bounded container-run deadline, 30–900 seconds (default: 300).')
     parser.add_argument('--report-name', choices=('postgres-security.json', 'postgres-password-security.json', 'postgres-tenant-platform.json', 'postgres-import-platform.json', 'postgres-real-platform.json', 'postgres-real-worker.json', 'postgres-worker-heartbeat.json', 'postgres-readiness.json', 'postgres-worker-shutdown.json', 'postgres-run-status.json', 'postgres-run-history.json', 'postgres-stock-journal.json', 'postgres-worker-deadlines.json',
-        'postgres-stock-service-20261010.json', 'postgres-stock-api-20261010.json', 'postgres-recipe-identity-20261010.json'),
+        'postgres-stock-service-20261010.json', 'postgres-stock-api-20261010.json',
+        'postgres-stock-api-20261010-retry.json', 'postgres-recipe-identity-20261010.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
+    if not 30 <= args.timeout_seconds <= 900:
+        parser.error('--timeout-seconds must be between 30 and 900')
     suites = args.suite or list(SUITES[:2])
     if args.inside:
         return inside(suites)
@@ -124,7 +129,7 @@ def main():
     environment = dict(os.environ)
     database = 'asboljam_security_' + uuid.uuid4().hex
     report = {'timestamp': datetime.now(timezone.utc).isoformat(), 'status': 'running',
-              'database': database, 'suites_requested': suites,
+              'database': database, 'suites_requested': suites, 'runner_timeout_seconds': args.timeout_seconds,
               'limits': ['Local PostgreSQL in Docker; no production deployment or TLS/load verification.',
                          'Security fixtures use synthetic organizations; forecast calculations are stubbed where the suite specifies.',
                          'Existing operational databases and volumes are preserved; fresh test database/schemas retained.']}
@@ -162,7 +167,7 @@ def main():
         for suite in suites:
             command += ['--suite', suite]
         result = subprocess.run(command, cwd=ROOT, env=environment, capture_output=True,
-                                text=True, encoding='utf-8', errors='replace', timeout=300)
+                                text=True, encoding='utf-8', errors='replace', timeout=args.timeout_seconds)
         # The runner emits only JSON. Preserve structured assertion failures on non-zero exits.
         try:
             inner = json.loads(safe(result.stdout))
