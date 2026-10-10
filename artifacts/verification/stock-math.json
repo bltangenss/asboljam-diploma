@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-10T06:12:17.211866+00:00",
+  "status": "passed",
+  "scope": "Pure stock-journal arithmetic; not a connected stock workflow",
+  "command": "python -X utf8 -m unittest discover -s tests -p test_stock_math.py -v",
+  "passed": 15,
+  "elapsed_seconds": 2.697,
+  "initial_failure": "Decimal Overflow for huge finite value1E1000000; copy_abs range check now rejects it, rerun passed",
+  "source_sha256": {
+    "apps/api/stock.py": "434282d3d5be3cf1be5b923adc903f147e4d0e682e39fd86008371d13e817788",
+    "tests/test_stock_math.py": "32c03176a9a66448557d63617333d701ce247d2174b6ef689efb7eed5759b254"
+  },
+  "not_tested": [
+    "Durable posting and concurrent commands",
+    "API/UI stock workflow",
+    "Dated recipe activation",
+    "Procurement/lineage stock integration",
+    "Business data and production deployment"
+  ],
+  "review": "Fixed recipe version labels accepted by canonical CSV but rejected by the new stock helper; dots/spaces/Unicode/200-char label covered. A255-char fixture hit the existing compound-key limit and was corrected to an actually accepted200-char label."
+}
