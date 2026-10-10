@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-10",
+  "status": "passed",
+  "change": "Known worker failure explanations follow selected KK/RU interface language; timeout states no result was saved; unknown errors retain prior fallback",
+  "checks": [
+    {
+      "command": "python -X utf8 scripts/generate_contracts.py",
+      "status": "passed",
+      "changed_contracts": [
+        "design/copy.kk.json",
+        "design/copy.ru.json"
+      ]
+    },
+    {
+      "command": "npm run build",
+      "status": "passed"
+    },
+    {
+      "command": "npx playwright test tests/e2e/job_status.spec.ts --reporter=list",
+      "status": "passed",
+      "tests": 11,
+      "elapsed_seconds": 50.4,
+      "scope": "Chrome with deterministic API fixtures, including both timeout languages, no duplicate POST, polling/history regression and390px overflow check"
+    }
+  ],
+  "visual_review": "KK/RU timeout screenshots at390px inspected; message and dismissal control readable",
+  "limits": [
+    "No new live API/browser end-to-end run; backend unchanged from previously verified370-pass regression and87 HTTP checks",
+    "No fresh native build or production verification",
+    "Earlier ZIP remains the exact prior commit named in its manifest; source packaging must use the new commit to include this UI fix"
+  ]
+}

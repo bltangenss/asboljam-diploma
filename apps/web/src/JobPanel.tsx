@@ -25,6 +25,7 @@ export default function JobPanel({runId,t,onDone,onDismiss}:Props) {
   void poll();return()=>{active=false;controller.abort();clearTimeout(timer)};
  },[runId,attempt]);
  const failed=run?.status==='failed';
+ const failureCode=run?.error?.match(/^(JOB_ACCESS_REVOKED|JOB_SCOPE_INVALID|JOB_INPUT_INVALID|JOB_CALCULATION_FAILED|JOB_TIMEOUT)(?=:|$)/)?.[1];
  const status=run?.status||'queued';
  const heartbeat=run?.heartbeat_at;
  const age=typeof heartbeat==='number'&&typeof run?.observed_at==='number'
@@ -38,7 +39,7 @@ export default function JobPanel({runId,t,onDone,onDismiss}:Props) {
    {!error&&!failed&&<p>{t(status==='queued'?'jobQueueHint':'jobRunningHint')}</p>}
    {!error&&status==='running'&&<p>{age===null?t('jobHeartbeatUnknown'):`${t('jobHeartbeatAge')}: ${age} ${t('jobSeconds')}`}</p>}
    {stale&&!error&&<p>{t('jobHeartbeatStale')}</p>}
-   {failed&&<p>{run.error||t('jobFailedHint')}</p>}
+   {failed&&<p>{failureCode?t('jobError_'+failureCode):run.error||t('jobFailedHint')}</p>}
    {error&&<><p>{t('jobRetryHint')}</p><button className="text-button" onClick={()=>setAttempt(value=>value+1)}>{t('jobCheckStatus')}</button></>}
    {failed&&<button className="text-button" onClick={onDismiss}>{t('jobDismiss')}</button>}
   </div>

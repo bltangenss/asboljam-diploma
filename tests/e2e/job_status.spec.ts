@@ -146,3 +146,19 @@ test('saved successful forecast opens from history after reload',async({page})=>
  await expect(page).toHaveURL(/\/forecasts\/saved-result$/);
  expect(state.posts).toBe(1);
 });
+
+for(const language of ['kk','ru'])test(`timeout explanation follows ${language} language and never retries calculation automatically`,async({page})=>{
+ const state=await install(page,language);
+ state.status='failed';state.error='JOB_TIMEOUT: Есептеу уақыты аяқталды. Әкімшіге есеп идентификаторын беріңіз.';
+ const panel=page.getByRole('region',{name:language==='kk'?'Есептеу күйі':'Состояние расчёта'});
+ await expect(panel).toContainText(language==='kk'?'Нәтиже сақталған жоқ.':'Результат не сохранён.');
+ await expect(panel).not.toContainText('JOB_TIMEOUT');
+ if(language==='ru')await expect(panel).not.toContainText('Есептеу уақыты');
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'.cache/job-timeout-'+language+'.png',fullPage:true});
+ const stoppedAt=state.gets;
+ await page.waitForTimeout(1500);expect(state.gets).toBe(stoppedAt);expect(state.posts).toBe(1);
+ await panel.getByRole('button',{name:language==='kk'?'Параметрлерге оралу':'Вернуться к параметрам'}).click();
+ expect(state.posts).toBe(1);
+});
