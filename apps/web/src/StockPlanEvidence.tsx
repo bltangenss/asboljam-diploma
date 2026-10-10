@@ -11,8 +11,9 @@ export default function StockPlanEvidence({result,lang}:{result:Row;lang:Context
       ?(kk?'Саналған қор қойма журналымен салыстырылып, сәйкес келді.':'Посчитанный остаток сверили с журналом: расхождений нет.')
       :(kk?'Осы күнге импортталған саналған қор.':'Импортированный посчитанный остаток на указанную дату.')}
       {' '}{date(stock.target_date)}
-      {stock.baseline_date&&<> · {kk?'Журнал басы':'Начало журнала'}: {date(stock.baseline_date)} · {kk?'Қозғалыстар':'Движений'}: {stock.movement_count}</>}
+      {stock.baseline_date&&<> · {kk?'Есептеудің бастапқы кесіндісі':'Исходный срез расчёта'}: {date(stock.baseline_date)} · {kk?'Қозғалыстар':'Движений'}: {stock.movement_count}</>}
     </p>}
+    {stock?.count_anchor&&<p>{kk?'Жаңа саналған қалдықты қабылдау құжаты':'Документ принятия нового посчитанного остатка'}: {date(stock.count_anchor.count_date)} · {kk?'Реті':'Порядок'}: {stock.count_anchor.sequence}{stock.count_anchor.reason&&<> · {stock.count_anchor.reason}</>}</p>}
     {recipe?.source==='dated_activations'?<>
       <p>{kk?'Осы күнге бекітілген толық рецепттер. Шикізат шығымы әр нұсқада сақталған.':'Полные версии рецептов, действовавшие на дату расчёта. Выход сырья сохранён в каждой версии.'}</p>
       <ul>{(recipe.activations||[]).map((row:Row)=><li key={row.id}>{row.meal_id} · {row.recipe_version} · {date(row.effective_date)}</li>)}</ul>

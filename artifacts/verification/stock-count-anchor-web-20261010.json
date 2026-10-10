@@ -1,0 +1,519 @@
+{
+  "schema_version": "stock-count-anchor-web-v1",
+  "recorded_at_utc": "2026-10-10T08:54:41.924081+00:00",
+  "status": "passed",
+  "scope": "Immutable counted-stock anchor UI: generated API-fixture regression and a fresh isolated, fully artificial REAL/TEST HTTP+worker browser acceptance. No enterprise or production readiness claim.",
+  "web_source_sha256": {
+    "apps/web/src/StockCountAnchors.tsx": "2cd291854a661b13ba5d1dbbba8b7fe1cdfb4b9bcc298fb28d627dd1f569ab4d",
+    "apps/web/src/StockLedger.tsx": "bbea8458a458658da9a02140078fbb8df99482a802e13236746d700bf23b73a6",
+    "apps/web/src/StockPlanEvidence.tsx": "0402b5fcaef8e92f31ce37e1a414d116009f5ba74a2ecd2a2d9c05f2e180c768",
+    "apps/web/src/stockCopy.ts": "fc4e311aab9f62b6ef55a613c481fe23be344494fea32f128421c91622d2f567",
+    "apps/web/src/stock-ledger.css": "83438f0736fbad5f0db26b26e3f2e43e60c77673a59dee9a4062cc8e2ede66ba",
+    "tests/e2e/stock_count_anchors.spec.ts": "7b1549d98d3de33925056dc0bcdd3a8e0a6c6c7c7de1c45580202884c3056390",
+    "tests/e2e/stock_ledger.spec.ts": "a78477d1ee8b4822e84b6b2cbca9b7ff9d52234743b35b99b5fee4bd1b4f53a3"
+  },
+  "mocked_browser": {
+    "command": "npx playwright test --config .cache/stock-playwright.config.ts stock_count_anchors.spec.ts stock_ledger.spec.ts",
+    "api_mocking": true,
+    "new_anchor_cases": 12,
+    "existing_stock_cases": 17,
+    "start_time_utc": "2026-10-10T08:33:07.841Z",
+    "duration_ms": 76553.513,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "playwright_version": "1.58.2",
+    "cases": [
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "corrected baseline requires explicit anchor review, preserves decimal differences and former period",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 4358
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "editing anchor date or reason invalidates the old confirmation without posting",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2788
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "uncertain anchor retry preserves command and key and locks competing mutations",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2134
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "version conflict discards anchor approval and uses refreshed ledger version",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2323
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "warehouse can inspect anchor history but cannot preview or accept",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2849
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "analyst can inspect anchor history but cannot preview or accept",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1902
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "changed source identity blocks anchor while baseline correction alone is recoverable",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1638
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "kk explains incomplete anchor without converting missing lot to zero",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2117
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "ru explains incomplete anchor without converting missing lot to zero",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2158
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "late anchor preview from former branch is ignored",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2309
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "Russian anchor preview fits 390px viewport with explicit before, after and difference",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2496
+          }
+        ]
+      },
+      {
+        "file": "stock_count_anchors.spec.ts",
+        "title": "closed prior movements cannot be reversed and movement date starts at the latest count",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2167
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "explicit baseline preview keeps counted stock distinct and requires confirmation",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 4093
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "edited preview is invalidated; uncertain posting retries the identical command key and quantities",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 6001
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "version conflict removes confirmation and reloads version before another preview",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 3544
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "analyst reads stock but has no document or recipe activation controls",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1655
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "warehouse may receive and consume but cannot adjust, reverse or activate recipes",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1677
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "reversal references the original document without caller supplied signed entries",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2183
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "recipe activation previews frozen yield then consumption requests dated gross quantities",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 3183
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "reconciliation keeps missing counts unknown and explicit zero visible",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1788
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "late preview from a former branch cannot arm a document in the new branch",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2384
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "matching quantities do not show healthy reconciliation after baseline evidence changed",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1881
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "failed new opening date never leaves the former date balance visible",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2236
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "a late opening-date reply cannot replace the newer selected balance",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1993
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "Russian stock forms stay within narrow viewport and preserve decimal strings",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2038
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "kk procurement explains STOCK_RECONCILIATION_REQUIRED with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2050
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "kk procurement explains STOCK_RECIPE_NOT_ACTIVE with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1751
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "ru procurement explains STOCK_RECONCILIATION_REQUIRED with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1613
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "ru procurement explains STOCK_RECIPE_NOT_ACTIVE with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1926
+          }
+        ]
+      }
+    ]
+  },
+  "web_build": {
+    "command": "npm run build",
+    "typescript": "passed",
+    "vite": "passed",
+    "vite_duration_seconds": 4.17,
+    "modules_transformed": 1761,
+    "javascript": "index-DUu5JaF2.js",
+    "javascript_kb": 388.88,
+    "javascript_gzip_kb": 117.31,
+    "css": "index-CX9H3Rj0.css",
+    "css_kb": 32.52,
+    "css_gzip_kb": 7.72
+  },
+  "earlier_attempts": [
+    {
+      "result": "11/11 passed",
+      "duration_seconds_as_displayed": 29.0,
+      "details": "Initial anchor-only mocked suite passed. Added closed-period reversal explanation/minimum movement date and one new test. Changed incomplete-count mock HTTP status from 422 to actual service 409. Final 29-case regression covers both changes."
+    }
+  ],
+  "visual_review": {
+    "viewport_width_css_px": 390,
+    "screenshot": "Ignored .cache/stock-anchor-ru-mobile.png",
+    "page_horizontal_overflow": false,
+    "review": "Russian counted-anchor form, frozen before/after lot quantities, exact decimal strings, difference and explicit confirmation inspected. Wide comparison tables scroll inside the component."
+  },
+  "runtime_cleanup": {
+    "dedicated_api_8012_stopped": true,
+    "dedicated_worker_stopped": true,
+    "dedicated_web_3013_stopped": true,
+    "processes_stopped_via_owned_exec_sessions": true,
+    "other_processes_stopped": false,
+    "isolated_fixture_database_preserved": true
+  },
+  "live_browser": {
+    "command": "$env:ASBOLJAM_STOCK_ANCHOR_E2E='1'; npx playwright test --config .cache/stock-live-playwright.config.ts stock_count_anchors_live.spec.ts",
+    "status": "passed",
+    "api_mocking": false,
+    "attempt": 1,
+    "start_time_utc": "2026-10-10T08:52:42.497Z",
+    "duration_ms": 48000.971,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "cases": [
+      {
+        "file": "stock_count_anchors_live.spec.ts",
+        "title": "live artificial REAL TEST count correction, immutable anchors, resumed posting and frozen approved plans",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 44214
+          }
+        ]
+      }
+    ],
+    "fixture_command": "python -X utf8 scripts/prepare_stock_e2e.py --database .cache/stock-anchor-live-20261010-01.sqlite --real-test",
+    "database": "New isolated ignored .cache/stock-anchor-live-20261010-01.sqlite; main database not used",
+    "data_origin": "REAL",
+    "usage_mode": "TEST",
+    "generated_fixture_only": true,
+    "api_origin": "http://127.0.0.1:8012",
+    "web_origin": "http://127.0.0.1:3013",
+    "worker": "Separate Python worker using actual calculation subprocesses",
+    "interaction_scope": "Stock opening, both count-anchor confirmations, receipts and both plan approvals via web forms. CSV preview/commit, forecast/procurement queue submission and verification GET/export requests through authenticated browser HTTP context. No route mocks.",
+    "verified_steps": [
+      "Visible TEST source mode and correct organization",
+      "Original ledger count 10 on 2026-09-01, real forecast/procurement and human approval",
+      "Transactional exact CSV correction to 8.000000001 makes original source stale and blocks ordinary movement form",
+      "First anchor on original date with zero movements discloses -1.999999999 and requires explicit acknowledgment",
+      "Receipt +2 yields movement sequence1 and ledger version3",
+      "Later exact count on 2026-09-02 discloses +1.999999999, second anchor yields ledger version4",
+      "Earlier 2026-09-01 opening still uses first anchor with 8.000000001",
+      "Receipt on 2026-09-02 continues movement sequence2 while ledger version reaches5",
+      "Opening of 2026-09-02 stays12; latest after receipt becomes13",
+      "Reconciliation is matched using effective anchor, despite changed original baseline",
+      "Actual worker plan for 2026-09-02 freezes second anchor and excludes same-day movement",
+      "Plan UI shows count-anchor date; explicit approval and export succeed",
+      "Previously approved original plan remains approved and its CSV remains byte-identical",
+      "Two immutable anchor history rows and two stock.count_anchored audit events",
+      "No browser page errors"
+    ],
+    "observed": {
+      "data_origin": "REAL",
+      "usage_mode": "TEST",
+      "generated_fixture_only": true,
+      "source": {
+        "source_id": "artificial-stock-browser",
+        "mapping_version": "generated-test-v1"
+      },
+      "baseline_date": "2026-09-01",
+      "count_date": "2026-09-02",
+      "first_anchor_id": "eea915d3a8c34cb287f2fbd4090b3abb",
+      "second_anchor_id": "14f4b6104a4a430b8950cf0ac506c095",
+      "stock_version": 5,
+      "movement_sequence": 2,
+      "old_plan_export_byte_identical": true,
+      "plan_status": "approved",
+      "stock_evidence": {
+        "source": "reconciled_counted_snapshot",
+        "target_date": "2026-09-02",
+        "ledger_id": "66d21575c6f849acaec6f1ef45dc465e",
+        "baseline_date": "2026-09-02",
+        "reconciliation_status": "matched",
+        "fingerprint": "298bc6a66cd6563d6e3c99187836340be8b53a7ac615a5bd8f38d7a3826f8465",
+        "movement_count": 0,
+        "count_anchor": {
+          "id": "14f4b6104a4a430b8950cf0ac506c095",
+          "sequence": 2,
+          "ledger_version": 4,
+          "count_date": "2026-09-02",
+          "through_movement_sequence": 1
+        }
+      },
+      "count_anchor_history": 2,
+      "anchor_audit_events": 2,
+      "browser_errors": []
+    }
+  },
+  "not_tested": [
+    "Real enterprise records, POS integration or business pilot",
+    "Production deployment/load/failover",
+    "Native/Android devices",
+    "Other browsers or physical mobile devices",
+    "Full ordinary browser suite: only the listed29 mocked cases and one live anchor scenario were executed in this stage"
+  ],
+  "runbook": "docs/commercial/STOCK_BROWSER_TEST_RU.md",
+  "live_source": {
+    "source_commit_before_web_commit": "f53539fcdc7f43274087a711f9049e55d95ee41e",
+    "python_version": "3.13.9",
+    "source_sha256": {
+      "apps/web/src/StockCountAnchors.tsx": "2cd291854a661b13ba5d1dbbba8b7fe1cdfb4b9bcc298fb28d627dd1f569ab4d",
+      "apps/web/src/StockLedger.tsx": "bbea8458a458658da9a02140078fbb8df99482a802e13236746d700bf23b73a6",
+      "apps/web/src/StockPlanEvidence.tsx": "0402b5fcaef8e92f31ce37e1a414d116009f5ba74a2ecd2a2d9c05f2e180c768",
+      "apps/web/src/stockCopy.ts": "fc4e311aab9f62b6ef55a613c481fe23be344494fea32f128421c91622d2f567",
+      "apps/web/src/stock-ledger.css": "83438f0736fbad5f0db26b26e3f2e43e60c77673a59dee9a4062cc8e2ede66ba",
+      "tests/e2e/stock_count_anchors.spec.ts": "7b1549d98d3de33925056dc0bcdd3a8e0a6c6c7c7de1c45580202884c3056390",
+      "tests/e2e/stock_ledger.spec.ts": "a78477d1ee8b4822e84b6b2cbca9b7ff9d52234743b35b99b5fee4bd1b4f53a3",
+      "apps/api/stock.py": "1652ff0e73cd6d0f1f8772d54f30db84f743df7e3ba5bc18632bd95dca32e570",
+      "apps/api/stock_service.py": "e87fc9e562198f44205ac4febd5eea04ef88a4a453e84783da756332e098be55",
+      "apps/api/stock_api.py": "f70d10feacb20d7a036e46eb347b1faa5840c0c8ee82a2b9d22a5c9b7f397e62",
+      "apps/api/stock_dependencies.py": "7164921173d608c2dadfeee678d3ff0c6b030ad45c723be3c0084d76fbad5833",
+      "apps/api/main.py": "23ee180133a79b0b517dcb71e1866e864cf049cc01fbbf27fc2950c21fcad93a",
+      "apps/api/engine.py": "6f6d3fccd25ba342676e246ed76790eb12e3f293976bab4a52abb5b720d112de",
+      "apps/worker/main.py": "1556c3a30c8313070b6ee152955066e07d89e58e773138dc34e5961606cebb82",
+      "scripts/prepare_stock_e2e.py": "a9fe3461dbebf5bcb8cc98f2ea15759389b6910e4568855b97644637b1109468",
+      "tests/e2e/stock_count_anchors_live.spec.ts": "8f557c50e6f1e7e878ff10f5e61d558d63cae420807c9a7d5077904795f645c4"
+    }
+  },
+  "source_hashes_unchanged_through_checks": true,
+  "pre_run_fixture_corrections": [
+    {
+      "stage": "Before first live attempt; after full Python regression completed",
+      "finding": "REAL fixture with84 days through2026-09-01 left only83 observations for earlier origin2026-08-31; API requires84. Detected by source review, not a failed live run.",
+      "change": "Only explicit --real-test generation changed to85 days. Default SYNTHETIC84-day fixture and fixed2025-12-31 cutoff unchanged.",
+      "validation": "The fresh fixture validates every row before insert; both real live forecast jobs passed.",
+      "full_python_scope": "Root full454-case run preceded this standalone fixture-only edit. API/worker application source unchanged; no full-suite rerun claimed."
+    },
+    {
+      "stage": "Before first live attempt",
+      "change": "Harness compares details open attribute with null and reads plan.execution_context. No production change was made for these test helper corrections."
+    }
+  ],
+  "privacy": {
+    "credentials_cookies_tokens_omitted": true,
+    "raw_login_file_database_and_browser_artifacts_remain_ignored": true,
+    "public_ids_in_observations_are_generated_test_only": true
+  }
+}

@@ -397,7 +397,10 @@
         "POST /stock/recipe-requirements",
         "GET /stock/recipes",
         "POST /stock/recipes/preview",
-        "POST /stock/recipes"
+        "POST /stock/recipes",
+        "GET /stock/count-anchors",
+        "POST /stock/count-anchors/preview",
+        "POST /stock/count-anchors"
       ],
       "controls_and_data": [
         "snapshot_date",
@@ -414,7 +417,10 @@
         "reversal",
         "dated_recipe_activation",
         "history_pagination",
-        "count_reconciliation"
+        "count_reconciliation",
+        "immutable_count_anchor",
+        "count_anchor_differences_acknowledgement",
+        "period_scoped_stock_basis"
       ],
       "states": [
         "loading",
@@ -432,7 +438,9 @@
         "version_conflict",
         "source_duplicate",
         "baseline_changed",
-        "missing_count_unknown"
+        "missing_count_unknown",
+        "count_anchor_resolves_old_baseline",
+        "count_anchor_source_change_blocked"
       ]
     },
     {

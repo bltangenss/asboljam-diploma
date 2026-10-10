@@ -1,5 +1,13 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — web пересчётов и сквозная приёмка
+
+**DONE:** KK/RU интерфейс принятия полного нового остатка, разницы по партиям, обязательное подтверждение, история, точный повтор при потерянном ответе, права/филиал/источник и защита от устаревших ответов. Основа чтения и плана видна по дате. Отмена движений прежнего периода недоступна; дата нового движения начинается с действующей основы. README, контракты UI/OpenAPI, runbook и release gates обновлены.
+
+**TESTED:** финальные29/29 Chrome API-fixture проверок (76.553513s), TypeScript/Vite PASS (4.17s),390px RU screenshot просмотрен. Live1/1 PASS с первой попытки (48.000971s suite) на новой generated REAL/TEST SQLite: login → открытие → старый approved plan → HTTP CSV correction → блокировка → два UI-пересчёта и прихода → старый день → сверка → настоящие forecast/procurement worker → UI approval → audit/export. Журналversion5/movementsequence2, два anchor-audit, старый approved CSV побайтно прежний,0 pageerrors. Исходники стабильны. [Отчёт](../artifacts/verification/stock-count-anchor-web-20261010.json).
+
+После полного Python изменён только standalone browser-fixture helper:85 REAL/TEST дней для двух последовательных origin, SYNTHETIC84 и фиксированный cutoff сохранены. Код приложения не менялся. Созданные API8012/worker/web3013 остановлены, данные и старые backups сохранены. **IN PROGRESS:** общая коммерческая подготовка; следующий локальный участок — безопасная связь request→job в логах. **NOT TESTED:** production/load/TLS, бизнес-пилот, свежий APK/device. **BLOCKED внешними данными:** измеренный эффект/POS требуют реального согласованного источника.
+
 ## 10.10.2026 — общая регрессия после пересчётов
 
 **TESTED:** `python -X utf8 -m unittest discover -s tests -p "test_*.py" -v` —454 случая за512.179s:453 PASS,0 failures/errors,1 POSIX-only SIGTERM skip на Windows. Все API/worker/test/script исходники неизменны в течение прогона, временный global API import направлен в `.cache/count-anchor-full-regression-import.sqlite`. [Отчёт](../artifacts/verification/count-anchor-regression-20261010.json). Это новый фактический полный прогон; прежние неуспешные отчёты сохранены как история.
