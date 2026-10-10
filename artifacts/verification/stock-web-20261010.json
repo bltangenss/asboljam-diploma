@@ -1,0 +1,432 @@
+{
+  "schema_version": "stock-web-verification-v1",
+  "recorded_at_utc": "2026-10-10T08:15:02.832381+00:00",
+  "scope": "Existing React/TypeScript stock ledger and dated recipe UI; isolated artificial SYNTHETIC HTTP/worker browser acceptance plus mocked UI regression. No enterprise pilot or production claim.",
+  "source": {
+    "source_commit_before_ui_commit": "cbd752977dd381d9c05a6b049915b14763a38990",
+    "python": "3.13.9",
+    "node": "v24.14.1",
+    "files": {
+      "apps/web/src/StockLedger.tsx": "d515970886357ec83a267d301d073ca041209df35f845829c612b4264fbeeac1",
+      "apps/web/src/StockRecipes.tsx": "dff625a5399dedd6e0db6218556344588239de450e5824be414f9e93faabca52",
+      "apps/web/src/stockCopy.ts": "62790f28e93d268ddd9b12c617b3d6aae19f9c31e4c41e8816498d19b3c994ad",
+      "apps/web/src/stock-ledger.css": "4cdfad13251dade465e170df17e7b06a1dbc164a0f36aeb022bc05375bc84217",
+      "apps/web/src/DataPages.tsx": "1f77ead2aa06aacff3c7653363c78fe374a936e817a2a39e21539ee51f34da0a",
+      "apps/web/src/shared.tsx": "af0521ce3971ad9599533c3e7c759b381d13e1cad798c670086ad188938d3c84",
+      "apps/web/src/Planning.tsx": "b341b79aa7720208f15e0cf15f35a0e40375ab7ccb800bccb3c5a8385f1e1fcc",
+      "apps/web/src/StockPlanEvidence.tsx": "9944beb0850ccdcef600c96c8855b64f7414663115eb9fd807b6b963f4fddfc9",
+      "apps/api/stock.py": "9629ce21ecfa6777d6f588c1140a1f260f10b9fa2a26b4ae3d78c3c9c6a420ae",
+      "apps/api/stock_api.py": "02eb881c0c76bb24fa9ba25aa113d9317cd926249652e819218d4ca2736be6ee",
+      "apps/api/stock_service.py": "236f7ab978673d38f76b76bee893d425e410bb155c0473089b1a37c957155f0a",
+      "apps/api/stock_recipes.py": "777304fd8c146d417a030215fe1ed3c487c5e2cf2b8d3f6e4bf465e658289684",
+      "apps/api/stock_dependencies.py": "797c3235aad60af3123aee610e589d1850205dade2b230cb0410ddda09a33260",
+      "apps/api/main.py": "1b5fc09d18b685af800e0174aedf0224883bf8a6075b7b60acf96e295af7dc06",
+      "tests/e2e/stock_ledger.spec.ts": "a78477d1ee8b4822e84b6b2cbca9b7ff9d52234743b35b99b5fee4bd1b4f53a3",
+      "tests/e2e/stock_ledger_live.spec.ts": "3d44d2d1ae06929071c4d80191b822796466b2b0e4bb4adaea544c063a623187",
+      "tests/e2e/real_data_context.spec.ts": "a891282b45c9606b0d51a44083e857a74c811152295d8902ab6c87cfccda4140",
+      "scripts/prepare_stock_e2e.py": "8def2b9525242ba7dd244943c0fc49bcd02f35aeabaa0ba961bf7525d2980b02"
+    },
+    "working_tree_at_test": true,
+    "validated_source_sha256_unchanged_after_checks": true
+  },
+  "web_build": {
+    "command": "npm run build",
+    "status": "passed",
+    "typescript": "tsc --noEmit passed",
+    "vite_duration_seconds": 4.0,
+    "modules_transformed": 1760,
+    "artifacts": [
+      {
+        "name": "index-CFFX-AG_.js",
+        "bytes_as_reported_kb": 371.62,
+        "gzip_kb": 113.61
+      },
+      {
+        "name": "index-DOklULBn.css",
+        "bytes_as_reported_kb": 32.32,
+        "gzip_kb": 7.68
+      }
+    ]
+  },
+  "live_browser": {
+    "start_time_utc": "2026-10-10T08:10:04.582Z",
+    "duration_ms": 40328.633,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "playwright_version": "1.58.2",
+    "cases": [
+      {
+        "file": "stock_ledger_live.spec.ts",
+        "title": "live counted opening, activated recipe, receipt, consumption, reversal, reconciliation and procurement evidence",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 37787
+          }
+        ]
+      }
+    ],
+    "command": "$env:ASBOLJAM_STOCK_E2E='1'; npx playwright test --config .cache/stock-live-playwright.config.ts stock_ledger_live.spec.ts",
+    "api_mocking": false,
+    "database": "Fresh isolated .cache/stock-live-20261010-02.sqlite; main database not used",
+    "api_origin": "http://127.0.0.1:8012",
+    "web_origin": "http://127.0.0.1:3013",
+    "worker": "Separate Python worker with actual forecast/procurement subprocess calculations",
+    "fixture": "scripts/prepare_stock_e2e.py (84 artificial observed sales through 2025-12-31; exact counted inventory 2026-01-01 and 2026-01-02)",
+    "data_origin": "SYNTHETIC",
+    "usage_mode": "DEMO",
+    "test_fixture": true,
+    "verified_steps": [
+      "Browser login and organization check",
+      "Explicit baseline preview/confirmation opens 2026-01-01 with 10 kg",
+      "Complete recipe activation captures net 0.08 kg and yield factor 0.8",
+      "Receipt adds 2 kg; recipe usage for 2 portions subtracts exact gross 0.2 kg",
+      "2026-01-02 opening is 11.8 kg while 2026-01-01 opening remains 10 kg",
+      "Linked reversal restores 2026-01-02 opening to 12 kg and stock version 4",
+      "Independent counted snapshot 2026-01-02 reconciles with difference 0",
+      "Actual forecast and procurement worker jobs succeed",
+      "2026-01-01 plan records reconciled_counted_snapshot and dated_activations; movement_count is 0 because same-day movements are excluded",
+      "Plan UI displays saved stock and recipe basis",
+      "Human approval confirmation returns HTTP 200 then saved plan status is approved",
+      "CSV export HTTP 200 contains stock_basis, reconciled_counted_snapshot, dated_activations and recipe version",
+      "Audit contains stock.opened, stock.movement_posted, recipe.activated and plan.approved",
+      "No browser page errors"
+    ],
+    "observed": {
+      "stock_version": 4,
+      "reconciliation": "matched",
+      "plan_status": "approved",
+      "stock_evidence": {
+        "source": "reconciled_counted_snapshot",
+        "target_date": "2026-01-01",
+        "ledger_id": "44765c92113d43cb8245a863d646e4d1",
+        "baseline_date": "2026-01-01",
+        "reconciliation_status": "matched",
+        "fingerprint": "daa764baf6adc944c974d4a795431073e86119700e5f7d22070fd82f0a826cdc",
+        "movement_count": 0
+      },
+      "recipe_source": "dated_activations",
+      "recipe_snapshot_sha256": "71a2ef77cad1f36600fbe8ac3c65305970e16d20d7eea9de2d827fe55c6dd86f",
+      "recipe_evidence_fingerprint": "556394b5c7fbe1e320ca66c1b4df715a1cd7e6a4a15e3fddc6b31d4c90b4fb0e",
+      "export_status": 200,
+      "browser_errors": []
+    }
+  },
+  "mocked_browser": {
+    "start_time_utc": "2026-10-10T08:11:37.557Z",
+    "duration_ms": 41235.06,
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "playwright_version": "1.58.2",
+    "cases": [
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "REAL TEST workspace uses server dates and explicitly selected forecast origin",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2564
+          }
+        ]
+      },
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "inventory and sales export follow actual selected dates, including expiry boundaries",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2307
+          }
+        ]
+      },
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "REAL imports use configured source and coverage refresh preserves selected dates",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2258
+          }
+        ]
+      },
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "missing REAL context cannot fall back to synthetic branch requests",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 874
+          }
+        ]
+      },
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "late branch data context cannot override the dates of a newer login",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1759
+          }
+        ]
+      },
+      {
+        "file": "real_data_context.spec.ts",
+        "title": "saved forecast without an origin makes no guessed history request",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1340
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "explicit baseline preview keeps counted stock distinct and requires confirmation",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1545
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "edited preview is invalidated; uncertain posting retries the identical command key and quantities",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2156
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "version conflict removes confirmation and reloads version before another preview",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1834
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "analyst reads stock but has no document or recipe activation controls",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1136
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "warehouse may receive and consume but cannot adjust, reverse or activate recipes",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1128
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "reversal references the original document without caller supplied signed entries",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1719
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "recipe activation previews frozen yield then consumption requests dated gross quantities",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 2467
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "reconciliation keeps missing counts unknown and explicit zero visible",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1584
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "late preview from a former branch cannot arm a document in the new branch",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1599
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "matching quantities do not show healthy reconciliation after baseline evidence changed",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1337
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "failed new opening date never leaves the former date balance visible",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1297
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "a late opening-date reply cannot replace the newer selected balance",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1601
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "Russian stock forms stay within narrow viewport and preserve decimal strings",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1497
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "kk procurement explains STOCK_RECONCILIATION_REQUIRED with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1238
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "kk procurement explains STOCK_RECIPE_NOT_ACTIVE with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1642
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "ru procurement explains STOCK_RECONCILIATION_REQUIRED with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1619
+          }
+        ]
+      },
+      {
+        "file": "stock_ledger.spec.ts",
+        "title": "ru procurement explains STOCK_RECIPE_NOT_ACTIVE with the next stock action",
+        "outcome": "expected",
+        "attempts": [
+          {
+            "status": "passed",
+            "duration_ms": 1182
+          }
+        ]
+      }
+    ],
+    "command": "npx playwright test --config .cache/stock-playwright.config.ts stock_ledger.spec.ts real_data_context.spec.ts",
+    "stock_cases": 17,
+    "existing_real_context_cases": 6,
+    "api_mocking": true,
+    "note": "REAL context cases use explicit artificial route fixtures, not a real enterprise dataset or live POS."
+  },
+  "visual_review": {
+    "screenshot": "Ignored .cache/stock-ledger-ru-mobile.png",
+    "viewport_css_width_px": 390,
+    "status": "Inspected after final 23-case run; no page horizontal overflow; tables scroll inside their own containers and decimal strings remain visible. Fixed mobile navigation is a viewport overlay."
+  },
+  "earlier_attempts": [
+    {
+      "result": "failed harness connection",
+      "details": "Sandbox Vite was unreachable from elevated Chrome. Only dedicated test runtime was restarted at matching access level; no production networking change."
+    },
+    {
+      "result": "15/16 mocked cases passed",
+      "details": "Legacy REAL import assertion expected an absolute count of two session reads; dev StrictMode mounted twice plus one import refresh. Assertion now records reads before commit and requires exactly one additional read, preserving behavior. Final 23/23 includes that case."
+    },
+    {
+      "result": "live fixture 01 login assertion failed",
+      "details": "Login intentionally navigates to dashboard. Test now waits for dashboard and opens Inventory from sidebar; no stock was opened before this failure."
+    },
+    {
+      "result": "live fixture 01 approval observation timed out",
+      "details": "The harness polled ready status before the approval POST completed under concurrent host load. API later returned 200 and isolated DB inspection confirmed approved status. Test now awaits the actual approval HTTP response before checking status; no production approval code was changed. Complete rerun used fresh fixture 02 and passed."
+    },
+    {
+      "result": "initial type checking and selector defects fixed",
+      "details": "TypeScript caught a JSX brace and nullable history cursor during implementation; browser selectors needed explicit labels for selects. Final build and final browser cases passed after the fixes."
+    }
+  ],
+  "runtime_cleanup": {
+    "all_owned_api_worker_web_processes_stopped": true,
+    "owned_ports_8012_3013_no_listener_after_cleanup": true,
+    "other_user_or_agent_services_stopped": false,
+    "isolated_databases_preserved": true
+  },
+  "privacy": {
+    "report_excludes_credentials_cookies_tokens": true,
+    "raw_reports_traces_databases_and_login_file_remain_ignored": true
+  },
+  "not_tested": [
+    "Real business records or POS connection",
+    "Production deployment, load, failover or supplier sending",
+    "Native/Android app workflow",
+    "Full ordinary browser suite (only the listed 23 mocked cases and one opt-in live stock case ran in this check)",
+    "Other browsers or physical devices"
+  ],
+  "runbook": "docs/commercial/STOCK_BROWSER_TEST_RU.md"
+}

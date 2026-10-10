@@ -84,8 +84,8 @@ test('REAL imports use configured source and coverage refresh preserves selected
  await expect(page.getByLabel('Дерек көзінің коды',{exact:true})).toHaveAttribute('readonly','');
  await expect(page.getByLabel('Сәйкестендіру нұсқасы',{exact:true})).toHaveValue('test-v2');
  await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'artificial-real-contract.csv',mimeType:'text/csv',buffer:Buffer.from('data_origin\nREAL\n')});
- await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();await page.getByRole('button',{name:'Импорттау',exact:true}).click();
- await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();await expect.poll(()=>sessionReads).toBe(2);
+ await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();const readsBeforeCommit=sessionReads;await page.getByRole('button',{name:'Импорттау',exact:true}).click();
+ await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();await expect.poll(()=>sessionReads).toBe(readsBeforeCommit+1);
  const preview=state.requests.find(item=>item.path==='/imports/preview')!;expect(preview.body.source).toEqual({source_id:'registered_test_pos',mapping_version:'test-v2'});
  await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-20');
  await page.locator('.sidebar').getByRole('button',{name:'Қойма',exact:true}).click();await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue('2026-09-20');

@@ -160,7 +160,9 @@ def data_manifest() -> dict:
             "supplier_offers.min_packs <= max_packs",
             "inventory_lots.unit == ingredients.unit",
             "calendar.weekday matches the ISO date (Monday=0)",
-            "One active recipe_version per organization; multiple versions require explicit future version-selection support",
+            "Canonical CSV retains one recipe_version per organization; dated branch/meal recipe activations are separate explicit audited commands",
+            "When any selected meal has a dated recipe, every forecast meal needs an effective complete activation; captured per-row yield applies once",
+            "An opened stock journal must reconcile with the exact target-date count before procurement; movements on the target day are excluded from its opening",
             "Foreign keys, duplicate keys, branch access and user role are rechecked on commit",
             "Serialized natural key must fit the shared SQLite/PostgreSQL VARCHAR(255) boundary",
             "Inventory expiry_date < target is excluded; equality is usable under the demo convention",
@@ -214,6 +216,7 @@ def design_tokens() -> dict:
         "schema_version": "1.0",
         "provenance": {"status": "extracted_from_implemented_css_not_supplied_original",
                        "source": "apps/web/src/style.css", "sha256": sha(path),
+                       "additional_styles": [{"source": "apps/web/src/stock-ledger.css", "sha256": sha(ROOT / "apps/web/src/stock-ledger.css")}],
                        "generator": "scripts/generate_contracts.py",
                        "notice": "Handoff snapshot of actual CSS. Original token JSON was not supplied; this is not a claim of completed accessibility certification."},
         "color": {
@@ -285,10 +288,12 @@ def screen_map() -> dict:
          ["forecast", "budget", "point_or_quantile_strategy", "calculate", "run_history", "resume_run", "history_pagination"], common + ["queued", "running", "failed", "succeeded", "heartbeat_unknown", "heartbeat_delayed", "retry_same_job_status"]),
         ("plan_detail", "/procurement/:id", "Planning.tsx:Procurement", "Сатып алу жоспары", operations,
          ["GET /plans/{id}", "POST /plans/{id}/approve", "POST /plans/{id}/reject", "GET /plans/{id}/export"],
-         ["requirements", "supplier_lines", "shortage_warning", "version", "decision_reason", "shortage_acknowledgement"],
+         ["requirements", "supplier_lines", "shortage_warning", "version", "decision_reason", "shortage_acknowledgement", "frozen_stock_and_recipe_basis"],
          common + ["ready", "approved", "rejected", "shortage", "approval_dialog", "stale_version", "idempotency_conflict"]),
         ("inventory", "/inventory", "DataPages.tsx:Reference", "Қойма", operations + ["warehouse"],
-         ["GET /inventory"], ["snapshot_date", "lot", "expiry", "quantity", "unit"], common + ["expired", "expiring_soon"]),
+         ["GET /inventory", "GET /stock/catalog", "GET /stock/ledger", "POST /stock/open/preview", "POST /stock/open", "POST /stock/movements/preview", "POST /stock/movements", "GET /stock/movements", "GET /stock/reconciliation", "POST /stock/recipe-requirements", "GET /stock/recipes", "POST /stock/recipes/preview", "POST /stock/recipes"],
+         ["snapshot_date", "lot", "expiry", "quantity", "unit", "explicit_opening", "document_preview", "receipt", "waste", "adjustment", "recipe_usage_with_lot_allocation", "reversal", "dated_recipe_activation", "history_pagination", "count_reconciliation"],
+         common + ["expired", "expiring_soon", "journal_not_open", "preview", "posting", "uncertain_retry_same_key", "stale_preview", "version_conflict", "source_duplicate", "baseline_changed", "missing_count_unknown"]),
         ("recipes", "/recipes", "DataPages.tsx:Reference", "Рецепттер", operations,
          ["GET /recipes"], ["meal", "ingredient", "net_qty_per_portion", "yield_factor", "recipe_version"], common),
         ("suppliers", "/suppliers", "DataPages.tsx:Reference", "Жеткізушілер", operations,
@@ -323,6 +328,8 @@ def screen_map() -> dict:
                        "operational_import": ["admin", "manager"], "analyst_access": "read_only_with_operational_CSV_templates",
                        "reference_import": ["admin"], "warehouse_import": ["inventory_lots"],
                        "own_password_change": operations + ["warehouse"],
+                       "stock_receipt_waste_recipe_usage": ["admin", "manager", "warehouse"],
+                       "stock_adjustment_reversal_recipe_activation": ["admin", "manager"],
                        "scope_enforcement": "API enforces role, organization and branch on every request"},
         "screens": [{"id": identifier, "route": route, "component": "apps/web/src/" + component,
                      "title_kk": title, "read_roles": roles, "api": endpoints,
@@ -342,8 +349,10 @@ def main() -> None:
     shared = (ROOT / "apps/web/src/shared.tsx").read_text(encoding="utf-8")
     pairs = re.findall(r"(\w+):\['([^']*)','([^']*)'\]", shared)
     if pairs:
-        write("design/copy.kk.json", {key: kk for key, kk, _ in pairs})
-        write("design/copy.ru.json", {key: ru for key, _, ru in pairs})
+        stock = (ROOT / "apps/web/src/stockCopy.ts").read_text(encoding="utf-8")
+        stock_pairs = re.findall(r"(\w+):\['([^']*)','([^']*)'\]", stock)
+        write("design/copy.kk.json", {**{key: kk for key, kk, _ in pairs}, **{'stock.' + key: kk for key, kk, _ in stock_pairs}})
+        write("design/copy.ru.json", {**{key: ru for key, _, ru in pairs}, **{'stock.' + key: ru for key, _, ru in stock_pairs}})
     print("Reconstructed data manifest, actual CSS tokens, route/state map and implemented UI copy.")
 
 

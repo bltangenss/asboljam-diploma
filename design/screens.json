@@ -80,6 +80,15 @@
       "analyst",
       "warehouse"
     ],
+    "stock_receipt_waste_recipe_usage": [
+      "admin",
+      "manager",
+      "warehouse"
+    ],
+    "stock_adjustment_reversal_recipe_activation": [
+      "admin",
+      "manager"
+    ],
     "scope_enforcement": "API enforces role, organization and branch on every request"
   },
   "screens": [
@@ -346,7 +355,8 @@
         "shortage_warning",
         "version",
         "decision_reason",
-        "shortage_acknowledgement"
+        "shortage_acknowledgement",
+        "frozen_stock_and_recipe_basis"
       ],
       "states": [
         "loading",
@@ -375,14 +385,36 @@
         "warehouse"
       ],
       "api": [
-        "GET /inventory"
+        "GET /inventory",
+        "GET /stock/catalog",
+        "GET /stock/ledger",
+        "POST /stock/open/preview",
+        "POST /stock/open",
+        "POST /stock/movements/preview",
+        "POST /stock/movements",
+        "GET /stock/movements",
+        "GET /stock/reconciliation",
+        "POST /stock/recipe-requirements",
+        "GET /stock/recipes",
+        "POST /stock/recipes/preview",
+        "POST /stock/recipes"
       ],
       "controls_and_data": [
         "snapshot_date",
         "lot",
         "expiry",
         "quantity",
-        "unit"
+        "unit",
+        "explicit_opening",
+        "document_preview",
+        "receipt",
+        "waste",
+        "adjustment",
+        "recipe_usage_with_lot_allocation",
+        "reversal",
+        "dated_recipe_activation",
+        "history_pagination",
+        "count_reconciliation"
       ],
       "states": [
         "loading",
@@ -391,7 +423,16 @@
         "offline_notice",
         "forbidden",
         "expired",
-        "expiring_soon"
+        "expiring_soon",
+        "journal_not_open",
+        "preview",
+        "posting",
+        "uncertain_retry_same_key",
+        "stale_preview",
+        "version_conflict",
+        "source_duplicate",
+        "baseline_changed",
+        "missing_count_unknown"
       ]
     },
     {

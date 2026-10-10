@@ -1,5 +1,15 @@
 # AsBoljam — журнал прогресса
 
+## 10.10.2026 — складской интерфейс и настоящая браузерная приёмка
+
+**DONE:** web KK/RU открывает журнал и проводит складские документы через явный preview/подтверждение; активирует полные датированные рецепты, показывает историю/обратную запись/сверку и основания плана. При смене даты прежние остатки убираются; устаревший ответ игнорируется. Совпавшие числа при изменённом исходном срезе не получают зелёный статус. Ошибки сверки и активного рецепта объясняют следующий шаг на KK/RU. Генератор manifest/design-copy/screens/tokens обновлён.
+
+**TESTED:** финальный web TypeScript/Vite build PASS (Vite4.00s); Chrome23/23 с API-fixtures (41.2s):17 новых stock и6 REAL-context. Отдельный live1/1 (37.8s тест,40.3s suite) на свежей SYNTHETIC SQLite с настоящими API/worker: login → opening → recipe → receipt → recipe usage → reversal → reconciliation → forecast/procurement → approval → audit/export. Ширина390px и точные decimal strings проверены. [Отчёт](../artifacts/verification/stock-web-20261010.json). Предыдущие harness failures сохранены в отчёте отдельно; полный backend/research без новых изменений не повторялся.
+
+**DONE cleanup:** остановлены только созданные проверочные процессы, основная БД и искусственные fixtures сохранены; PostgreSQL возвращён в исходное остановленное состояние без удаления volumes. [Инструкция повторения](../docs/commercial/STOCK_BROWSER_TEST_RU.md).
+
+**TODO / NOT TESTED:** неизменяемое разрешение исправленного baseline, реальный пилот/POS, production/load/TLS и новый APK. Коммерческая готовность целиком не заявлена.
+
 ## 10.10.2026 — PostgreSQL для складского HTTP и рецептур
 
 **TESTED:** последовательный повтор31/31 PASS (54.965s): API13/13 (36.206s), рецептуры18/18 (7.472s), включая защиту исходной организации.30 PG test bodies и1 чистый engine test; исходники стабильны. [Повторный отчёт](../artifacts/verification/postgres-stock-api-20261010-retry.json).
