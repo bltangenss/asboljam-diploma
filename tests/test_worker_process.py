@@ -25,8 +25,9 @@ HELPER = Path(__file__).with_name('worker_process_fixture.py')
 
 
 class ChildFixture:
-    def __init__(self, mode, marker):
+    def __init__(self, mode, marker, *, wait_ready=False):
         self.mode, self.marker = mode, marker
+        self.wait_ready, self.ready_at = wait_ready, None
         self.original = subprocess.Popen
         self.processes, self.directories, self.options = [], [], []
 
@@ -37,6 +38,22 @@ class ChildFixture:
             command = [sys.executable, str(HELPER), '--mode', self.mode, '--marker', str(self.marker), *command[3:]]
         process = self.original(command, **kwargs)
         self.processes.append(process)
+        if self.wait_ready:
+            # Separate interpreter startup from the short running-computation
+            # deadline. The production supervisor's clock remains unmodified.
+            deadline = time.monotonic() + 10
+            while process.poll() is None and time.monotonic() < deadline:
+                try:
+                    marker = json.loads(self.marker.read_text(encoding='utf-8'))
+                except (OSError, ValueError):
+                    marker = None  # The child may still be writing its marker.
+                if isinstance(marker, dict) and marker.get('pid') == process.pid:
+                    self.ready_at = time.monotonic()
+                    break
+                time.sleep(0.01)
+            if self.ready_at is None:
+                calculation._stop_child(process)
+                raise AssertionError('Actual fixture computation did not become ready within 10 seconds')
         return process
 
     def assert_clean(self, test):
@@ -67,13 +84,16 @@ class CalculationProcessTests(unittest.TestCase):
                 calculation.load_timeout({'WORKER_CALCULATION_TIMEOUT_SECONDS': value})
 
     def test_real_hung_child_is_terminated_and_private_files_removed(self):
-        launched = ChildFixture('hang', self.marker)
-        started = time.monotonic()
+        launched = ChildFixture('hang', self.marker, wait_ready=True)
+        self.addCleanup(launched.assert_clean, self)
         with patch.object(calculation.subprocess, 'Popen', side_effect=launched):
             with self.assertRaises(calculation.CalculationTimeout):
                 calculation.run_calculation({}, {}, 'forecast', claim_active=lambda: True, timeout_seconds=0.5)
         self.assertTrue(self.marker.exists(), 'Actual child never started')
-        self.assertLess(time.monotonic() - started, 4)
+        self.assertIsNotNone(launched.ready_at)
+        elapsed = time.monotonic() - launched.ready_at
+        self.assertGreaterEqual(elapsed, 0.5, 'Running computation was stopped before its deadline')
+        self.assertLess(elapsed, 4)
         launched.assert_clean(self)
 
     def test_large_result_cannot_deadlock_on_pipe_capacity(self):

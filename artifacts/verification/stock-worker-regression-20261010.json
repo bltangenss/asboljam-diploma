@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "scope": "Focused worker process regression after full-suite startup readiness failure",
+  "command": "python -X utf8 -m unittest discover -s tests -p test_worker_process.py -v",
+  "started_at_utc": "2026-10-10T08:05:08.5283219Z",
+  "finished_at_utc": "2026-10-10T08:05:44.5999030Z",
+  "wall_seconds": 36.072,
+  "exit_code": 0,
+  "status": "PASS",
+  "tests_run": 13,
+  "unittest_seconds": 22.419,
+  "source_changed": false,
+  "changed_paths": [],
+  "source_sha256": {
+    "tests/worker_process_fixture.py": "5665a266381e2ad3d9a5419baf3726287a2c1e91b2e5926e8bfbacbb48860493",
+    "apps/worker/calculation_process.py": "0c7c87d27556acc7f6166914598c88279fb414f9f3e025769572526760bcd437",
+    "tests/test_worker_process.py": "e4b5feb6f2d66190521422e6867f72c03df8bac013e870c87d3fb0319c77d246",
+    "apps/worker/main.py": "1556c3a30c8313070b6ee152955066e07d89e58e773138dc34e5961606cebb82"
+  },
+  "initial_full_regression": {
+    "command": "python -X utf8 -m unittest discover -s tests -p test_*.py -v",
+    "status": "FAIL",
+    "tests_run": 425,
+    "passed": 423,
+    "failed": 1,
+    "skipped": 1,
+    "seconds": 470.64,
+    "failed_test": "test_worker_process.CalculationProcessTests.test_real_hung_child_is_terminated_and_private_files_removed",
+    "failure": "Actual child never started: 0.5-second deadline expired before fixture marker existed",
+    "skip": "POSIX real SIGTERM drain is unsupported on Windows",
+    "log": ".cache/stock-full-regression-20261010.log"
+  },
+  "fix": {
+    "production_changed": false,
+    "description": "Test-only bounded readiness handshake waits for matching live child PID in complete marker before starting the existing supervisor deadline",
+    "readiness_timeout_seconds": 10,
+    "calculation_timeout_seconds": 0.5,
+    "deadline_reap_upper_bound_seconds": 4,
+    "assertions_preserved": [
+      "real child computation started",
+      "real CalculationTimeout",
+      "deadline does not fire early",
+      "child reaped",
+      "private calculation directory removed"
+    ]
+  },
+  "limitations": [
+    "This report is the focused worker-process rerun, not a passing rerun of the complete Python suite.",
+    "Temporary databases and generated process files are isolated fixtures."
+  ],
+  "log": ".cache/stock-worker-regression-20261010.log"
+}
