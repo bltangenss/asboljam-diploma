@@ -113,12 +113,24 @@ def free_port() -> int:
         return probe.getsockname()[1]
 
 
-def compare(source: dict, restored: dict) -> dict:
+def compare(source: dict, restored: dict, *, source_login_after_backup: bool = False) -> dict:
+    """Every read must match; audit may differ only by the drill's own logins.
+
+    The restored API's login adds one session.login row. When the backup was made
+    before the drill (operator-restored database), the drill's source login is also
+    absent from the copy: exactly one source-only session.login row is then allowed.
+    """
     checks = {}
     for key in ('branches', 'users', 'plans', 'plan_exports', 'runs', 'imports', 'exports'):
         checks[key + '_identical'] = source[key] == restored[key]
     extra = [restored['audit'][key] for key in restored['audit'].keys() - source['audit'].keys()]
-    checks['audit_source_rows_preserved'] = all(restored['audit'].get(key) == row for key, row in source['audit'].items())
+    missing = [source['audit'][key] for key in source['audit'].keys() - restored['audit'].keys()]
+    checks['audit_common_rows_identical'] = all(
+        restored['audit'][key] == row for key, row in source['audit'].items() if key in restored['audit'])
+    if source_login_after_backup:
+        checks['audit_only_drill_source_login_missing'] = len(missing) == 1 and missing[0]['action'] == 'session.login'
+    else:
+        checks['audit_no_source_rows_missing'] = not missing
     checks['audit_only_restored_login_added'] = len(extra) == 1 and extra[0]['action'] == 'session.login'
     return checks
 
@@ -188,7 +200,7 @@ def main() -> int:
         report['checks']['restored_api_ready_with_expected_schema'] = True
         restored.login(args.admin_email, password)
         report['checks']['restored_admin_login'] = True
-        report['checks'].update(compare(before, snapshot(restored)))
+        report['checks'].update(compare(before, snapshot(restored), source_login_after_backup=args.restored_from_environment))
         report['counts'] = {'branches': len(before['branches']), 'plans': sum(map(len, before['plans'].values())),
                             'decided_plan_exports': len(before['plan_exports']), 'audit_rows': len(before['audit']),
                             'runs': sum(map(len, before['runs'].values())), 'import_batches': len(before['imports']),
