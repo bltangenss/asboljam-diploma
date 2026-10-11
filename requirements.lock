@@ -2,7 +2,7 @@
 # PostgreSQL driver is pinned but requires separate runtime validation.
 annotated-doc==0.0.5
 annotated-types==0.7.0
-anyio==4.11.0
+anyio==4.14.2
 certifi==2025.10.5
 click==8.3.0
 colorama==0.4.6

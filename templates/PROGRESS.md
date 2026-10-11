@@ -1,5 +1,13 @@
 # AsBoljam — журнал прогресса
 
+## 11.10.2026 — anyio 4.14.2 и проверка в venv строго из lockfile
+
+**DONE:** `requirements.lock`: `anyio` 4.11.0 → 4.14.2 (PYSEC-2026-4024/4025). Новый venv из lockfile совпадает с ним полностью (`pip freeze` = lock), `pip-audit` по lockfile: 28 пакетов, 0 уязвимостей. Тест готовности дочернего процесса больше не сравнивает `Popen.pid` с PID интерпретатора: в Windows venv `python.exe` — лаунчер, настоящий интерпретатор имеет другой PID (проверено экспериментом: 2720 ≠ 30492; в глобальном Python совпадают). Тот же эксперимент показал, что завершение лаунчера останавливает и настоящий расчёт (через 1 с процесса нет), то есть `JOB_TIMEOUT` в установке через `.venv` работает.
+
+**TESTED:** полная регрессия в venv из lockfile: 491 тест — 489 PASS, 1 FAIL, 1 POSIX skip, 261.7 с. Единственный FAIL — `test_real_hung_child_is_terminated_and_private_files_removed`: фикстура ждала совпадения PID и через 10 с сообщала «не стартовал». После исправления проверки готовности `test_worker_process` 13/13 PASS в venv и 13/13 в глобальном Python. Mobile `npm audit` проанализирован (28; закрываются только мажорным обновлением Expo SDK/React Native, в основном инструменты сборки) — внесено в backlog, не исправлено.
+
+**NOT TESTED:** полный повтор всей регрессии после правки теста (исправлен только тест, приложение не менялось); PostgreSQL, новый RC, browser-suite и restore-учение — следующие шаги.
+
 ## 11.10.2026 — проверка RC из ZIP: найден и исправлен медленный dashboard (IN PROGRESS, остановлено по просьбе владельца)
 
 **DONE:** RC `releases/2026-10-11-rc/AsBoljam_Final.zip` из `347d90d`: 316 файлов, 1854657 байт, SHA256 `a7a451d894adf47882a8a000377a2d89ee25b0a451ecd5496728c55c934b4716`; упаковщик CRC/хеши PASS; независимо: CRC, sidecar SHA256, 316/316 файлов = manifest = blob'ы commit. Чистая установка в новую папку вне репозитория (`C:\Users\ASUS\AsBoljam-install-check\rc-20261011-347d90d`) через `start.ps1 -Install`: новый venv, pip из lockfile, `npm ci`, миграции 0001–0008, seed; API ready, web 200, worker работает. `verify_runtime.py` через web-прокси установленной копии: 87/87 PASS. `npm run build` установленной копии PASS.

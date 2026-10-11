@@ -47,7 +47,9 @@ class ChildFixture:
                     marker = json.loads(self.marker.read_text(encoding='utf-8'))
                 except (OSError, ValueError):
                     marker = None  # The child may still be writing its marker.
-                if isinstance(marker, dict) and marker.get('pid') == process.pid:
+                # Match this launch by its private input directory, not Popen.pid: a
+                # Windows venv python.exe is a launcher whose interpreter has another PID.
+                if isinstance(marker, dict) and marker.get('directory') == str(self.directories[-1]):
                     self.ready_at = time.monotonic()
                     break
                 time.sleep(0.01)
