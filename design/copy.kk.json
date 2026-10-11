@@ -72,7 +72,7 @@
   "error_SOURCE_PROFILE_MISMATCH": "Ұйымға тіркелген дерек көзі мен нұсқасын таңдаңыз.",
   "error_STALE_IMPORT": "Деректер өзгерді. Түзетуді қайта тексеріңіз.",
   "error_STALE_INVENTORY": "Қойма кесіндісі мақсат күніне сәйкес емес.",
-  "error_STALE_VERSION": "Жоспар өзгерген немесе шешім қабылданған. Бетті жаңартыңыз.",
+  "error_STALE_VERSION": "Жоспар жаңартылған. Соңғы нұсқаны қайта тексеріңіз.",
   "error_SYNTHETIC_FIELD_FORBIDDEN": "REAL күнтізбесінде жасанды оқиға белгісіне рұқсат жоқ.",
   "error_TENANT_DATA_POLICY_REQUIRED": "Деректер режимін оператор баптауы керек.",
   "error_TENANT_NOT_FOUND": "Ұйым табылмады.",
