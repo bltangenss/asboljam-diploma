@@ -95,18 +95,27 @@ python scripts/verify_restore.py --source-api http://127.0.0.1:8000/api/v1 --sou
 и worker); поднимает временный API без worker на восстановленной копии и сравнивает те же
 ответы. Допустимое отличие ровно одно: запись audit `session.login` проверочного входа.
 
-**PostgreSQL**: `pg_dump --format=custom` → `pg_restore` в **новую** базу → учение:
+**PostgreSQL** (проверено 11.10.2026 на Docker PostgreSQL 17.11): дамп и восстановление в **новую** базу
+внутри контейнера `postgres`, затем HTTP-учение в одноразовом контейнере `api` той же сети:
 
 ```sh
-docker compose exec -T postgres pg_dump -U asboljam -d asboljam --format=custom > backups/<новое-имя>.dump
-docker compose exec -T postgres createdb -U asboljam asboljam_restore_<дата>
-docker compose exec -T postgres pg_restore -U asboljam -d asboljam_restore_<дата> < backups/<новое-имя>.dump
-# затем, где доступен restored URL (например, внутри контейнера api):
-RESTORED_DATABASE_URL=... python scripts/verify_restore.py --restored-from-environment --source-api http://api:8000/api/v1 ...
+C="docker compose --env-file .env"            # те же -p/-f, что у работающего стека
+$C exec -T postgres pg_dump -U asboljam -d asboljam --format=custom -f /tmp/<имя>.dump
+$C exec -T postgres sha256sum /tmp/<имя>.dump
+$C exec -T postgres createdb -U asboljam asboljam_restore_<дата>
+$C exec -T postgres pg_restore -U asboljam -d asboljam_restore_<дата> --exit-on-error /tmp/<имя>.dump
+export RESTORED_DATABASE_URL="postgresql+psycopg://asboljam:<пароль>@postgres:5432/asboljam_restore_<дата>"
+export DEMO_PASSWORD=...                       # пароль администратора проверяемой организации
+$C run --rm --no-deps -T -e RESTORED_DATABASE_URL -e DEMO_PASSWORD -v "<папка-проекта>:/workspace:ro" -w /tmp   api python /workspace/scripts/verify_restore.py --restored-from-environment   --source-api http://api:8000/api/v1 --web-origin <разрешённый-origin> --work-dir /tmp/drill
+$C cp postgres:/tmp/<имя>.dump backups/     # вынести копию с сервера; этот шаг в проверке 11.10 не выполнялся
 ```
 
-URL восстановленной базы передаётся только через переменную окружения. Копии хранить вне
-сервера и вне Git/ZIP; шифрование, ротация и срок хранения — ответственность оператора.
+URL восстановленной базы и пароли передаются только через переменные окружения (в Git Bash на
+Windows для `-v`/путей контейнера задайте `MSYS_NO_PATHCONV=1`). В этом режиме дамп сделан до
+учения, поэтому допускается ровно одна запись `session.login` источника, отсутствующая в копии,
+и одна — в копии; всё остальное должно совпасть. Восстановленную базу после проверки оставьте для
+разбора или удалите осознанно; рабочую базу не трогайте. Шифрование, ротация и срок хранения
+копий — ответственность оператора.
 
 ## 7. Release checklist
 

@@ -1,5 +1,9 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — PostgreSQL и восстановление проверены, следующий шаг — финальный ZIP
+
+Проверено на финальном коде: PostgreSQL suites 77/77 (повтор после исправления учёта раннера), Docker/Nginx workflow 87/87, учение по восстановлению PostgreSQL 13/13, полная регрессия (490 PASS + 1 skip; в venv из lockfile после исправления теста `test_worker_process` 13/13). Детали — [PROGRESS](templates/PROGRESS.md), [свидетельство](artifacts/verification/launch-readiness-20261011.json). Следующее: финальный ZIP → установка → полный browser-suite с REAL/складскими фикстурами → SQLite restore drill. Compose-проекты `asboljam-logcheck-*` и `asboljam-final-*` остановлены, volume сохранены.
+
 ## 11.10.2026 — остановлено по просьбе владельца во время проверки RC
 
 Диагностика request → job закрыта (commit `347d90d`). Затем начата приёмка выпуска: RC ZIP из `347d90d` установлен с нуля, HTTP workflow 87/87, но browser-suite выявил медленный dashboard (до 22 с). Исправление производительности freshness и e2e-тестов закоммичено; полная Python-регрессия после него: 491 тест, 490 PASS + 1 POSIX skip; PostgreSQL, новый RC, browser-suite и restore-учение ещё не выполнены. Точное состояние, проверки и следующие шаги — верхняя запись [PROGRESS](templates/PROGRESS.md), порядок работ — [LAUNCH_BACKLOG_RU](docs/commercial/LAUNCH_BACKLOG_RU.md). Новый финальный ZIP после исправления ещё не создан.

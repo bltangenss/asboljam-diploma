@@ -1,0 +1,174 @@
+{
+  "status": "passed_with_recorded_failures_and_fixes",
+  "date": "2026-10-11",
+  "scope": "Release-candidate acceptance after request->job diagnostics: clean install from ZIP, browser suite, performance fix, dependency audit, PostgreSQL suites, Docker/Nginx workflow and PostgreSQL restore drill.",
+  "release_candidate_1": {
+    "archive": "releases/2026-10-11-rc/AsBoljam_Final.zip",
+    "source_commit": "347d90d60de99907f36da98f65dd3dd75d73ca92",
+    "files": 316,
+    "bytes": 1854657,
+    "sha256": "a7a451d894adf47882a8a000377a2d89ee25b0a451ecd5496728c55c934b4716",
+    "independent_check": "testzip OK; sidecar SHA256 equal; 316/316 members equal manifest hashes/sizes and git blobs of the commit",
+    "clean_install": "start.ps1 -Install in a new folder outside the repository: new venv from requirements.lock, npm ci, migrations 0001-0008, seed; API ready, web 200, worker started",
+    "verify_runtime_through_web_proxy": "87/87 passed",
+    "web_build_of_installed_copy": "passed",
+    "browser_suite": {
+      "passed": 80,
+      "failed": 6,
+      "skipped": 2,
+      "minutes": 16.0,
+      "analysis": [
+        "real_data_live: precondition missing (prepare_real_e2e.py not run) - not a product defect",
+        "sessions_imports analyst: strict getByRole(status) matched both the analyst notice and the RecentRuns loading note (deterministic, dev and production build) - test locator fixed in 32bc488",
+        "tenant_onboarding:72: React StrictMode in the Vite dev server repeats the startup /session/me read; passes on the production build - test made relative in 32bc488",
+        "workflow.spec x3 (live): pages exceeded 15 s expectations; API JSON logs showed /dashboard median 7.7 s, max 22 s, /forecasts up to 24 s, /plans/{id} p95 8 s - performance defect fixed in 01850dc",
+        "skipped: stock live suites require explicit opt-in and dedicated fixtures"
+      ]
+    }
+  },
+  "performance_fix": {
+    "commit": "01850dc",
+    "cause": "freshness re-read ORM rows and re-hashed every input row; dashboard did it up to 6 times per request",
+    "sqlite_copy_of_installed_db_median_seconds": {
+      "dashboard": [
+        8.47,
+        1.41
+      ],
+      "plan_detail": [
+        3.05,
+        0.73
+      ],
+      "forecast_list": [
+        3.91,
+        0.53
+      ]
+    },
+    "machine_load_note": "CPU 90-100% during measurement; values are indicative",
+    "equality": "63/63 GET responses (2 organizations, all branches, plans, forecasts, CSV exports) identical to the previous code",
+    "tests": "test_import_lineage 12/12 (2 adapted, 1 new dashboard test)",
+    "postgres_after_fix_seconds": {
+      "/dashboard?branch_id=1": 0.734,
+      "/forecasts?branch_id=1": 0.241,
+      "/plans?branch_id=1": 0.368,
+      "/plans/{id}": 0.289,
+      "/dashboard?branch_id=2": 0.161,
+      "/forecasts?branch_id=2": 0.016,
+      "/plans?branch_id=2": 0.015,
+      "/dashboard?branch_id=3": 0.18,
+      "/forecasts?branch_id=3": 0.015,
+      "/plans?branch_id=3": 0.014
+    }
+  },
+  "regressions": [
+    {
+      "environment": "global Python 3.13.9, sources of 01850dc",
+      "tests": 491,
+      "passed": 490,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 400.206
+    },
+    {
+      "environment": "fresh venv built only from requirements.lock (anyio 4.14.2), sources of 81a550b before the test fix",
+      "tests": 491,
+      "passed": 489,
+      "failed": 1,
+      "skipped": 1,
+      "seconds": 261.71,
+      "failure": "test_worker_process hung-child readiness compared Popen.pid with the interpreter PID; a Windows venv python.exe is a launcher with a different PID (probe 2720 != 30492). Fixed in 81a550b; test_worker_process 13/13 in the venv and 13/13 globally. Probe: terminating the launcher also stops the interpreter."
+    }
+  ],
+  "dependencies": {
+    "python": "anyio 4.11.0 -> 4.14.2 (PYSEC-2026-4024/4025); venv pip freeze equals requirements.lock; pip-audit 28 packages, 0 vulnerable",
+    "web": "source-map-js 1.2.1 -> 1.2.2 (GHSA-68fv-2mgg-jv7q, build-only); npm audit 0",
+    "mobile": "npm audit 28 (1 critical shell-quote, mostly Metro/Jest/Expo CLI); fixes need a major Expo SDK/React Native upgrade - not fixed, recorded in LAUNCH_BACKLOG_RU item 7"
+  },
+  "docker_postgres_final_code": {
+    "images_built_from_commit": "81a550b",
+    "image_ids": {
+      "api": "117d42f6d9f9",
+      "worker": "ccf800fdff3b",
+      "web": "6b7ab5629f93"
+    },
+    "runtime": "Python 3.13.16, anyio 4.14.2, FastAPI 0.141.1, Starlette 1.6.0, SQLAlchemy 2.0.48, psycopg 3.3.3, PostgreSQL 17.11",
+    "verify_runtime_through_nginx": "87/87 passed",
+    "report": "artifacts/verification/runtime-docker-final-20261011.json",
+    "logs": {
+      "nginx_proxy_events": 75,
+      "api_events": 170,
+      "worker_events": 4,
+      "secrets_present": false,
+      "access_log_lines": 0,
+      "proxy_ids_match_api": true,
+      "request_job_chains": [
+        {
+          "kind": "forecast",
+          "in_proxy": true,
+          "worker": [
+            "job.claimed:",
+            "job.finished:succeeded"
+          ]
+        },
+        {
+          "kind": "procurement",
+          "in_proxy": true,
+          "worker": [
+            "job.claimed:",
+            "job.finished:succeeded"
+          ]
+        }
+      ]
+    },
+    "postgres_suites": {
+      "first_run": {
+        "report": "artifacts/verification/postgres-lineage-observability-20261011.json",
+        "status": "failed",
+        "tests": 77,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "reason": "runner expected one schema per test (77) but test_request_logging uses one class-level fixture: 68 schemas"
+      },
+      "retry_after_runner_accounting_fix": {
+        "report": "artifacts/verification/postgres-lineage-observability-20261011-retry.json",
+        "status": "passed",
+        "tests": 77,
+        "schemas": 68,
+        "expected_setups": 68,
+        "postgres_test_bodies": 77,
+        "source_commit": "813dab4",
+        "suites": [
+          "test_import_lineage",
+          "test_run_status",
+          "test_tenant_isolation",
+          "test_real_api",
+          "test_stock_service",
+          "test_request_logging"
+        ]
+      }
+    },
+    "restore_drill": {
+      "report": "artifacts/verification/restore-drill-postgres-20261011.json",
+      "status": "passed",
+      "checks": 13,
+      "method": "pg_dump --format=custom (2825639 bytes) -> createdb new database -> pg_restore --exit-on-error -> scripts/verify_restore.py --restored-from-environment in a one-off container on the compose network",
+      "row_counts_equal": [
+        "operational_records 28676",
+        "plans 1",
+        "forecasts 1",
+        "jobs 2",
+        "audit_events 18",
+        "users 4",
+        "import_batches 3"
+      ]
+    },
+    "cleanup": "compose stop and Docker Desktop stop; containers, images and the new volume retained; older projects untouched"
+  },
+  "not_tested_in_this_report": [
+    "Final release ZIP after these commits, its clean install, full browser suite with REAL/stock fixtures and the SQLite restore drill (next step)",
+    "Production deployment, TLS, load and failover",
+    "Mobile build or device",
+    "Real business pilot"
+  ]
+}

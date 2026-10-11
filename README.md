@@ -90,10 +90,10 @@ server-generated `X-Request-ID`, allowlisted JSON-события API/worker, с�
 490: 489 PASS + 1 POSIX skip, настоящий uvicorn и Docker/Nginx/PostgreSQL workflow 87/87. Подробности —
 [request-logging-20261011.json](artifacts/verification/request-logging-20261011.json).
 
-Далее начата приёмка выпуска ([backlog](docs/commercial/LAUNCH_BACKLOG_RU.md) №2–3): RC из `347d90d` установлен с нуля,
-HTTP workflow 87/87, browser-suite выявил медленный dashboard; исправление закоммичено, полная регрессия 490 PASS + 1 skip;
-PostgreSQL, новый RC, повторная установка и restore-учение **ещё не подтверждены** — см. верхнюю запись [PROGRESS](templates/PROGRESS.md).
-Перед продолжением проверьте `git status` и последние записи PROGRESS.
+Далее приёмка выпуска ([backlog](docs/commercial/LAUNCH_BACKLOG_RU.md) №2–3): RC из `347d90d` установлен с нуля, browser-suite
+выявил медленный dashboard (до 22 с) — исправлено; обновлён `anyio`; на финальном коде проверены полная регрессия, PostgreSQL suites
+77/77, Docker/Nginx workflow 87/87 и восстановление PostgreSQL 13/13 ([свидетельство](artifacts/verification/launch-readiness-20261011.json)). Финальный ZIP, его
+установка, полный browser-suite и SQLite restore drill — см. верхние записи [PROGRESS](templates/PROGRESS.md).
 
 <a id="product"></a>
 ## 2. Продукт простыми словами
@@ -655,6 +655,7 @@ HTTP protection отдельно ограничивает заявленное �
 | Основная SQLite 0007→0008 | Проверенный backup,21 прежняя таблица неизменна, integrity/FK PASS, новая таблица пуста | [count-anchor-main-migration](artifacts/verification/count-anchor-main-migration-20261010.json) |
 | Базовый JSON emitter | **5/5 PASS**,0.022 s, версия commit c9b288a | [observability-emitter](artifacts/verification/observability-emitter-20261010.json) |
 | Диагностика request → job | Focused 36 тестов; полная регрессия **490: 489 PASS + 1 SKIP**, 346.5 s; настоящий uvicorn PASS; Docker/Nginx/PostgreSQL workflow **87/87** | [request-logging-20261011](artifacts/verification/request-logging-20261011.json) |
+| Производительность, зависимости, PostgreSQL | Dashboard 8.5 → 1.4 s (SQLite-копия), 63/63 ответа идентичны; регрессия 490 PASS + 1 SKIP; PG suites **77/77**; Docker/Nginx **87/87**; PG restore drill **13/13**; pip-audit 0, npm audit (web) 0 | [launch-readiness-20261011](artifacts/verification/launch-readiness-20261011.json) |
 
 Live stock test прошёл цепочку: login → журнал → старый approved plan → HTTP CSV correction → блокировка → два пересчёта и прихода → старый день → сверка → forecast/procurement через worker → UI approval → audit/export. Старый approved CSV остался побайтно прежним. Часть подготовительных шагов выполнена через HTTP API, не весь сценарий через UI.
 

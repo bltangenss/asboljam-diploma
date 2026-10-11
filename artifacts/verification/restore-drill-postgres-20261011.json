@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "started_at_utc": "2026-10-11T14:50:50.627769+00:00",
+  "source_api": "http://api:8000/api/v1",
+  "work_dir": "/tmp/drill",
+  "checks": {
+    "source_unchanged_during_drill": true,
+    "restored_api_ready_with_expected_schema": true,
+    "restored_admin_login": true,
+    "branches_identical": true,
+    "users_identical": true,
+    "plans_identical": true,
+    "plan_exports_identical": true,
+    "runs_identical": true,
+    "imports_identical": true,
+    "exports_identical": true,
+    "audit_common_rows_identical": true,
+    "audit_only_drill_source_login_missing": true,
+    "audit_only_restored_login_added": true
+  },
+  "mode": "operator_restored_database",
+  "counts": {
+    "branches": 3,
+    "plans": 1,
+    "decided_plan_exports": 1,
+    "audit_rows": 19,
+    "runs": 2,
+    "import_batches": 3,
+    "csv_exports": 9
+  },
+  "finished_at_utc": "2026-10-11T14:51:02.066754+00:00"
+}
