@@ -1,5 +1,13 @@
 # AsBoljam — итоговый технический отчёт
 
+## 11.10.2026 — финальный архив v3 (137a17d) проверен полностью
+
+**DONE / TESTED:** `releases/2026-10-11-final-3/AsBoljam_Final.zip` из чистого commit `137a17d`: 334 файла, 1974209 байт, SHA256 `4afdeb480d94a222e790855c93a14efc21b58f462dbe38f7ad6d74e094532bf5`; упаковщик CRC/хеши/secret scan PASS; независимо CRC, sidecar, 334/334 = manifest = дерево commit = Git-blob. Чистая установка в новую папку: venv из lockfile, `npm ci` 0 уязвимостей, миграции 0001–0008, seed; HTTP `verify_runtime.py` 87/87; полный browser-suite 89 passed + 2 skip (5.8 мин), затем складские live 1/1 и 1/1 (REAL/TEST) — итого 91/91; SQLite restore drill 14/14 (23 таблицы, 58337 операционных строк, integrity OK); `npm run build` PASS. По логам API за browser-suite: `/dashboard` p50 0.57 с, max 2.3 с; без HTTP 500. Включает диагностику неполной истории и остатков, KK/RU для всех видимых отказов, пакет развёртывания и исправление `STALE_VERSION`. Полная Python-регрессия на тех же исходниках приложения (`fcb06d2`): 495 PASS + 1 POSIX skip. [Свидетельство](artifacts/verification/release-20261011-final-3.json).
+
+**История попыток:** v1 `releases/2026-10-11-final` (`fc0af29`) — проверен 88/88, затем дополнен улучшениями; v2 `releases/2026-10-11-final-2` (`ae88c64`) — 87 passed, 2 failed (регрессия текста `STALE_VERSION`, исправлена в `137a17d`; HGB-задание 125.6 с при таймауте 120 с на перегруженной машине). Старые архивы сохранены.
+
+**NOT TESTED:** production deployment на сервере (нужны решения владельца), PostgreSQL для изменений после `813dab4` (затронуты только пути ошибок без SQL-особенностей), APK текущего кода и устройство, реальный пилот. Этот commit добавляет только документы/свидетельство.
+
 ## 11.10.2026 — пакет развёртывания на одном сервере с HTTPS (проверен локально)
 
 **DONE:** `infra/compose.prod.yml` (Caddy с автоматическим HTTPS для домена; API, web и PostgreSQL без опубликованных портов; ротация docker-логов 10 МБ × 5 у всех сервисов), `infra/Caddyfile` (без admin endpoint и без access log, HSTS, без `Server`), `infra/production.env.example` (только имена и заглушки), `scripts/backup_postgres.sh` (pg_dump custom, проверка `pg_restore --list`, SHA256, без перезаписи, удаление старых копий только по явному `BACKUP_RETENTION_DAYS`), `scripts/verify_tls_deployment.py`, runbook [DEPLOYMENT_VPS_RU](docs/commercial/DEPLOYMENT_VPS_RU.md) со списком решений владельца.

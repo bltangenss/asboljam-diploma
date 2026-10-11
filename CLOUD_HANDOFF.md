@@ -1,5 +1,9 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — финальный архив v3 проверен; дальше сервер/домен или mobile
+
+Последний проверенный архив: `releases/2026-10-11-final-3/AsBoljam_Final.zip` (commit `137a17d`, SHA256 `4afdeb480d94a222e790855c93a14efc21b58f462dbe38f7ad6d74e094532bf5`): чистая установка, HTTP 87/87, browser 91/91, SQLite restore 14/14. Детали — верхняя запись [PROGRESS](templates/PROGRESS.md), [свидетельство](artifacts/verification/release-20261011-final-3.json). Для production нужны решения владельца ([DEPLOYMENT_VPS_RU §9](docs/commercial/DEPLOYMENT_VPS_RU.md)). Независимо: backlog №5 (аудит живого onboarding), №6 (надёжность заданий), №7 (mobile: Expo update, APK, эмулятор). Проверочные установки остановлены и лежат вне Git в `C:\Users\ASUS\AsBoljam-install-check`.
+
 ## 11.10.2026 — готов вариант запуска на VPS; нужен сервер/домен
 
 Production-overlay с HTTPS, backup PostgreSQL и проверка TLS готовы и проверены локально ([DEPLOYMENT_VPS_RU](docs/commercial/DEPLOYMENT_VPS_RU.md), [отчёт](artifacts/verification/deployment-config-20261011.json)). Реальный deploy ждёт решений владельца: хостинг/расположение данных, домен/DNS, оператор сервера, внешнее хранение копий, данные первой организации. Независимо можно продолжать backlog №5–7.

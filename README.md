@@ -91,9 +91,10 @@ server-generated `X-Request-ID`, allowlisted JSON-события API/worker, с�
 [request-logging-20261011.json](artifacts/verification/request-logging-20261011.json).
 
 Затем выполнена приёмка выпуска ([backlog](docs/commercial/LAUNCH_BACKLOG_RU.md) №2–3): RC выявил медленный dashboard (до 22 с) —
-исправлено; обновлён `anyio`; финальный `releases/2026-10-11-final/AsBoljam_Final.zip` (commit `fc0af29`) установлен с нуля и прошёл HTTP 87/87,
-browser 88/88, SQLite restore drill 14/14; на том же коде — PostgreSQL suites 77/77, Docker/Nginx 87/87, PostgreSQL restore drill
-13/13 ([свидетельство](artifacts/verification/release-20261011-final.json)). Production deployment, APK и пилот не выполнены. Следующие шаги — backlog №4–8.
+исправлено; обновлён `anyio`; затем добавлены диагностика неполных данных, KK/RU для всех отказов и пакет развёртывания.
+Последний проверенный архив `releases/2026-10-11-final-3/AsBoljam_Final.zip` (commit `137a17d`) установлен с нуля: HTTP 87/87, browser 91/91, SQLite restore
+drill 14/14 ([свидетельство](artifacts/verification/release-20261011-final-3.json)); ранее на финальном коде — PostgreSQL suites 77/77, Docker/Nginx 87/87, PostgreSQL restore 13/13.
+Production deployment, APK и пилот не выполнены. Следующие шаги — backlog №4–8.
 
 <a id="product"></a>
 ## 2. Продукт простыми словами
@@ -658,6 +659,7 @@ HTTP protection отдельно ограничивает заявленное �
 | Основная SQLite 0007→0008 | Проверенный backup,21 прежняя таблица неизменна, integrity/FK PASS, новая таблица пуста | [count-anchor-main-migration](artifacts/verification/count-anchor-main-migration-20261010.json) |
 | Базовый JSON emitter | **5/5 PASS**,0.022 s, версия commit c9b288a | [observability-emitter](artifacts/verification/observability-emitter-20261010.json) |
 | Диагностика request → job | Focused 36 тестов; полная регрессия **490: 489 PASS + 1 SKIP**, 346.5 s; настоящий uvicorn PASS; Docker/Nginx/PostgreSQL workflow **87/87** | [request-logging-20261011](artifacts/verification/request-logging-20261011.json) |
+| Финальный ZIP v3 137a17d: чистая установка | HTTP **87/87**; browser **91/91** (89 + 2 складских live); SQLite restore **14/14**; web build PASS | [release-20261011-final-3](artifacts/verification/release-20261011-final-3.json) |
 | Финальный ZIP fc0af29: чистая установка | HTTP **87/87**; browser **88/88** (86 + 2 складских live, REAL/TEST); SQLite restore **14/14**; web build PASS; mobile 13/13 | [release-20261011-final](artifacts/verification/release-20261011-final.json) |
 | Производительность, зависимости, PostgreSQL | Dashboard 8.5 → 1.4 s (SQLite-копия), 63/63 ответа идентичны; регрессия 490 PASS + 1 SKIP; PG suites **77/77**; Docker/Nginx **87/87**; PG restore drill **13/13**; pip-audit 0, npm audit (web) 0 | [launch-readiness-20261011](artifacts/verification/launch-readiness-20261011.json) |
 
@@ -760,16 +762,17 @@ python scripts/backup_db.py restore --backup backups/before-next-change.sqlite -
 
 ### 13.3. Последний проверенный source ZIP
 
-- `releases/2026-10-11-final/AsBoljam_Final.zip`.
-- Source commit: `fc0af29b0491d433aedb973e43dc4218b682cb61`.
-- 323 исходных файла плюс `AsBoljam/RELEASE_MANIFEST.json`, размер 1930862 байт.
-- SHA256: `da5abe1b0dc6e0e5005e82b583b02302634825ee58c9e6cc4d8d36764036ee1f`.
+- `releases/2026-10-11-final-3/AsBoljam_Final.zip`.
+- Source commit: `137a17d698385f7fbe5939d0867772f6e4333870`.
+- 334 исходных файла плюс `AsBoljam/RELEASE_MANIFEST.json`, размер 1974209 байт.
+- SHA256: `4afdeb480d94a222e790855c93a14efc21b58f462dbe38f7ad6d74e094532bf5`.
 - Упаковщик и независимое чтение: CRC, состав, размеры, SHA256 каждого файла, побайтное равенство Git-blob.
-- Чистая установка из архива: HTTP 87/87, browser 88/88, SQLite restore drill 14/14 ([отчёт](artifacts/verification/release-20261011-final.json)).
+- Чистая установка из архива: HTTP 87/87, browser 91/91, SQLite restore drill 14/14 ([отчёт](artifacts/verification/release-20261011-final-3.json)).
 
 Commit со свидетельством закономерно новее `source_commit`: он меняет только документы/отчёты. Прежние архивы
-(`releases/2026-10-10-count-anchor`, `releases/2026-10-11-rc` из `347d90d` — без исправления производительности) сохранены.
-ZIP локальный и может отсутствовать в clone.
+сохранены: `releases/2026-10-11-final` (`fc0af29`, проверен, без последующих улучшений), `releases/2026-10-11-final-2`
+(`ae88c64`, **не использовать**: регрессия текста `STALE_VERSION`), `releases/2026-10-11-rc` (`347d90d`, без исправления
+производительности), `releases/2026-10-10-count-anchor`. ZIP локальные и могут отсутствовать в clone.
 
 Для следующего выпуска закончите scope, checks/review/commit/push, получите чистое дерево и выберите новый путь:
 
