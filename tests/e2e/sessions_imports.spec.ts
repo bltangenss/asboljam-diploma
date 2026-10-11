@@ -50,6 +50,7 @@ async function signInAgain(page:Page) {
   await expectDashboard(page);
 }
 
+// Pages may show more than one status (e.g. run-history loading); assert the specific message.
 test('analyst can read saved plans and templates but cannot submit writes',async({page})=>{
   const writes:string[]=[];
   const auth=await installApi(page,async(route,path)=>{
@@ -72,7 +73,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   });
   auth.user={...user,role:'analyst'};
   await page.goto('/forecasts');
-  await expect(page.getByRole('status')).toContainText('Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.');
+  await expect(page.getByRole('status').filter({hasText:'Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.'})).toBeVisible();
   await expect(page.getByRole('button',{name:'stored-f',exact:true})).toBeVisible();
   await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
   const forecastButton=page.getByRole('button',{name:'Есептеу',exact:true});
@@ -89,7 +90,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await expect(page.getByRole('button',{name:'Қабылдамау',exact:true})).toBeDisabled();
   await expect(page.getByRole('link',{name:'CSV жүктеу',exact:true})).toHaveAttribute('href','/api/v1/plans/stored-plan/export');
   await page.goto('/imports');
-  await expect(page.getByRole('status')).toContainText('Сіз CSV үлгілерін жүктей аласыз.');
+  await expect(page.getByRole('status').filter({hasText:'Сіз CSV үлгілерін жүктей аласыз.'})).toBeVisible();
   await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['daily_sales','inventory_lots','calendar']);
   const input=page.getByLabel('CSV файлды таңдаңыз');
   await expect(input).toBeDisabled();
@@ -102,9 +103,9 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await page.getByLabel('Деректер',{exact:true}).selectOption('calendar');
   await expect(page.locator('a[href="/api/v1/imports/template/calendar"]')).toBeVisible();
   await page.locator('.language').click();
-  await expect(page.getByRole('status')).toContainText('Вы можете скачивать шаблоны CSV.');
+  await expect(page.getByRole('status').filter({hasText:'Вы можете скачивать шаблоны CSV.'})).toBeVisible();
   await page.goto('/forecasts');
-  await expect(page.getByRole('status')).toContainText('Вам доступен просмотр готовых прогнозов и планов закупки.');
+  await expect(page.getByRole('status').filter({hasText:'Вам доступен просмотр готовых прогнозов и планов закупки.'})).toBeVisible();
   await settleBrowser(page);
   expect(writes).toEqual([]);
 });

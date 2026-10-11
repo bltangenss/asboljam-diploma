@@ -77,11 +77,13 @@ test('empty administrator imports the first branch without fabricated data or an
  expect(operationalRequests(state)).toEqual([]);
  await expect(page.locator('.metric')).toHaveCount(0);
  await expect(page.locator('.sidebar-note')).not.toContainText('12');
+ // Development StrictMode may repeat the startup read; the import must add exactly one refresh.
+ const startupReads=state.sessionReads;
  await page.getByRole('button',{name:'Бөлімшелер CSV импорттау',exact:true}).click();
  await importBranch(page,'007','First synthetic branch');
  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue('007');
  await expect(page.getByLabel('Бөлімше',{exact:true})).toBeEnabled();
- await expect.poll(()=>state.sessionReads).toBe(2);
+ await expect.poll(()=>state.sessionReads).toBe(startupReads+1);
  expect(state.requests.filter(item=>item.path==='/session/login')).toEqual([]);
  await page.locator('.sidebar').getByRole('button',{name:'Шолу',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
