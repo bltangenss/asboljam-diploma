@@ -569,14 +569,32 @@ def create_app(database_url=None):
         if data.strategy!='point' and any(r.get('p50' if data.strategy=='p50' else 'p90') is None for r in forecast.result['predictions']): fail('QUANTILES_UNAVAILABLE','Бұл модельде квантильдер жоқ.',422)
         snapshot={'forecast_result':forecast.result,'execution_context':context,**{k:rows_for(db,user.organization_id,k,data.branch_id if k=='inventory_lots' else None) for k in ['ingredients','recipes','inventory_lots','supplier_offers','suppliers']}}
         for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers'): ensure_rows(context,snapshot[kind])
-        snapshot['inventory_lots']=[r for r in snapshot['inventory_lots'] if r['snapshot_date']==forecast.result['target_date']]
-        if not snapshot['inventory_lots']: fail('STALE_INVENTORY','Қойма кесіндісі мақсат күніне сәйкес емес.',422)
+        target_date=forecast.result['target_date']
+        branch_lots=snapshot['inventory_lots']
+        snapshot['inventory_lots']=[r for r in branch_lots if r['snapshot_date']==target_date]
+        if not snapshot['inventory_lots']:
+            # Name the required count date and the latest dates that do exist; nothing is inferred.
+            raise HTTPException(422,{'code':'STALE_INVENTORY','message':'Қойма кесіндісі мақсат күніне сәйкес емес.',
+                'inventory':{'required_snapshot_date':target_date,
+                             'available_snapshot_dates':sorted({str(r.get('snapshot_date')) for r in branch_lots})[-10:]}})
         active_recipes=prepare_procurement_stock(db,user,snapshot)
         if context['data_origin']=='REAL':
             meals={row['meal_id'] for row in forecast.result['predictions']}
             required={row['ingredient_id'] for row in snapshot['recipes'] if row['meal_id'] in meals}
             present={row['ingredient_id'] for row in snapshot['inventory_lots']}
-            if not required<=present: fail('INVENTORY_COVERAGE_REQUIRED','Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жоқ жазба нөл емес.',422)
+            if not required<=present:
+                # The rule is unchanged; the refusal lists each ingredient without a count row.
+                missing=sorted(required-present)
+                catalog={row['ingredient_id']:row for row in snapshot['ingredients']}
+                meal_names={str(row['meal_id']):row.get('meal_name') for row in forecast.result['predictions']}
+                users=defaultdict(set)
+                for row in snapshot['recipes']:
+                    if row['meal_id'] in meals and row['ingredient_id'] in required-present: users[row['ingredient_id']].add(str(row['meal_id']))
+                raise HTTPException(422,{'code':'INVENTORY_COVERAGE_REQUIRED',
+                    'message':'Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жоқ жазба нөл емес.',
+                    'inventory':{'required_snapshot_date':target_date,'missing_count':len(missing),'missing_ingredients':[
+                        {'ingredient_id':item,'ingredient_name':catalog.get(item,{}).get('ingredient_name'),'unit':catalog.get(item,{}).get('unit'),
+                         'meals':[{'meal_id':meal,'meal_name':meal_names.get(meal)} for meal in sorted(users[item])]} for item in missing[:100]]}})
         collections=[{'kind':kind,'rows':snapshot[kind],**(
             {'branch_id':data.branch_id,'snapshot_date':forecast.result['target_date']} if kind=='inventory_lots' else {})}
             for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers')

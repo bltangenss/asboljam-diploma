@@ -186,3 +186,37 @@ test('API refusals and dashboard warnings follow the selected language instead o
  await expect(page.locator('body')).not.toContainText('API-ONLY-ORIGIN-TEXT');
  await expect(page.locator('body')).not.toContainText('API-ONLY-INVENTORY-TEXT');
 });
+
+test('procurement refusals name the required count date and each uncounted ingredient in both languages',async({page})=>{
+ const state=fixture();let attempts=0;
+ await install(page,state,async(route,path)=>{
+  if(path==='/forecasts'&&route.request().method()==='GET'){
+   await route.fulfill({json:{items:[{id:'saved-forecast',model:'seasonal_naive_7',origin:'2026-09-21',target_date:'2026-09-22',data_origin:'REAL',
+    predictions:[{meal_id:'test-meal',meal_name:'Fixture meal',point_forecast:10,p10:null,p50:null,p90:null}]}],total:1,next_cursor:null}});return true;
+  }
+  if(path==='/procurement'&&route.request().method()==='POST'){
+   attempts++;
+   const detail=attempts===1
+    ?{code:'STALE_INVENTORY',message:'API-ONLY-STALE-TEXT',inventory:{required_snapshot_date:'2026-09-22',available_snapshot_dates:['2026-09-20','2026-09-21']}}
+    :{code:'INVENTORY_COVERAGE_REQUIRED',message:'API-ONLY-COVERAGE-TEXT',inventory:{required_snapshot_date:'2026-09-22',missing_count:1,
+      missing_ingredients:[{ingredient_id:'beef',ingredient_name:'Fixture beef',unit:'kg',meals:[{meal_id:'test-meal',meal_name:'Fixture meal'}]}]}};
+   await route.fulfill({status:422,json:{detail}});return true;
+  }
+  return false;
+ });
+ await page.goto('/procurement');
+ await page.getByRole('button',{name:'Есептеу',exact:true}).click();
+ const kk=page.getByRole('region',{name:'Қойма кесіндісінің толықтығы',exact:true});
+ await expect(kk).toContainText('22.09.2026 күнгі саналған қор кесіндісі қажет');
+ await expect(kk).toContainText('Бар кесінділер: 20.09.2026, 21.09.2026.');
+ await page.getByRole('button',{name:'Есептеу',exact:true}).click();
+ await expect(kk.locator('tbody tr')).toHaveCount(1);
+ await expect(kk).toContainText('Fixture beef (beef)');await expect(kk).toContainText('Fixture meal');await expect(kk).toContainText('нөлді анық жазыңыз');
+ await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
+ const ru=page.getByRole('region',{name:'Полнота среза остатков',exact:true});
+ await expect(ru).toContainText('В срезе на 22.09.2026 нет строк по ингредиентам ниже.');
+ await expect(ru).toContainText('явно укажите ноль');
+ await expect(page.getByRole('alert').filter({hasText:'нулю'})).toContainText('Отсутствие записи не равно нулю.');
+ await expect(page.locator('body')).not.toContainText('API-ONLY');
+ expect(attempts).toBe(2);
+});

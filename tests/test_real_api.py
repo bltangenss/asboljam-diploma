@@ -284,6 +284,11 @@ class RealApiTests(unittest.TestCase):
         response = self.client.post('/api/v1/procurement', json=payload)
         self.assertEqual(response.status_code, 422, response.text)
         self.assertEqual(response.json()['detail']['code'], 'INVENTORY_COVERAGE_REQUIRED')
+        # The refusal names what to count; it does not treat the absent row as zero.
+        self.assertEqual(response.json()['detail']['inventory'], {
+            'required_snapshot_date': forecast['target_date'], 'missing_count': 1, 'missing_ingredients': [{
+                'ingredient_id': 'required-extra', 'ingredient_name': added['ingredient_name'], 'unit': added['unit'],
+                'meals': [{'meal_id': 'test-meal', 'meal_name': 'Artificial fixture meal'}]}]})
         with self.factory() as db:
             self.assertEqual(db.scalar(select(func.count()).select_from(Job)), 1)
         zero = dict(self.rows['inventory_lots'][0], ingredient_id='required-extra', lot_id='known-zero', on_hand_qty='0')
@@ -296,6 +301,29 @@ class RealApiTests(unittest.TestCase):
         missing_offer = next(row for row in plan['requirements'] if row['ingredient_id'] == 'required-extra')
         self.assertEqual(missing_offer['usable_stock'], '0')
         self.assertGreater(float(missing_offer['shortage_qty']), 0)
+
+    def test_missing_target_count_names_required_and_available_snapshot_dates(self):
+        self.upload_all()
+        forecast = self.calculate_forecast()
+        with self.factory() as db:
+            for record in db.scalars(select(Record).where(Record.kind == 'inventory_lots')):
+                db.delete(record)
+            db.commit()
+        payload = {'branch_id': BRANCH, 'forecast_id': forecast['id'], 'budget': '15000'}
+        response = self.client.post('/api/v1/procurement', json=payload)
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(response.json()['detail']['code'], 'STALE_INVENTORY')
+        self.assertEqual(response.json()['detail']['inventory'],
+                         {'required_snapshot_date': forecast['target_date'], 'available_snapshot_dates': []})
+        earlier = dict(self.rows['inventory_lots'][0], snapshot_date='2026-03-31', expiry_date='2026-04-05')
+        preview = self.preview('inventory_lots', [earlier])
+        self.assertTrue(preview.json()['valid'], preview.text)
+        self.assertEqual(self.client.post('/api/v1/imports/' + preview.json()['id'] + '/commit').status_code, 200)
+        response = self.client.post('/api/v1/procurement', json=payload)
+        self.assertEqual(response.json()['detail']['inventory'],
+                         {'required_snapshot_date': forecast['target_date'], 'available_snapshot_dates': ['2026-03-31']})
+        with self.factory() as db:
+            self.assertEqual(db.scalar(select(func.count()).select_from(Job)), 1)
 
     def test_scoped_settings_reject_another_branch_without_revealing_its_dates(self):
         self.upload_all()
