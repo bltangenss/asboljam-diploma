@@ -186,6 +186,41 @@ def _series(history: tuple, origin: date) -> dict:
     return result
 
 
+def history_coverage(sales: list[dict], branch_id: str, origin: str, *, required_days: int = 84) -> dict:
+    """Per-meal diagnostics for an origin. It explains a refusal; it never decides one.
+
+    validate_forecast_history remains the only eligibility rule. Missing days stay
+    missing (never zero); statuses name the first thing an operator has to fix.
+    """
+    origin_day = _date(origin, 'origin')
+    days_by_meal = defaultdict(set)
+    for row in sales:
+        if str(row.get('branch_id')) != str(branch_id):
+            continue
+        try:
+            day = _date(row['date'], 'sales.date')
+        except (KeyError, ValueError):
+            continue  # Invalid rows are refused by validation, not described here.
+        if day <= origin_day:
+            days_by_meal[str(row['meal_id'])].add(day)
+    meals = []
+    for meal, days in sorted(days_by_meal.items()):
+        first, last = min(days), max(days)
+        span = (origin_day - first).days + 1
+        missing = [first + timedelta(days=index) for index in range(span) if first + timedelta(days=index) not in days]
+        continuous = 0
+        while origin_day - timedelta(days=continuous) in days:
+            continuous += 1
+        status = ('ended' if last < origin_day else 'gap' if missing else
+                  'too_short' if span < required_days else 'ready')
+        meals.append({'meal_id': meal, 'status': status, 'first_date': first.isoformat(),
+                      'last_date': last.isoformat(), 'observed_days': len(days), 'missing_days': len(missing),
+                      'first_missing_date': missing[0].isoformat() if missing else None,
+                      'continuous_days_through_origin': continuous})
+    return {'origin': origin_day.isoformat(), 'required_days': required_days,
+            'ready_meals': sum(item['status'] == 'ready' for item in meals), 'meals': meals}
+
+
 def validate_forecast_history(sales: list[dict], branch_id: str, origin: str) -> dict:
     """Check completeness without fitting any model or starting a worker job."""
     origin_day = _date(origin, 'origin')

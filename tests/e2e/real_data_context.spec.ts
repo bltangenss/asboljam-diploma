@@ -129,3 +129,37 @@ test('saved forecast without an origin makes no guessed history request',async({
  await expect(page.getByText('Есептің тарих күні белгісіз. График үшін деректер сұралмады.',{exact:true})).toBeVisible();
  expect(state.requests.some(item=>item.path==='/sales')).toBe(false);await expect(page.getByTestId('forecast-time-chart')).toHaveCount(0);
 });
+
+test('REAL history refusal explains each blocked meal in Kazakh and Russian without inventing zero days',async({page})=>{
+ const state=fixture();
+ const coverage={origin:'2026-09-21',required_days:84,ready_meals:1,meals:[
+  {meal_id:'ready-meal',meal_name:'Ready fixture meal',status:'ready',first_date:'2026-05-01',last_date:'2026-09-21',observed_days:144,missing_days:0,first_missing_date:null,continuous_days_through_origin:144},
+  {meal_id:'new-meal',meal_name:'New fixture burger',status:'too_short',first_date:'2026-08-23',last_date:'2026-09-21',observed_days:30,missing_days:0,first_missing_date:null,continuous_days_through_origin:30},
+  {meal_id:'gap-meal',meal_name:null,status:'gap',first_date:'2026-05-01',last_date:'2026-09-21',observed_days:143,missing_days:1,first_missing_date:'2026-09-01',continuous_days_through_origin:20}]};
+ await install(page,state,async(route,path)=>{
+  if(path==='/forecasts'&&route.request().method()==='POST'){
+   await route.fulfill({status:422,json:{detail:{code:'DATA_HISTORY_INCOMPLETE',message:'API-ONLY-KAZAKH-MESSAGE',coverage}}});return true;
+  }
+  return false;
+ });
+ await page.goto('/forecasts');
+ await page.getByRole('button',{name:'Есептеу',exact:true}).click();
+ const kk=page.getByRole('region',{name:'Сатылым тарихының толықтығы',exact:true});
+ await expect(kk).toBeVisible();
+ await expect(page.getByRole('alert').filter({hasText:'84'})).toContainText('қатарынан кемінде 84 күн');
+ await expect(kk).toContainText('Дайын тағамдар: 1 / 3.');
+ // Only blocked meals are listed; a meal without a name keeps its source ID.
+ await expect(kk.locator('tbody tr')).toHaveCount(2);
+ await expect(kk).toContainText('New fixture burger (new-meal)');await expect(kk).toContainText('Тарих қысқа');await expect(kk).toContainText('30 / 84');
+ await expect(kk).toContainText('gap-meal');await expect(kk).toContainText('01.09.2026');await expect(kk).toContainText('20 / 84');
+ await expect(kk).not.toContainText('Ready fixture meal');
+ await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
+ const ru=page.getByRole('region',{name:'Полнота истории продаж',exact:true});
+ await expect(ru).toContainText('Готово блюд: 1 из 3.');
+ await expect(ru).toContainText('Короткая история: блюдо добавлено недавно');await expect(ru).toContainText('Есть пропущенный день');
+ await expect(ru).toContainText('добавьте достоверную строку с нулём продаж и верными флагами');
+ await expect(page.getByRole('alert').filter({hasText:'84'})).toContainText('Пропущенный день не считается нулём.');
+ await expect(page.locator('body')).not.toContainText('API-ONLY-KAZAKH-MESSAGE');
+ // The refusal is shown once; nothing is retried or queued automatically.
+ expect(state.requests.filter(item=>item.path==='/forecasts'&&item.body).length).toBe(1);
+});

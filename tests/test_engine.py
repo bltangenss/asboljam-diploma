@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from apps.api.engine import forecast, procurement
+from apps.api.engine import forecast, history_coverage, procurement, validate_forecast_history
 
 
 def historical_sales(zero=False):
@@ -76,6 +76,46 @@ class ForecastTests(unittest.TestCase):
             forecast(self.rows[:2] + self.rows[3:], "1", self.origin)
         with self.assertRaisesRegex(ValueError, "Duplicate sales"):
             forecast(self.rows + [self.rows[0]], "1", self.origin)
+
+
+class HistoryCoverageTests(unittest.TestCase):
+    """Diagnostics explain a refusal; validate_forecast_history stays the only rule."""
+
+    def rows(self, meal, days, *, origin=date(2025, 6, 30), skip=(), branch="1"):
+        return [{"date": (origin - timedelta(days=offset)).isoformat(), "branch_id": branch, "meal_id": meal,
+                 "units_sold": 3} for offset in range(days) if offset not in skip]
+
+    def test_each_meal_reports_its_first_problem_without_inventing_zero_days(self):
+        origin = date(2025, 6, 30)
+        sales = (self.rows("ready", 90) + self.rows("new", 30) + self.rows("gap", 100, skip={60})
+                 + [row for row in self.rows("ended", 120) if row["date"] <= "2025-06-25"]
+                 + self.rows("ready", 90, branch="2") + [{"date": "2025-07-01", "branch_id": "1", "meal_id": "ready", "units_sold": 9}])
+        with self.assertRaises(ValueError):
+            validate_forecast_history(sales, "1", origin.isoformat())
+        coverage = history_coverage(sales, "1", origin.isoformat())
+        meals = {item["meal_id"]: item for item in coverage["meals"]}
+        self.assertEqual((coverage["origin"], coverage["required_days"], coverage["ready_meals"]), ("2025-06-30", 84, 1))
+        self.assertEqual(list(meals), ["ended", "gap", "new", "ready"])
+        self.assertEqual({key: item["status"] for key, item in meals.items()},
+                         {"ready": "ready", "new": "too_short", "gap": "gap", "ended": "ended"})
+        self.assertEqual((meals["ready"]["observed_days"], meals["ready"]["last_date"]), (90, "2025-06-30"))
+        self.assertEqual(meals["new"]["continuous_days_through_origin"], 30)
+        self.assertEqual((meals["gap"]["first_missing_date"], meals["gap"]["missing_days"], meals["gap"]["observed_days"]),
+                         ((origin - timedelta(days=60)).isoformat(), 1, 99))
+        self.assertEqual(meals["gap"]["continuous_days_through_origin"], 60)
+        self.assertEqual((meals["ended"]["last_date"], meals["ended"]["first_missing_date"],
+                          meals["ended"]["continuous_days_through_origin"]), ("2025-06-25", "2025-06-26", 0))
+
+    def test_ready_coverage_matches_the_validation_rule(self):
+        sales = self.rows("1", 84) + self.rows("2", 120)
+        self.assertEqual(validate_forecast_history(sales, "1", "2025-06-30")["meal_count"], 2)
+        coverage = history_coverage(sales, "1", "2025-06-30")
+        self.assertEqual(coverage["ready_meals"], 2)
+        self.assertTrue(all(item["status"] == "ready" and item["missing_days"] == 0 for item in coverage["meals"]))
+        short = self.rows("1", 83)
+        with self.assertRaises(ValueError):
+            validate_forecast_history(short, "1", "2025-06-30")
+        self.assertEqual(history_coverage(short, "1", "2025-06-30")["meals"][0]["status"], "too_short")
 
 
 class ProcurementTests(unittest.TestCase):

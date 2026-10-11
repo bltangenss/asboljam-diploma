@@ -500,9 +500,15 @@ def create_app(database_url=None):
         sales=[r for r in sales if r['date']<=origin]
         if not sales: fail('NO_SALES','Болжамға сатылым деректері қажет.',422)
         if context['data_origin']=='REAL':
-            from .engine import validate_forecast_history
+            from .engine import history_coverage, validate_forecast_history
             try: validate_forecast_history(sales,data.branch_id,origin)
-            except ValueError: fail('DATA_HISTORY_INCOMPLETE','Әр тағамға таңдалған күнге дейін кемінде 84 үзіліссіз күн қажет. Жоқ күн нөл емес.',422)
+            except ValueError:
+                # The rule is unchanged; the refusal now names each meal's first problem.
+                coverage=history_coverage(sales,data.branch_id,origin)
+                names={str(r.get('meal_id')):r.get('meal_name') for r in rows_for(db,user.organization_id,'meals')}
+                for item in coverage['meals']: item['meal_name']=names.get(item['meal_id'])
+                raise HTTPException(422,{'code':'DATA_HISTORY_INCOMPLETE','coverage':coverage,
+                    'message':'Әр тағамға таңдалған күнге дейін кемінде 84 үзіліссіз күн қажет. Жоқ күн нөл емес.'})
         snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals'),'execution_context':context}
         ensure_rows(context,snapshot['meals'])
         snapshot['input_lineage']=capture_lineage(db,user.organization_id,[

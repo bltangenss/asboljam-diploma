@@ -15,7 +15,8 @@ export interface Run {
  created_at?: string; started_at?: number | null; heartbeat_at?: number | null;
  finished_at?: string | null; observed_at?: number;
 }
-export class ApiError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }
+// details keeps the structured API refusal (for example per-meal history coverage); optional for older callers.
+export class ApiError extends Error { constructor(public status: number, public code: string, message: string, public details?: Record<string, unknown>) { super(message); } }
 export class ApiClient {
   csrf = '';
   onUnauthorized?: (error: ApiError) => void;
@@ -33,7 +34,8 @@ export class ApiClient {
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       const detail = body.detail ?? body;
-      const error = new ApiError(response.status, detail.code || String(response.status), typeof detail === 'string' ? detail : detail.message || JSON.stringify(detail));
+      const error = new ApiError(response.status, detail.code || String(response.status), typeof detail === 'string' ? detail : detail.message || JSON.stringify(detail),
+        detail && typeof detail === 'object' && !Array.isArray(detail) ? detail : undefined);
       // A delayed response from a previous browser session must not sign out a new login.
       if (!this.token && csrfAtStart && this.csrf === csrfAtStart && response.status === 401 && error.code === 'AUTH_REQUIRED') {
         this.csrf = '';

@@ -134,6 +134,13 @@ class RealApiTests(unittest.TestCase):
             response=self.client.post('/api/v1/forecasts',json=payload)
             self.assertEqual(response.status_code,422,response.text)
             self.assertEqual(response.json()['detail']['code'],code)
+            if code=='DATA_HISTORY_INCOMPLETE':
+                # The refusal names the meal and why: 83 of 84 days, no invented zeros.
+                coverage=response.json()['detail']['coverage']
+                self.assertEqual((coverage['origin'],coverage['required_days'],coverage['ready_meals']),('2026-03-30',84,0))
+                self.assertEqual(coverage['meals'],[{'meal_id':'test-meal','meal_name':'Artificial fixture meal','status':'too_short',
+                    'first_date':'2026-01-07','last_date':'2026-03-30','observed_days':83,'missing_days':0,
+                    'first_missing_date':None,'continuous_days_through_origin':83}])
         today=self.client.get('/api/v1/settings').json()['data_context']['business_date']
         row=dict(self.rows['daily_sales'][-1],date=today)
         preview=self.preview('daily_sales',[row]).json()
