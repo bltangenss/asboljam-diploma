@@ -1,5 +1,13 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — передача в новый чат / Claude Code
+
+Основной подробный контекст теперь в [README.md](README.md): 18 разделов, полный продуктовый workflow, архитектура, данные/алгоритмы/права, фактические evidence и готовый промпт. Перед продолжением читать текущие git status/diff; старые записи ниже остаются историей этапов.
+
+**DONE:** складской count-anchor этап и проверенный ZIP; базовый allowlisted emitter c9b288a (5/5 на сохранённой версии). **IN PROGRESS:** локальный diff apps/api/main.py, apps/worker/main.py, новый request_logging.py и18 worker logging tests, infra/launchers/access logging, добавление flush test. Итог начатого worker-test запуска недоступен, поэтому PASS не подтверждён; tests/test_request_logging.py отсутствует. Эти изменения не отправлялись как завершённая интеграция. В новом clone их может не быть. Ближайший scope и конкретные критерии — [README§15.1](README.md#observability-next); сначала закончить и проверить его, без повторного scaffold или ненужного повторения прежних тяжёлых проверок.
+
+**TESTED этого обновления:** статическая сверка README с кодом/evidence,73 ссылки,19 anchors,9 точных CSV-схем, Markdown fences. **NOT TESTED:** новые runtime/build/research/APK/production прогоны; ради документации не запускались. Локальный app diff сохранён. Последний source ZIP ниже соответствует своему manifest commit, не новому README/диагностике.
+
 Последний локальный source ZIP: `releases/2026-10-10-count-anchor/AsBoljam_Final.zip`, source commit `a3d5038fde409a913dd48d45f2dc4570fb19d1e7`, 303 файла, 1791761 байт. CRC/все хеши и независимая проверка PASS. SHA256: `45da77922c55e19a66048e8dc4c9b112e7ea7ffa59028891c3c62b3bc5066e01`. [Манифест результата упаковки](artifacts/verification/release-20261010-count-anchor.json). Последующий commit содержит свидетельство упаковки, не новую функциональность. Продолжать с текущего Git HEAD, сохраняя исходные ZIP и приватные backup. Установка из архива, production и новый APK не проверялись.
 
 ## 10.10.2026 — текущее продолжение полностью локально

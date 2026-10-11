@@ -1,5 +1,13 @@
 # AsBoljam — журнал прогресса
 
+## 11.10.2026 — подробный README для продолжения в Claude Code
+
+**DONE:** README расширен до 18 разделов: продукт/сценарий фастфуда, точные девять CSV, реальные признаки и обучение моделей, закупка/Decimal/yield, склад/рецепты/count anchors, роли/изоляция, архитектура/миграции0001–0008, запуск, фактические проверки, ZIP/APK, незавершённая диагностика и готовый стартовый промпт. Исторические устаревшие TODO отмечены явно. Код приложения и локальный незавершённый diff не изменялись этим обновлением документации.
+
+**TESTED документация:** read-only сверка с кодом и JSON evidence; Python AST/path check без импорта API: 73 Markdown-ссылки,19 явных anchors,9 CSV-схем совпадают с SCHEMAS, fences сбалансированы. Проверка staged diff и secret scan перед commit. **NOT TESTED:** приложение заново не запускалось, тяжёлые suites/build/research/native не повторялись ради README. Запуск новых worker logging tests был начат в предыдущем сеансе, но его итог недоступен — PASS не подтверждён; API logging suite пока отсутствует.
+
+**IN PROGRESS:** локальная интеграция request→job в API/worker/infra остаётся незакоммиченной; базовый emitter c9b288a уже проверен и отправлен. Следующему исполнителю: сначала git status/diff и README§15.1, затем завершение согласованного scope и его проверки. **BLOCKED внешними данными:** реальный бизнес-пилот и измеренная экономия требуют согласованного предприятия.
+
 ## 10.10.2026 — безопасный JSON-вывод диагностики
 
 **DONE:** отдельный allowlisted emitter: только известные события/поля, допустимые server IDs/коды, конечные числа; неизвестные поля не сериализуются. Ошибка вывода не меняет результат транзакции. **TESTED:** `python -X utf8 -m unittest discover -s tests -p test_observability.py -v` —5/5 PASS,0.022s; секретные sentinels,100 конкурентных строк, закрытый/неисправный stream. [Отчёт](../artifacts/verification/observability-emitter-20261010.json). **IN PROGRESS / NOT TESTED:** интеграция HTTP/requestID и worker lifecycle, production logging/retention.
