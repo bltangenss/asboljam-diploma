@@ -163,6 +163,9 @@ browser 88/88, SQLite restore drill 14/14; на том же коде — Postgre
 | Аудит/выгрузки | Бизнес-действия, разрешённые CSV, исторический approved export | API/import service |
 | Mobile | Просмотр, профиль, сессия, решение по существующему плану | `apps/mobile`, `packages/api-client` |
 | Диагностика | X-Request-ID, JSON-события запроса и жизненного цикла задания, безопасный 500 | `observability.py`, `request_logging.py`, `apps/worker/main.py` |
+| Неполные данные | Отказ прогноза называет блюда и причину (короткая история, пропуск, нет строк); отказ закупки — дату среза и ингредиенты без строки остатка | `engine.history_coverage`, `HistoryCoverage.tsx`, `InventoryCoverage.tsx` |
+| Языки ошибок | Все видимые в web отказы API показываются на выбранном KK/RU; тест покрытия кодов | `shared.tsx`, `stockCopy.ts`, `tests/test_ui_copy.py` |
+| Развёртывание | Один сервер: Caddy HTTPS, ротация логов, backup PostgreSQL, проверка TLS (проверено локально) | `infra/compose.prod.yml`, `scripts/backup_postgres.sh`, `scripts/verify_tls_deployment.py` |
 
 Карта экранов — [design/screens.json](design/screens.json). Web содержит login, dashboard, продажи, импорт, прогноз, закупки, склад, рецептуры, поставщиков, отчёты, настройки и аудит. Скрытая кнопка не заменяет проверку прав на сервере.
 
