@@ -31,6 +31,11 @@ SUITES = ('test_tenant_isolation.py', 'test_worker_security.py', 'test_password_
           'test_stock_anchor.py', 'test_stock_anchor_api.py', 'test_request_logging.py')
 
 
+# Classes that create one isolated PostgreSQL fixture in setUpClass for all their tests
+# (expensive seeded data); the schema-count check expects one setup per such class.
+CLASS_FIXTURES = ('test_request_logging.RequestLoggingTests.',)
+
+
 def source_hashes():
     paths = [*ROOT.glob('apps/api/*.py'), *ROOT.glob('apps/worker/*.py'),
              *ROOT.glob('tests/test_*security.py'), *[ROOT/'tests'/name for name in SUITES],
@@ -60,6 +65,7 @@ def inside(suites):
     pure_engine_ids = []
     pure_process_ids = []
     sqlite_backup_ids = []
+    class_fixture_ids = []
     engine = create_engine(url)
     try:
         with engine.connect() as connection:
@@ -74,6 +80,7 @@ def inside(suites):
                 'test_real_execution.RealEngineTests.', 'test_stock_api.CapturedYieldTests.')))
             pure_process_ids.extend(identifier for identifier in identifiers if identifier.startswith('test_worker_process.CalculationProcessTests.'))
             sqlite_backup_ids.extend(identifier for identifier in identifiers if 'sqlite' in identifier and 'backup' in identifier)
+            class_fixture_ids.extend(identifier for identifier in identifiers if identifier.startswith(CLASS_FIXTURES))
             with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
                 result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
             report['suites'].append({
@@ -89,8 +96,12 @@ def inside(suites):
         report['pure_engine_test_ids'] = pure_engine_ids
         report['pure_process_test_ids'] = pure_process_ids
         report['sqlite_backup_test_ids'] = sqlite_backup_ids
-        report['expected_postgres_fixture_setups'] = report['tests_run'] - len(pure_engine_ids) - len(pure_process_ids)
-        report['postgres_test_bodies'] = report['expected_postgres_fixture_setups'] - len(sqlite_backup_ids)
+        report['class_fixture_test_ids'] = class_fixture_ids
+        class_fixtures = {identifier.rsplit('.', 1)[0] for identifier in class_fixture_ids}
+        report['expected_postgres_fixture_setups'] = (report['tests_run'] - len(pure_engine_ids) - len(pure_process_ids)
+                                                      - len(class_fixture_ids) + len(class_fixtures))
+        report['postgres_test_bodies'] = (report['tests_run'] - len(pure_engine_ids) - len(pure_process_ids)
+                                          - len(sqlite_backup_ids))
         report['status'] = 'passed' if (all(suite['status'] == 'passed' for suite in report['suites'])
                                         and not report['source_changed_during_run']
                                         and report['test_schema_count'] >= report['expected_postgres_fixture_setups']) else 'failed'
@@ -114,7 +125,7 @@ def main():
         'postgres-stock-service-20261010.json', 'postgres-stock-api-20261010.json',
         'postgres-stock-api-20261010-retry.json', 'postgres-recipe-identity-20261010.json',
         'postgres-count-anchor-20261010.json', 'postgres-count-anchor-20261010-retry.json',
-        'postgres-lineage-observability-20261011.json'),
+        'postgres-lineage-observability-20261011.json', 'postgres-lineage-observability-20261011-retry.json'),
                         default='postgres-security.json')
     args = parser.parse_args()
     if not 30 <= args.timeout_seconds <= 900:
