@@ -1,5 +1,9 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — остановлено по просьбе владельца во время проверки RC
+
+Диагностика request → job закрыта (commit `347d90d`). Затем начата приёмка выпуска: RC ZIP из `347d90d` установлен с нуля, HTTP workflow 87/87, но browser-suite выявил медленный dashboard (до 22 с). Исправление производительности freshness и e2e-тестов закоммичено; **полная регрессия на момент остановки не завершена** (313/491 без ошибок). Точное состояние, проверки и следующие шаги — верхняя запись [PROGRESS](templates/PROGRESS.md), порядок работ — [LAUNCH_BACKLOG_RU](docs/commercial/LAUNCH_BACKLOG_RU.md). Новый финальный ZIP после исправления ещё не создан.
+
 ## 11.10.2026 — диагностика завершена, следующий шаг — установка из ZIP
 
 **DONE / TESTED:** интеграция request → job из прошлого локального diff закончена, проверена и закоммичена (детали — [PROGRESS](templates/PROGRESS.md), [отчёт](artifacts/verification/request-logging-20261011.json)): полная регрессия 490 (489 PASS + 1 POSIX skip), настоящий uvicorn, Docker/Nginx/PostgreSQL workflow 87/87. Изолированный compose-проект `asboljam-logcheck-*` остановлен без удаления; старый `asboljam-verification` не тронут.
