@@ -91,8 +91,8 @@ server-generated `X-Request-ID`, allowlisted JSON-события API/worker, с�
 [request-logging-20261011.json](artifacts/verification/request-logging-20261011.json).
 
 Далее начата приёмка выпуска ([backlog](docs/commercial/LAUNCH_BACKLOG_RU.md) №2–3): RC из `347d90d` установлен с нуля,
-HTTP workflow 87/87, browser-suite выявил медленный dashboard; исправление закоммичено, но полная регрессия, PostgreSQL,
-новый RC, повторная установка и restore-учение **ещё не подтверждены** — см. верхнюю запись [PROGRESS](templates/PROGRESS.md).
+HTTP workflow 87/87, browser-suite выявил медленный dashboard; исправление закоммичено, полная регрессия 490 PASS + 1 skip;
+PostgreSQL, новый RC, повторная установка и restore-учение **ещё не подтверждены** — см. верхнюю запись [PROGRESS](templates/PROGRESS.md).
 Перед продолжением проверьте `git status` и последние записи PROGRESS.
 
 <a id="product"></a>

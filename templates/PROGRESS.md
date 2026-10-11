@@ -10,7 +10,9 @@
 
 **TESTED:** `test_import_lineage` 12/12 PASS (2 теста адаптированы к контент-адресному кэшу с сохранением смысла, 1 новый тест dashboard); `sessions_imports` + `tenant_onboarding` 16/16 PASS на dev-сервере установленной копии; `npm audit` 0 после обновления lockfile.
 
-**NOT TESTED / IN PROGRESS:** полная Python-регрессия после оптимизации была запущена; на момент commit выполнено 313 из 491 тестов без failures/errors — **итог не подтверждён**. Не проверены: PostgreSQL для `CAST(data AS TEXT)`/колонок; `verify_restore.py` не запускался; новый RC с исправлением, повторная установка и полный browser-suite не выполнены; `npm ci`/build с `source-map-js` 1.2.2. Не исправлено: `anyio` 4.11.0 (PYSEC-2026-4024/4025, исправление 4.14.2) в `requirements.lock`; mobile lockfile — 28 уязвимостей npm audit (1 critical `shell-quote`, в основном Metro/Jest/Expo CLI), требует обновления Expo SDK. Установленная RC-копия и её БД остаются вне Git.
+**TESTED после commit `01850dc`:** полная Python-регрессия на тех же исходниках приложения завершилась: 491 тест — 490 PASS + 1 POSIX SIGTERM skip, 0 failures/errors, 400.2 с (на момент первого commit было выполнено 313/491).
+
+**NOT TESTED / IN PROGRESS:** не проверены: PostgreSQL для `CAST(data AS TEXT)`/колонок; `verify_restore.py` не запускался; новый RC с исправлением, повторная установка и полный browser-suite не выполнены; `npm ci`/build с `source-map-js` 1.2.2. Не исправлено: `anyio` 4.11.0 (PYSEC-2026-4024/4025, исправление 4.14.2) в `requirements.lock`; mobile lockfile — 28 уязвимостей npm audit (1 critical `shell-quote`, в основном Metro/Jest/Expo CLI), требует обновления Expo SDK. Установленная RC-копия и её БД остаются вне Git.
 
 **Следующие шаги:** полная регрессия; PostgreSQL suites (`test_import_lineage`, `test_real_api`, `test_stock_service`, `test_request_logging`) через `verify_postgres_security.py --report-name postgres-lineage-observability-20261011.json`; `anyio` 4.14.2 + регрессия; новый RC ZIP → установка → browser-suite (с `prepare_real_e2e.py`) → `verify_runtime.py` → `verify_restore.py`; финальный ZIP и документы.
 
