@@ -1,0 +1,15 @@
+﻿ingredient_id,ingredient_name,unit,reference_cost_kzt,shelf_life_days,yield_factor,storage_capacity,data_origin
+1,Сиыр еті / Говядина,kg,3400,4,0.75,80,SYNTHETIC
+2,Қой еті / Баранина,kg,3600,4,0.75,80,SYNTHETIC
+3,Жылқы еті / Конина,kg,3400,4,0.78,50,SYNTHETIC
+4,Тауық еті / Курица,kg,1700,3,0.8,80,SYNTHETIC
+5,Күріш / Рис,kg,430,365,1.0,200,SYNTHETIC
+6,Бидай ұны / Мука пшеничная,kg,240,180,1.0,250,SYNTHETIC
+7,Картоп / Картофель,kg,210,60,0.8,250,SYNTHETIC
+8,Пияз / Лук репчатый,kg,160,60,0.85,150,SYNTHETIC
+9,Сәбіз / Морковь,kg,190,30,0.82,120,SYNTHETIC
+10,Қызанақ / Помидоры,kg,1200,7,0.92,50,SYNTHETIC
+11,Қияр / Огурцы,kg,950,7,0.95,40,SYNTHETIC
+12,Күнбағыс майы / Подсолнечное масло,L,880,365,1.0,80,SYNTHETIC
+13,Сүт / Молоко,L,520,5,1.0,60,SYNTHETIC
+14,Қант / Сахар,kg,430,365,1.0,60,SYNTHETIC

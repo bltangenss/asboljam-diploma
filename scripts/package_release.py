@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_DIRS = {'.git', '.cache', '.venv', 'venv', 'node_modules', '__pycache__', '.expo', '.test-build', 'dist', 'build', 'coverage', 'test-results', 'playwright-report', 'backups', 'releases'}
 FORBIDDEN_SUFFIXES = {'.pem', '.key', '.pfx', '.p12', '.jks', '.keystore', '.dump', '.sqlite', '.sqlite3', '.db', '.pyc', '.log', '.zip', '.apk', '.aab', '.ipa', '.apks'}
-REQUIRED = {'README.md', 'README_KK.md', 'README_RU.md', 'FINAL_REPORT.md', 'PROGRESS.md', 'DECISIONS.md', 'CLOUD_HANDOFF.md', 'AGENTS.md', '.env.example', 'docker-compose.yml', 'requirements.lock', 'package-lock.json', 'apps/mobile/package-lock.json', 'contracts/openapi.json', 'contracts/data_manifest.json', 'database/migrate.py', 'apps/api/main.py', 'apps/worker/main.py', 'apps/web/src/App.tsx', 'apps/mobile/App.tsx', 'tests/test_api.py', 'tests/test_engine.py', 'tests/e2e/workflow.spec.ts', 'docs/SOURCE_REVIEW_RU.md', 'data/raw/daily_sales.csv'}
+REQUIRED = {'README.md', 'README_KK.md', 'README_RU.md', 'FINAL_REPORT.md', 'PROGRESS.md', 'DECISIONS.md', 'CLOUD_HANDOFF.md', 'AGENTS.md', '.env.example', 'docker-compose.yml', 'requirements.lock', 'package-lock.json', 'apps/mobile/package-lock.json', 'contracts/openapi.json', 'contracts/data_manifest.json', 'database/migrate.py', 'apps/api/main.py', 'apps/worker/main.py', 'apps/web/src/App.tsx', 'apps/mobile/App.tsx', 'tests/test_api.py', 'tests/test_engine.py', 'tests/e2e/workflow.spec.ts', 'docs/SOURCE_REVIEW_RU.md', 'data/raw/daily_sales.csv', 'data/kz/daily_sales.csv', 'scripts/generate_kz_demo.py'}
 MANIFEST_NAME = 'RELEASE_MANIFEST.json'
 
 def git(*args: str) -> bytes:

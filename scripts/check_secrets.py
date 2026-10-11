@@ -4,17 +4,22 @@ Prints paths and categories only, never matching secret text. Not a complete sec
 import argparse,json,re,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+def local_secrets(root):
+ """Credential-like assignments in local .env files; comment lines are documentation, not values."""
+ secrets=[]
+ for source in root.glob('.env*'):
+  if source.name=='.env.example':continue
+  for line in source.read_text(encoding='utf-8-sig').splitlines():
+   line=line.strip()
+   if line.startswith('#') or '=' not in line:continue
+   key,value=line.split('=',1)
+   if re.search(r'PASSWORD|TOKEN|SECRET|API_KEY',key,re.I) and len(value.strip())>=10:secrets.append((key.strip(),value.strip().encode()))
+ return secrets
 def main():
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--staged',action='store_true');parser.add_argument('--no-report',action='store_true',help='Do not write the report artifact');args=parser.parse_args()
  command=['git','diff','--cached','--name-only','--diff-filter=ACMR','-z'] if args.staged else ['git','ls-files','--cached','--others','--exclude-standard','-z']
  names=subprocess.check_output(command,cwd=ROOT).decode().split('\0');names=[n for n in names if n]
- secrets=[]
- for source in ROOT.glob('.env*'):
-  if source.name=='.env.example':continue
-  for line in source.read_text(encoding='utf-8-sig').splitlines():
-   if '=' in line:
-    key,value=line.split('=',1)
-    if re.search(r'PASSWORD|TOKEN|SECRET|API_KEY',key,re.I) and len(value.strip())>=10:secrets.append((key.strip(),value.strip().encode()))
+ secrets=local_secrets(ROOT)
  credential=ROOT/'.cache/e2e-login.json'
  if credential.exists():
   entry=json.loads(credential.read_text());secrets.append(('E2E_PASSWORD',entry['password'].encode()))

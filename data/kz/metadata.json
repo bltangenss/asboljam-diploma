@@ -1,0 +1,26 @@
+{
+  "origin": "SYNTHETIC",
+  "scenario": "Қызылорда: 3 бөлімше, 12 тағам, 14 ингредиент",
+  "generator": "scripts/generate_kz_demo.py",
+  "seed": 2025,
+  "date_from": "2024-01-01",
+  "date_to": "2025-12-31",
+  "inventory_snapshot": "2026-01-01",
+  "rows": {
+    "branches": 3,
+    "meals": 12,
+    "ingredients": 14,
+    "recipes": 49,
+    "suppliers": 5,
+    "supplier_offers": 35,
+    "calendar": 2193,
+    "daily_sales": 26316,
+    "inventory_lots": 54
+  },
+  "oracle_rows": 26316,
+  "shares": {
+    "stockout_rows_of_open": 0.158,
+    "promo_rows_of_open": 0.0319
+  },
+  "warning": "Not observations from a real enterprise. Names, prices, recipes, stock and sales are SYNTHETIC; shelf life is illustrative, not a food-safety instruction. Never train with oracle data."
+}

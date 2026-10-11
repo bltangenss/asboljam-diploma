@@ -1,0 +1,63 @@
+﻿file,field,dtype,role,description_kk
+branches.csv,branch_id,int64,input,Шартты бөлімше идентификаторы
+branches.csv,branch_name,object,input,Бөлімшенің шартты атауы; нақты кәсіпорын емес
+branches.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+calendar.csv,date,object,input,"Күн, YYYY-MM-DD"
+calendar.csv,branch_id,int64,input,Шартты бөлімше идентификаторы
+calendar.csv,weekday,int64,input,Апта күні: дүйсенбі 0 ... жексенбі 6
+calendar.csv,temperature_forecast_c,float64,input,"Қызылорда климатына ұқсатылған синтетикалық орташа тәуліктік температура болжамы, °C"
+calendar.csv,synthetic_event,int64,input,"ҚР ресми мерекесі немесе ауыстырылған демалыс күні 1, басқа күн 0; тізім reference_rk_days_off.csv ішінде"
+calendar.csv,is_open,int64,input,"Бөлімше ашық 1, жабық 0 (санитарлық күн немесе жөндеу)"
+calendar.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+daily_sales.csv,date,object,input,"Бақылау күні, YYYY-MM-DD"
+daily_sales.csv,branch_id,int64,input,Шартты бөлімше идентификаторы
+daily_sales.csv,meal_id,int64,input,Тағам идентификаторы
+daily_sales.csv,units_sold,int64,target,Бақыланған сатылымның имитациясы; мақсатты айнымалы
+daily_sales.csv,available_portions,int64,audit_only_current_day,Сол күні дайындалған порциялар; келесі күндердің кіріс белгісі емес
+daily_sales.csv,stockout_flag,int64,audit_only_current_day,"Сұраныс дайын порциядан асты; талдау белгісі, ағымдағы күнге кіріс емес"
+daily_sales.csv,is_open,int64,input,"Жұмыс күні 1, жабық 0"
+daily_sales.csv,promo,int64,input,"Алдын ала жоспарланған акция, мысалы «күн тағамы» −10%"
+daily_sales.csv,price_kzt,float64,input,"Сол күнгі мәзір бағасы, теңге"
+daily_sales.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+ingredients.csv,ingredient_id,int64,input,Ингредиент идентификаторы
+ingredients.csv,ingredient_name,object,input,Ингредиент атауы: қазақша / орысша
+ingredients.csv,unit,object,input,Базалық өлшем: kg немесе L
+ingredients.csv,reference_cost_kzt,int64,input,"2025 жылғы орташа бөлшек баға деңгейіне жуықталған шартты құн, теңге"
+ingredients.csv,shelf_life_days,int64,input,Үлгілік параметр; тағам қауіпсіздігі нұсқаулығы емес
+ingredients.csv,yield_factor,float64,input,"Таза мөлшер / жалпы мөлшер, 0 < eta <= 1"
+ingredients.csv,storage_capacity,int64,input,"Бөлімшедегі шартты сақтау шегі, базалық бірлік"
+ingredients.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+inventory_lots.csv,branch_id,int64,input,Шартты бөлімше идентификаторы
+inventory_lots.csv,ingredient_id,int64,input,Ингредиент идентификаторы
+inventory_lots.csv,lot_id,object,input,Қойма партиясының коды; X — мерзімі өткен партия
+inventory_lots.csv,snapshot_date,object,input,Қор кесіндісінің күні
+inventory_lots.csv,expiry_date,object,input,"Соңғы пайдалануға болатын күн, үлгілік шарт"
+inventory_lots.csv,on_hand_qty,float64,input,"Партияның қолдағы мөлшері, базалық бірлік"
+inventory_lots.csv,unit,object,input,Базалық өлшем: kg немесе L
+inventory_lots.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+meals.csv,meal_id,int64,input,Тағам идентификаторы
+meals.csv,meal_name,object,input,"Тағам атауы: қазақша, қажет болса / орысша"
+meals.csv,base_price_kzt,int64,input,"2024 жылғы қаңтардағы мәзір бағасы, теңге"
+meals.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+recipes.csv,meal_id,int64,input,Тағам идентификаторы
+recipes.csv,ingredient_id,int64,input,Ингредиент идентификаторы
+recipes.csv,net_qty_per_portion,float64,input,Бір порциядағы таза мөлшер; жалпы мөлшер үшін шығымға бөлу
+recipes.csv,recipe_version,object,input,Рецепттің шартты нұсқасы
+recipes.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+supplier_offers.csv,supplier_id,int64,input,Жеткізуші идентификаторы
+supplier_offers.csv,ingredient_id,int64,input,Ингредиент идентификаторы
+supplier_offers.csv,pack_qty,int64,input,Бір қаптамадағы базалық мөлшер
+supplier_offers.csv,unit_cost_kzt,float64,input,"Базалық бірліктің сатып алу бағасы, теңге"
+supplier_offers.csv,min_packs,int64,input,Белсенді тапсырыстағы ең аз қаптама саны
+supplier_offers.csv,max_packs,int64,input,Бір ұсыныс бойынша қаптама санының шегі
+supplier_offers.csv,lead_time_days,int64,input,"Жеткізу мерзімі, күн; 0 — сол күні"
+supplier_offers.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+suppliers.csv,supplier_id,int64,input,Жеткізуші идентификаторы
+suppliers.csv,supplier_name,object,input,Жеткізушінің шартты атауы; нақты компания емес
+suppliers.csv,lead_time_days,int64,input,"Жеткізу мерзімі, күн; 0 — сол күні"
+suppliers.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+reference_rk_days_off.csv,date,object,reference,"Күн, YYYY-MM-DD"
+reference_rk_days_off.csv,kind,object,reference,holiday — мереке; transferred_day_off — ауыстырылған демалыс; working_day — жұмыс күніне айналған демалыс
+reference_rk_days_off.csv,name_kk,object,reference,Атауы қазақша
+reference_rk_days_off.csv,name_ru,object,reference,Атауы орысша
+reference_rk_days_off.csv,basis,object,reference,Құқықтық негіз

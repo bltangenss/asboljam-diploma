@@ -1,0 +1,6 @@
+﻿supplier_id,supplier_name,lead_time_days,data_origin
+1,Ет жеткізушісі,0,SYNTHETIC
+2,Көкөніс базасы,0,SYNTHETIC
+3,Көтерме азық-түлік қоймасы,0,SYNTHETIC
+4,Шағын азық-түлік дүкені,0,SYNTHETIC
+5,Облыстық көтерме база (келесі күні),1,SYNTHETIC

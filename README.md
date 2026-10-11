@@ -96,6 +96,11 @@ server-generated `X-Request-ID`, allowlisted JSON-события API/worker, с�
 drill 14/14 ([свидетельство](artifacts/verification/release-20261011-final-3.json)); ранее на финальном коде — PostgreSQL suites 77/77, Docker/Nginx 87/87, PostgreSQL restore 13/13.
 Production deployment, APK и пилот не выполнены. Следующие шаги — backlog №4–8.
 
+**Казахстанская адаптация (11.10.2026):** demo по умолчанию — воспроизводимый набор Кызылорды `data/kz`
+(казахские блюда, цены 2025 года, официальные праздники и переносы РК), исходный набор диплома сохранён для
+исследования и тестов ([4.5](#45-два-демо-набора-казахстан-и-исследование)). Требования запуска в РК —
+[KAZAKHSTAN_LAUNCH_RU.md](docs/commercial/KAZAKHSTAN_LAUNCH_RU.md). Архив v3 этого изменения не содержит.
+
 <a id="product"></a>
 ## 2. Продукт простыми словами
 
@@ -250,6 +255,17 @@ Production deployment, APK и пилот не выполнены. Следующ
 
 Офлайн `scripts/adapt_pos_csv.py` преобразует согласованную POS-выгрузку. По умолчанию dry run; он не пишет в БД и не подключается к кассе. Проверки ссылок, прав и commit проходят отдельно в API. См. [POS_ADAPTER_RU.md](docs/POS_ADAPTER_RU.md), [IMPORT_OPERATIONS_RU.md](docs/commercial/IMPORT_OPERATIONS_RU.md).
 
+### 4.5. Два демо-набора: Казахстан и исследование
+
+| Набор | Назначение | Где используется |
+| --- | --- | --- |
+| `data/kz` | Казахстанский сценарий (Кызылорда): 3 филиала, 12 казахских блюд, 14 ингредиентов с KK/RU названиями, цены 2025 года в тенге, официальные праздники и переносы РК 2024–2025, Рамазан, климат | По умолчанию для `scripts/seed_demo.py`, `start.ps1`/`start.sh` и Docker seed |
+| `data/raw` | Предоставленный набор дипломного исследования (seed 42) | `seed()` в тестах и browser fixtures, `scripts/run_research.py` |
+
+Оба набора — SYNTHETIC, те же девять схем и даты (история до 2025-12-31, цель 2026-01-01). `data/kz` воспроизводимо создаёт `scripts/generate_kz_demo.py`; тест сравнивает файлы побайтно. Источники и допущения — [data/kz/README.md](data/kz/README.md); требования запуска в РК — [KAZAKHSTAN_LAUNCH_RU.md](docs/commercial/KAZAKHSTAN_LAUNCH_RU.md).
+
+`DEMO_DATASET=raw` возвращает исходный набор. База, в которой demo уже загружено, свой набор сохраняет: seed пишет предупреждение, ничего не удаляя; для другого набора нужен новый `DATABASE_URL`. Прогноз не использует календарь, поэтому праздник 2026-01-01 модель не учитывает.
+
 <a id="forecast"></a>
 ## 5. Прогноз и обучение модели
 
@@ -304,6 +320,8 @@ HGB **реально обучается во время расчёта**. Это
 ### 5.4. Что уже измерено
 
 Предоставленная synthetic-демонстрация: 26316 продаж, 3 филиала, 12 блюд, 10 ингредиентов, 48 строк рецептов, 30 предложений. Сохранены 9 прогнозов и 36 закупочных сценариев. HGB WAPE на трёх искусственных филиалах примерно 22.50%, 25.65%, 24.46%.
+
+Казахстанский набор `data/kz` (`python scripts/run_research.py --data-dir data/kz --output <папка>`, 11.10.2026): HGB WAPE 16.94%, 21.43%, 18.94%; лучший baseline 16.99%, 29.18%, 24.73%; номинальное покрытие p10–p90 80%, фактическое 78.3%, 81.0%, 74.7%. Файлы этого прогона в репозиторий не добавлены.
 
 Это характеристики конкретного синтетического исследования, **не качества реального фастфуда**. См. [artifacts/research/README_KK.md](artifacts/research/README_KK.md). `python scripts/run_research.py` воспроизводит исследование; его не нужно повторять после изменения только README.
 
@@ -457,7 +475,8 @@ packages/design-tokens/    Общие design artifacts
 contracts/                 OpenAPI и manifest данных
 design/                    Карта экранов, tokens, copy KK/RU
 database/                  CLI миграции, SQL, документация БД
-data/raw/                  Предоставленные synthetic операционные CSV
+data/raw/                  Предоставленные synthetic операционные CSV (исследование, тесты)
+data/kz/                   Казахстанский synthetic demo-набор (по умолчанию для seed)
 research_only/             Изолированные исследовательские/oracle материалы
 scripts/                   Запуск, операторские CLI, адаптер, проверки, упаковка
 tests/                     Python integration/security/math; e2e — Playwright
@@ -581,6 +600,7 @@ bash scripts/start.sh --install
 - API docs: `http://127.0.0.1:8000/docs`.
 - Demo email: `admin@asboljam.local`.
 - Пароль показан seed при первом создании или задан приватно; фиксированного пароля здесь нет.
+- Данные: казахстанский набор `data/kz` ([4.5](#45-два-демо-набора-казахстан-и-исследование)). Существующая `data/asboljam.sqlite` с прежним demo остаётся как есть; чтобы увидеть новый набор, задайте новый `DATABASE_URL`, например `sqlite:///<папка проекта>/data/asboljam-kz.sqlite`.
 - Логи `.cache/logs`.
 - Остановка Windows: `.\scripts\stop.ps1`; Linux/macOS: `bash scripts/stop.sh`.
 
@@ -632,6 +652,7 @@ npm.cmd run dev
 | `COOKIE_SECURE` | Production требует true |
 | `POSTGRES_PASSWORD` | Приватный пароль Compose |
 | `DEMO_PASSWORD` | Только local seed, отсутствует в production |
+| `DEMO_DATASET` | `kz` (по умолчанию) или `raw`; только local seed |
 | `IMPORT_MAX_BYTES` | Default 20971520 |
 | `IMPORT_MAX_ROWS` | Default 250000 |
 | `LOKY_MAX_CPU_COUNT` | Ограничение параллелизма, пример 1 |
@@ -985,6 +1006,8 @@ Push только после успешного commit, без force. При о�
 | [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md) | Queue/heartbeat/deadline/shutdown, диагностика request → job |
 | [INSTALL_UPDATE_BACKUP_RU.md](docs/commercial/INSTALL_UPDATE_BACKUP_RU.md) | Установка, обновление, backup/restore, release checklist |
 | [DEPLOYMENT_VPS_RU.md](docs/commercial/DEPLOYMENT_VPS_RU.md) | Вариант запуска на одном сервере с HTTPS и что нужно от владельца |
+| [KAZAKHSTAN_LAUNCH_RU.md](docs/commercial/KAZAKHSTAN_LAUNCH_RU.md) | Запуск в РК: язык, часовой пояс, персональные данные, домен .kz, НДС, праздники |
+| [data/kz/README.md](data/kz/README.md) | Казахстанский demo-набор: сценарий, источники, допущения |
 | [LAUNCH_BACKLOG_RU.md](docs/commercial/LAUNCH_BACKLOG_RU.md) | Приоритетный backlog запуска с критериями готовности |
 | [POS_ADAPTER_RU.md](docs/POS_ADAPTER_RU.md) | Офлайн CSV, без live-коннектора |
 | [POS_MAPPING_PROFILE_RU.md](docs/commercial/POS_MAPPING_PROFILE_RU.md) | Сопоставление полей источника |

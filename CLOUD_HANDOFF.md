@@ -1,5 +1,9 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — demo по умолчанию казахстанский; дальше решение по праздникам или сервер
+
+Новый demo-набор `data/kz` (Кызылорда) загружается `start.ps1`/`seed_demo.py` по умолчанию; исходный `data/raw` сохранён для исследования и тестов. Локальный `.env` (вне Git) указывает на `data/asboljam-kz.sqlite`; прежняя `data/asboljam.sqlite` не изменена. Проверки и границы — верхняя запись [PROGRESS](templates/PROGRESS.md), [требования РК](docs/commercial/KAZAKHSTAN_LAUNCH_RU.md). Открытые решения владельца: признак праздников РК в прогнозе (backlog №10), сервер/домен в РК (§9 DEPLOYMENT_VPS). Новый архив выпуска с этим изменением ещё не собран.
+
 ## 11.10.2026 — финальный архив v3 проверен; дальше сервер/домен или mobile
 
 Последний проверенный архив: `releases/2026-10-11-final-3/AsBoljam_Final.zip` (commit `137a17d`, SHA256 `4afdeb480d94a222e790855c93a14efc21b58f462dbe38f7ad6d74e094532bf5`): чистая установка, HTTP 87/87, browser 91/91, SQLite restore 14/14. Детали — верхняя запись [PROGRESS](templates/PROGRESS.md), [свидетельство](artifacts/verification/release-20261011-final-3.json). Для production нужны решения владельца ([DEPLOYMENT_VPS_RU §9](docs/commercial/DEPLOYMENT_VPS_RU.md)). Независимо: backlog №5 (аудит живого onboarding), №6 (надёжность заданий), №7 (mobile: Expo update, APK, эмулятор). Проверочные установки остановлены и лежат вне Git в `C:\Users\ASUS\AsBoljam-install-check`.

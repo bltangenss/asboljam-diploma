@@ -10,6 +10,7 @@ COPY --chown=appuser:appuser apps/worker ./apps/worker
 COPY --chown=appuser:appuser database ./database
 COPY --chown=appuser:appuser scripts/seed_demo.py scripts/backup_db.py ./scripts/
 COPY --chown=appuser:appuser data/raw ./data/raw
+COPY --chown=appuser:appuser data/kz ./data/kz
 RUN chown -R appuser:appuser /app/data
 USER appuser
 EXPOSE 8000

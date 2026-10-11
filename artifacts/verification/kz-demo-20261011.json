@@ -1,0 +1,363 @@
+{
+  "stage": "Kazakhstan demo dataset and RK launch requirements",
+  "date": "2026-10-11",
+  "base_commit": "f180edbb6dd5e009a73a94920bbba40f4e642bf4",
+  "scope": "No API, worker, web or mobile code changed. Changed scripts: seed_demo.py, generate_kz_demo.py (new), generate_contracts.py, package_release.py, check_secrets.py; plus data/kz, Dockerfile.api, .env.example, .gitattributes, docs and tests.",
+  "dataset": {
+    "path": "data/kz",
+    "generator": "scripts/generate_kz_demo.py",
+    "generator_sha256": "05c5c8e40e383ca82df0437423c47b929dc8382ba04599f08becb070b4132558",
+    "metadata": {
+      "origin": "SYNTHETIC",
+      "scenario": "Қызылорда: 3 бөлімше, 12 тағам, 14 ингредиент",
+      "generator": "scripts/generate_kz_demo.py",
+      "seed": 2025,
+      "date_from": "2024-01-01",
+      "date_to": "2025-12-31",
+      "inventory_snapshot": "2026-01-01",
+      "rows": {
+        "branches": 3,
+        "meals": 12,
+        "ingredients": 14,
+        "recipes": 49,
+        "suppliers": 5,
+        "supplier_offers": 35,
+        "calendar": 2193,
+        "daily_sales": 26316,
+        "inventory_lots": 54
+      },
+      "oracle_rows": 26316,
+      "shares": {
+        "stockout_rows_of_open": 0.158,
+        "promo_rows_of_open": 0.0319
+      },
+      "warning": "Not observations from a real enterprise. Names, prices, recipes, stock and sales are SYNTHETIC; shelf life is illustrative, not a food-safety instruction. Never train with oracle data."
+    },
+    "files_sha256": {
+      "branches.csv": "71f979a8ad0fa462792214522b25fd9c36df494e64b0ae9147ff736241496a0c",
+      "calendar.csv": "5c914763ffa62f8262ea8e5ae426605fd73066df4c2e7a3461c7af951d68bac1",
+      "daily_sales.csv": "4aa4c218440a32d541f0929ba37aa49c55c6a5d4847e2d0d46fda2722d741a21",
+      "data_dictionary.csv": "8022562e63cbdd2039dcdc8f226e13c1229632e5ec4245bf949c91de10af0c57",
+      "ingredients.csv": "d852816edd7664f855037975f0f0d6e0cb3e503f711cb9dfb096680ca9019823",
+      "inventory_lots.csv": "9e2f89ce6cac30137d9f55e65fb56de55522b074da09eda6cba6926aeecb2251",
+      "meals.csv": "0efc7d040f1592a28b740977e944be93c75f18823ce28cd5fb16912c3ca4f493",
+      "metadata.json": "2f36dfc86d243069538e47447a5ce7ea7e27275e52c8c5a2b55acb6cea94f326",
+      "recipes.csv": "8996ab1a6d86271187c4a8387a6b4c9dbc21f535f7c08c29a523c06c50e1a5c0",
+      "reference_rk_days_off.csv": "d0ccfb248e2016f9b258ff614c8348ffcaab714c35a2c85b84f9670791f7a2cc",
+      "supplier_offers.csv": "1b93edfc19b7c5ffe8b33b117ee982bc7f01c76311c83021ab144543b1d82e19",
+      "suppliers.csv": "c9204a812ac10ab2fc0c2e0e01c65298fb7753d9e44b8ff9eb9bb920f941a571"
+    },
+    "origin": "SYNTHETIC; public facts only shape the scenario (data/kz/README.md)"
+  },
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest tests.test_kz_demo_data -v",
+      "result": "6/6 PASS, 9.184 s"
+    },
+    {
+      "command": "python -X utf8 -m unittest tests.test_kz_demo_data tests.test_import_parser tests.test_engine tests.test_tenant_cli tests.test_security_settings tests.test_package_release",
+      "result": "57/57 PASS, 16.752 s"
+    },
+    {
+      "command": "DATABASE_URL=sqlite:///.cache/kz-full-regression-import.sqlite python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "result": "502 tests in 248.243 s: 501 PASS + 1 POSIX-only SIGTERM skip, 0 failures/errors. During the run the generator BOM literal was replaced by an identical \\ufeff escape (regeneration test rerun 1/1 PASS) and scripts/check_secrets.py stopped reading .env comments (new tests/test_check_secrets.py run separately: 1/1 PASS)."
+    }
+  ],
+  "research_on_kz": {
+    "command": "python scripts/run_research.py --data-dir data/kz --output <scratch>",
+    "forecast_runs": 9,
+    "procurement_runs": 36,
+    "metrics": [
+      {
+        "branch_id": "1",
+        "model": "seasonal_naive_7",
+        "wape": "0.22649533142276046",
+        "coverage": "",
+        "data_hash": "627fd7638c9e05baadac50ced49986694de51e9bb5673b60156733efdc92da76",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "1",
+        "model": "rolling_mean_28",
+        "wape": "0.1698913086543668",
+        "coverage": "",
+        "data_hash": "627fd7638c9e05baadac50ced49986694de51e9bb5673b60156733efdc92da76",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "wape": "0.16942179825508585",
+        "coverage": "0.7827380952380952",
+        "data_hash": "627fd7638c9e05baadac50ced49986694de51e9bb5673b60156733efdc92da76",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "2",
+        "model": "seasonal_naive_7",
+        "wape": "0.29178685289206013",
+        "coverage": "",
+        "data_hash": "d8c66a9dae56b5d83902eb95d20f73b46e3192809a486d69acdb310562f76732",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "2",
+        "model": "rolling_mean_28",
+        "wape": "0.3594797111193042",
+        "coverage": "",
+        "data_hash": "d8c66a9dae56b5d83902eb95d20f73b46e3192809a486d69acdb310562f76732",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "wape": "0.21432876896794176",
+        "coverage": "0.8095238095238095",
+        "data_hash": "d8c66a9dae56b5d83902eb95d20f73b46e3192809a486d69acdb310562f76732",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "3",
+        "model": "seasonal_naive_7",
+        "wape": "0.24726938962826986",
+        "coverage": "",
+        "data_hash": "08893c5e0a2f984be0939d632fc61b9adf8b70a13a507c54bbff19a0c773b86a",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "3",
+        "model": "rolling_mean_28",
+        "wape": "0.2494296204025438",
+        "coverage": "",
+        "data_hash": "08893c5e0a2f984be0939d632fc61b9adf8b70a13a507c54bbff19a0c773b86a",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "wape": "0.1894401104064372",
+        "coverage": "0.7470238095238095",
+        "data_hash": "08893c5e0a2f984be0939d632fc61b9adf8b70a13a507c54bbff19a0c773b86a",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31"
+      }
+    ],
+    "hgb_procurement_scenarios": [
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_zero",
+        "budget": "0",
+        "total_cost": "0",
+        "shortage_count": "8",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_limited",
+        "budget": "75000",
+        "total_cost": "72692",
+        "shortage_count": "1",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_standard",
+        "budget": "200000",
+        "total_cost": "76194",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "median",
+        "budget": "200000",
+        "total_cost": "79696",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "stress",
+        "budget": "200000",
+        "total_cost": "108933.5",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "1",
+        "model": "hist_gradient_boosting",
+        "scenario": "unavailable_suppliers",
+        "budget": "200000",
+        "total_cost": "0",
+        "shortage_count": "8",
+        "solver_status": "no_eligible_offers",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_zero",
+        "budget": "0",
+        "total_cost": "0",
+        "shortage_count": "7",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_limited",
+        "budget": "75000",
+        "total_cost": "64007",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_standard",
+        "budget": "200000",
+        "total_cost": "64007",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "median",
+        "budget": "200000",
+        "total_cost": "67715",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "stress",
+        "budget": "200000",
+        "total_cost": "102516",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "2",
+        "model": "hist_gradient_boosting",
+        "scenario": "unavailable_suppliers",
+        "budget": "200000",
+        "total_cost": "0",
+        "shortage_count": "7",
+        "solver_status": "no_eligible_offers",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_zero",
+        "budget": "0",
+        "total_cost": "0",
+        "shortage_count": "7",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_limited",
+        "budget": "75000",
+        "total_cost": "67590.5",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "budget_standard",
+        "budget": "200000",
+        "total_cost": "67590.5",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "median",
+        "budget": "200000",
+        "total_cost": "63882.5",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "stress",
+        "budget": "200000",
+        "total_cost": "99457",
+        "shortage_count": "0",
+        "solver_status": "optimal",
+        "constraints_valid": "True"
+      },
+      {
+        "branch_id": "3",
+        "model": "hist_gradient_boosting",
+        "scenario": "unavailable_suppliers",
+        "budget": "200000",
+        "total_cost": "0",
+        "shortage_count": "7",
+        "solver_status": "no_eligible_offers",
+        "constraints_valid": "True"
+      }
+    ],
+    "note": "Characteristics of a synthetic scenario, not of a real business. Outputs not committed."
+  },
+  "runtime": {
+    "command": "start.ps1 (new SQLite, DEMO_DATASET unset) + verify_runtime.py --api-url http://127.0.0.1:3000/api/v1",
+    "seed_output": "Demo dataset: kz",
+    "status": "passed",
+    "passed_check_count": 87,
+    "report": "artifacts/verification/kz-demo-runtime-20261011.json",
+    "http_500": 0
+  },
+  "timezone_check": {
+    "tzdata": "2025.3",
+    "utc_offset_on_2026_01_01": {
+      "Asia/Almaty": "+05:00",
+      "Asia/Qyzylorda": "+05:00",
+      "Asia/Qostanay": "+05:00",
+      "Asia/Aqtobe": "+05:00",
+      "Asia/Oral": "+05:00"
+    }
+  },
+  "not_tested": [
+    "Docker image rebuild with data/kz",
+    "PostgreSQL seed of the kz dataset",
+    "browser suite on the kz dataset (e2e uses data/raw by design)",
+    "mobile",
+    "new release archive",
+    "holiday-aware forecasting (not implemented; owner decision)"
+  ]
+}

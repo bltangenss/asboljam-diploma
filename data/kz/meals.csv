@@ -1,0 +1,13 @@
+﻿meal_id,meal_name,base_price_kzt,data_origin
+1,Бешбармақ,2600,SYNTHETIC
+2,Палау / Плов,1800,SYNTHETIC
+3,Лағман,1900,SYNTHETIC
+4,Манты,1900,SYNTHETIC
+5,Сорпа,1600,SYNTHETIC
+6,Тауық кеспесі / Куриная лапша,1200,SYNTHETIC
+7,Қуырдақ,2300,SYNTHETIC
+8,Тауық еті картоппен / Курица с картофелем,1700,SYNTHETIC
+9,Көкөніс салаты / Овощной салат,900,SYNTHETIC
+10,Бауырсақ,400,SYNTHETIC
+11,Самса,450,SYNTHETIC
+12,Сүтті күріш ботқасы / Рисовая молочная каша,700,SYNTHETIC
