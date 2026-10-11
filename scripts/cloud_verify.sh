@@ -37,7 +37,7 @@ fi
 if [[ "${ASBOLJAM_VERIFY_E2E:-1}" == 1 ]]; then
   "$python_bin" -c 'import socket; probes=[socket.socket() for _ in range(2)]; [s.bind(("127.0.0.1",p)) for s,p in zip(probes,(8000,3000))]; [s.close() for s in probes]'
   "$python_bin" -X utf8 scripts/prepare_e2e.py
-  "$python_bin" -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 >"$run_dir/api.log" 2>&1 &
+  "$python_bin" -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --no-access-log >"$run_dir/api.log" 2>&1 &
   api_pid=$!
   "$python_bin" -m apps.worker.main >"$run_dir/worker.log" 2>&1 &
   worker_pid=$!

@@ -1,0 +1,105 @@
+{
+  "status": "passed",
+  "verified_at_utc": "2026-10-11T06:35:00+00:00",
+  "scope": "Request -> job diagnostics: server X-Request-ID, allowlisted JSON events, commit-ordered job lifecycle events, safe HTTP 500 before/after headers, CORS exposure, --no-access-log launchers/Docker, Nginx JSON access format",
+  "source_state": "Uncommitted working tree at verification time; hashes are LF-normalized file contents after all runs. The commit adding this report contains these sources.",
+  "source_sha256_lf_normalized": {
+    "apps/api/main.py": "1db8614a9a87b3837e28838b543e0251f1c7c52e465a712084c00f5aa2d935ad",
+    "apps/api/observability.py": "597b4fb9885d72dca02b41c451938bef62383577167e1698f7e1f95a51834abb",
+    "apps/api/request_logging.py": "be9c9e99c7bbf3e480830e1735780ad2d85536156387b4c174f2deb241d88dc3",
+    "apps/worker/main.py": "de4d2a2dbf102db5fb3c61d0ad50d1115bdf41a2821da0cbdeb72112f1174784",
+    "tests/test_observability.py": "021314b619df1afc24af7dbcf92f515a0b29421e9e24d443cd5ed0118aa92f3d",
+    "tests/test_worker_logging.py": "256cd2abf59a4128c679cab945dc5a416417caf89d785028428fe0a56230d385",
+    "tests/test_request_logging.py": "07bb556454b864b4e5d56907e9283f969567652e21c02dca7f538f6faee3e6ae",
+    "tests/request_logging_runtime_app.py": "999d8e828c52f571437f2a8a7e4aa3a96c74dc93ab224a6457c9101799b8c138",
+    "scripts/verify_request_logging.py": "ed086b9c3dce2132de31380006e85757272b45ddeb8f8a0ca93a83fd9e936f99",
+    "infra/Dockerfile.api": "f7b2fcfc5b6cdf069805f30a8771cdbbb78509c1376af8d7be21626c4ce684ca",
+    "infra/nginx.conf": "1c54986743b8121b82d37dd91efe4374926d25bd24ef82d5a2526ccea0f8a28c",
+    "scripts/start.ps1": "c045edf59d99c37c1a315a6776d684e176fc58c62acde04ad1eac011d77e0b95",
+    "scripts/start.sh": "1589a9952d1497a666031483c10786807b9301ed387c2d52c73b7e6cf852fa27",
+    "scripts/cloud_verify.sh": "b108ee248fdb999aacd05248c794212686964f94d8d50067e37b858cecb31145"
+  },
+  "runs": [
+    {
+      "command": "PYTHONPATH=tests;. DATABASE_URL=<new isolated .cache sqlite> python -X utf8 -m unittest test_observability test_worker_logging test_request_logging",
+      "result": "failed",
+      "tests_run": 36,
+      "failures": 1,
+      "errors": 0,
+      "duration_seconds": 19.975,
+      "failure": "test_server_generated_ids_ignore_incoming_and_inner_values asserted that the literal \"inner-\" was absent from logs, but it is part of the registered route template /test/inner-header. Only that test assertion was corrected; the secret sentinel and spoof checks remain; application code unchanged."
+    },
+    {
+      "command": "PYTHONPATH=tests;. DATABASE_URL=<new isolated .cache sqlite> python -X utf8 -m unittest test_request_logging -v",
+      "result": "passed",
+      "tests_run": 10,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 14.651
+    },
+    {
+      "command": "DATABASE_URL=<new isolated .cache sqlite> python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "result": "passed",
+      "tests_run": 490,
+      "passed": 489,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 346.498,
+      "skip": "test_worker_shutdown real SIGTERM drain is POSIX-only on Windows",
+      "note": "Includes the 36 focused diagnostics tests (6 emitter, 20 worker logging, 10 request logging) and all API/security/worker suites affected by the middleware order change. Log: .cache/full-regression-5492a06bf02742608dbc3ed90cbb4a00.log (ignored)."
+    },
+    {
+      "command": "python -X utf8 scripts/verify_request_logging.py --report artifacts/verification/request-logging-runtime-20261011.json",
+      "result": "passed",
+      "report": "artifacts/verification/request-logging-runtime-20261011.json",
+      "summary": "Real Uvicorn process with --no-access-log on isolated SQLite: 200/401/403/404/500, unique server IDs ignoring a spoofed X-Request-ID, events match response IDs, route templates only, sanitized RuntimeError: HTTP_REQUEST_FAILED in the server error log, CORS on the generated 500, no sentinel. Control run without the flag: the Uvicorn access log recorded the raw query sentinel. Ran twice (stdout, then report file); both passed."
+    },
+    {
+      "command": "docker compose -p asboljam-logcheck-4a8fe21f4f65 --env-file <private ignored .cache env> -f docker-compose.yml -f infra/compose.verify.yml up --build -d; seed_demo.py in the api container; python scripts/verify_runtime.py --api-url http://127.0.0.1:3010/api/v1 --web-origin http://localhost:3010 --env-file <same> --report <cache> --timeout 600",
+      "result": "passed",
+      "checks_passed": 87,
+      "checks_total": 87,
+      "report": "artifacts/verification/runtime-docker-nginx-20261011.json",
+      "runtime": {
+        "postgresql": "PostgreSQL 17.11 (postgres:17-alpine)",
+        "api_python": "3.13.16",
+        "fastapi": "0.141.1",
+        "starlette": "1.6.0",
+        "uvicorn": "0.53.0",
+        "sqlalchemy": "2.0.48",
+        "nginx": "1.30.5",
+        "images_built_from_working_tree": {
+          "api": "cd2121f40f67",
+          "worker": "9b75ceb3a80a",
+          "web": "5412c502ef3b"
+        }
+      },
+      "summary": "Fresh images built from the current tree (Dockerfile CMD includes --no-access-log). Full HTTP workflow through Nginx: login, scope/roles/CSRF/origin, forecast and procurement by the separate worker container on PostgreSQL, approval version/reason/idempotency, audit, approved CSV export, CSV preview/commit/replay.",
+      "log_analysis": {
+        "nginx": "66 proxy.request JSON lines with only status, duration_seconds and request_id; every non-empty request_id equals an API http.request request_id; one static request has an empty request_id; no raw path/query/client address/headers; other lines are nginx and entrypoint startup notices",
+        "api": "83 JSON events (http.request, job.queued; includes Compose healthcheck requests), 4 Uvicorn startup lines, 0 access-log lines",
+        "worker": "4 JSON events (job.claimed and job.finished succeeded for forecast and procurement) and the startup line",
+        "correlation": "job.queued request_id appears in the Nginx log for both forecast and procurement; job_id links to worker job.claimed and job.finished",
+        "secrets": "POSTGRES_PASSWORD, DEMO_PASSWORD and the sentinel sent in path/query/cookie/X-Request-ID/login body were absent from all three logs"
+      },
+      "cleanup": "docker compose stop; containers, images and the new project volume retained; the older asboljam-verification project and volume were not touched"
+    },
+    {
+      "command": "app.openapi() generated with an isolated DATABASE_URL compared to contracts/openapi.json",
+      "result": "identical"
+    }
+  ],
+  "behavior_changes": [
+    "Middleware order is request correlation -> CORS -> protection -> routes. Early 400/413 refusals carry CORS headers for allowed origins; CORS preflight responses are produced before the protection layer and no longer carry its X-Frame-Options/Cache-Control headers.",
+    "http.request may carry code HTTP_REQUEST_FAILED (exception) or HTTP_REQUEST_CANCELLED (cancellation; no status when no response started).",
+    "Worker emits job.lease_expired (job_id only) after committing an expired-lease requeue; the expired claim time is not available from UPDATE RETURNING and is not invented.",
+    "Worker no longer prints a per-job failure line; failures appear as job.finished status failed with a fixed code after commit."
+  ],
+  "not_tested": [
+    "PostgreSQL run of the focused diagnostics unit suites (the Docker workflow exercised the code on PostgreSQL over HTTP)",
+    "Real SIGTERM drain on POSIX in this stage",
+    "Nginx error log content under upstream failure; third-party proxy/platform logs, shipping, rotation and retention",
+    "Production TLS deployment, load and failover"
+  ]
+}

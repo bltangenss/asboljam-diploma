@@ -29,7 +29,7 @@ mkdir -p .cache/logs
 pids=()
 cleanup_failed_start() { for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done; }
 trap cleanup_failed_start ERR
-nohup "$python_bin" -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 >.cache/logs/api.log 2>.cache/logs/api.err.log < /dev/null &
+nohup "$python_bin" -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --no-access-log >.cache/logs/api.log 2>.cache/logs/api.err.log < /dev/null &
 pids+=("$!")
 nohup "$python_bin" -m apps.worker.main >.cache/logs/worker.log 2>.cache/logs/worker.err.log < /dev/null &
 pids+=("$!")

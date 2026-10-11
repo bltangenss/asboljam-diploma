@@ -1,5 +1,11 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — диагностика завершена, следующий шаг — установка из ZIP
+
+**DONE / TESTED:** интеграция request → job из прошлого локального diff закончена, проверена и закоммичена (детали — [PROGRESS](templates/PROGRESS.md), [отчёт](artifacts/verification/request-logging-20261011.json)): полная регрессия 490 (489 PASS + 1 POSIX skip), настоящий uvicorn, Docker/Nginx/PostgreSQL workflow 87/87. Изолированный compose-проект `asboljam-logcheck-*` остановлен без удаления; старый `asboljam-verification` не тронут.
+
+**Следующее:** [backlog запуска](docs/commercial/LAUNCH_BACKLOG_RU.md) №2 — новый ZIP из чистого commit, установка в отдельную папку, `verify_runtime.py`, затем №3 backup/restore. **BLOCKED внешне:** пилот (предприятие), production deploy (домен/сервер/решение владельца).
+
 ## 11.10.2026 — передача в новый чат / Claude Code
 
 Основной подробный контекст теперь в [README.md](README.md): 18 разделов, полный продуктовый workflow, архитектура, данные/алгоритмы/права, фактические evidence и готовый промпт. Перед продолжением читать текущие git status/diff; старые записи ниже остаются историей этапов.

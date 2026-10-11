@@ -52,6 +52,25 @@ class ObservabilityTests(unittest.TestCase):
             self.assertFalse(emit_event('job.finished', **base, status='succeeded', code='JOB_TIMEOUT'))
         self.assertEqual(len(output.getvalue().splitlines()), 2)
 
+    def test_http_failure_codes_are_fixed_and_status_is_only_omitted_with_a_code(self):
+        base = dict(request_id='b' * 32, method='POST', route='unmatched', duration_ms=1)
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertTrue(emit_event('http.request', **base, status=200, code='HTTP_REQUEST_FAILED'))
+            self.assertTrue(emit_event('http.request', **base, code='HTTP_REQUEST_CANCELLED'))
+            self.assertFalse(emit_event('http.request', **base))
+            for code in ['IntegrityError', 'PRIVATE-SENTINEL', 'JOB_TIMEOUT', 'CLAIM_LOST', None]:
+                with self.subTest(code=code):
+                    self.assertFalse(emit_event('http.request', **base, status=500, code=code))
+            self.assertTrue(emit_event('job.lease_expired', job_id='job', claim_time=7, kind='forecast'))
+            self.assertFalse(emit_event('job.lease_expired', job_id='bad id'))
+            self.assertFalse(emit_event('job.discarded', job_id='job', claim_time=1, code='HTTP_REQUEST_FAILED'))
+        lines = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([line.get('code') for line in lines], ['HTTP_REQUEST_FAILED', 'HTTP_REQUEST_CANCELLED', None])
+        self.assertNotIn('status', lines[1])
+        # Unknown fields, even plausible ones, are not serialized for lease expiry.
+        self.assertEqual(set(lines[2]), {'schema_version', 'timestamp', 'event', 'job_id'})
+
     def test_parallel_events_remain_independent_json_lines(self):
         output = io.StringIO()
         with redirect_stdout(output), ThreadPoolExecutor(max_workers=8) as pool:
@@ -71,6 +90,12 @@ class ObservabilityTests(unittest.TestCase):
             stream.write.side_effect = OSError('PRIVATE-SENTINEL')
             self.assertFalse(emit_event('job.claimed', job_id='job', kind='forecast', claim_time=1))
             stream.flush.assert_not_called()
+        with patch('apps.api.observability.sys.stdout') as stream:
+            stream.flush.side_effect = OSError('PRIVATE-SENTINEL')
+            self.assertFalse(emit_event('job.claimed', job_id='job', kind='forecast', claim_time=1))
+            # The line may already exist. No implicit retry or duplicate is emitted.
+            stream.write.assert_called_once()
+            stream.flush.assert_called_once()
 
 
 if __name__ == '__main__':

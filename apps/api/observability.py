@@ -17,6 +17,13 @@ _REQUEST_ID = re.compile(r'[a-f0-9]{32}\Z')
 _ROUTE = re.compile(r'/[A-Za-z0-9_{}:/.-]{0,199}\Z')
 _JOB_CODES = frozenset({'JOB_ACCESS_REVOKED', 'JOB_SCOPE_INVALID',
     'JOB_INPUT_INVALID', 'JOB_CALCULATION_FAILED', 'JOB_TIMEOUT'})
+# Fixed codes per event; anything else (including exception names) is refused.
+_CODES = {
+    'http.request': frozenset({'HTTP_REQUEST_FAILED', 'HTTP_REQUEST_CANCELLED'}),
+    'job.finished': _JOB_CODES,
+    'job.discarded': frozenset({'CLAIM_LOST', 'JOB_MISSING'}),
+    'job.publication_error': frozenset({'DATABASE_ERROR', 'PUBLICATION_ERROR'}),
+}
 
 
 def _number(value):
@@ -39,13 +46,16 @@ _VALIDATORS = {
     'status': lambda value: type(value) is int and 100 <= value <= 599,
 }
 # Required and optional keys are event-specific; unknown keys are never serialized.
+# http.request status is the status actually started; a request cancelled before
+# any response has no status and must carry a code instead.
 _SCHEMAS = {
-    'http.request': ({'request_id', 'method', 'route', 'status', 'duration_ms'}, set()),
+    'http.request': ({'request_id', 'method', 'route', 'duration_ms'}, {'status', 'code'}),
     'job.queued': ({'request_id', 'job_id', 'kind'}, set()),
     'job.claimed': ({'job_id', 'kind', 'claim_time'}, set()),
     'job.finished': ({'job_id', 'kind', 'claim_time', 'status'}, {'code'}),
     'job.discarded': ({'job_id', 'claim_time', 'code'}, {'kind'}),
     'job.released': ({'job_id', 'claim_time'}, {'kind'}),
+    'job.lease_expired': ({'job_id'}, set()),
     'job.publication_error': ({'job_id', 'claim_time', 'code'}, set()),
 }
 
@@ -67,10 +77,7 @@ def emit_event(event, **fields):
             if key == 'status' and event == 'job.finished':
                 valid = type(value) is str and value in {'succeeded', 'failed'}
             elif key == 'code':
-                codes = (_JOB_CODES if event == 'job.finished' else
-                    {'CLAIM_LOST', 'JOB_MISSING'} if event == 'job.discarded' else
-                    {'DATABASE_ERROR', 'PUBLICATION_ERROR'})
-                valid = type(value) is str and value in codes
+                valid = type(value) is str and value in _CODES[event]
             else:
                 valid = _VALIDATORS[key](value)
             if not valid:
@@ -78,6 +85,8 @@ def emit_event(event, **fields):
         if event == 'job.finished':
             if (safe['status'] == 'failed') != ('code' in safe):
                 return False
+        if event == 'http.request' and not {'status', 'code'} & safe.keys():
+            return False
         record = {'schema_version': 1,
             'timestamp': datetime.now(timezone.utc).isoformat(timespec='milliseconds'),
             'event': event, **safe}

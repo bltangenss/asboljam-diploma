@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "verified_at_utc": "2026-10-11T06:25:46.311026+00:00",
+  "command": "python.exe -X utf8 -m uvicorn tests.request_logging_runtime_app:app --host 127.0.0.1 --port 54869 --no-access-log",
+  "control_command": "python.exe -X utf8 -m uvicorn tests.request_logging_runtime_app:app --host 127.0.0.1 --port 54879",
+  "python": "3.13.9",
+  "checks": {
+    "statuses_200_401_403_404_500": true,
+    "one_server_id_per_response": true,
+    "events_match_response_ids_in_order": true,
+    "route_templates_only": true,
+    "failure_event_code": true,
+    "failure_cors_and_exposed_id": true,
+    "no_sentinel_in_stdout_stderr": true,
+    "no_access_log_lines": true,
+    "only_json_events_on_stdout": true,
+    "sanitized_asgi_error_signal": true
+  },
+  "control": {
+    "uvicorn_access_log_records_raw_query_without_flag": true
+  },
+  "events_seen": 6,
+  "runtime_directory": ".cache/request-logging-runtime-fr3tp3eh",
+  "not_tested": [
+    "Nginx/Docker runtime log format",
+    "PostgreSQL backend",
+    "log shipping, rotation and retention"
+  ]
+}

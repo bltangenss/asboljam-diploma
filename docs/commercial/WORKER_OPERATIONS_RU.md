@@ -105,3 +105,54 @@ Compose даёт worker120 секунд перед принудительным 
 разбит на страницы по20 и ограничен выбранным филиалом и типом расчёта.
 Endpoints списка и статуса требуют текущую сессию, роль и org/branch scope;
 операционный snapshot и payload не выдаются.
+
+## Диагностика request → job
+
+API и worker пишут в stdout по одной JSON-строке на событие (`schema_version: 1`).
+Это best-effort диагностика, **не audit**: ошибка записи/flush не отменяет и не повторяет
+уже закоммиченное действие, доставка между процессами, хранение и ротация не гарантируются.
+
+| Событие | Когда | Поля |
+|---|---|---|
+| `http.request` | По завершении обработки HTTP-запроса | `request_id`, `method`, `route`, `status`, `duration_ms`, опционально `code` |
+| `job.queued` | Только после commit задания и audit `*.queued` | `request_id`, `job_id`, `kind` |
+| `job.claimed` | Только после commit захвата | `job_id`, `kind`, `claim_time` |
+| `job.finished` | Только после commit итогового статуса/результата/audit | `job_id`, `kind`, `claim_time`, `status`, при failed — `code` |
+| `job.discarded` | Захват потерян (CAS loser) или задание отсутствует; ничего не опубликовано | `job_id`, `claim_time`, `code` (`CLAIM_LOST`/`JOB_MISSING`), опционально `kind` |
+| `job.released` | Захват на границе остановки возвращён в очередь (после commit) | `job_id`, `claim_time` |
+| `job.lease_expired` | Просроченная аренда возвращена в очередь (после commit) | `job_id` |
+| `job.publication_error` | Публикация не закоммичена; статус не изменён | `job_id`, `claim_time`, `code` (`DATABASE_ERROR`/`PUBLICATION_ERROR`) |
+
+Связь: `X-Request-ID` ответа POST `/forecasts` или `/procurement` = `request_id` в
+`job.queued`; его `job_id` = `run_id` ответа и далее `job_id` событий worker. `claim_time`
+отличает текущий захват от устаревшего.
+
+Правила:
+
+- `X-Request-ID` генерирует сервер (32 hex) для каждого ответа, включая ранние 400/413,
+  preflight и middleware 500. Входящий `X-Request-ID` и значение, выставленное кодом
+  маршрута, игнорируются. Разрешённый origin может прочитать заголовок
+  (`Access-Control-Expose-Headers`), чужой не получает `Access-Control-Allow-Origin`.
+- `route` — только шаблон зарегистрированного маршрута (`/api/v1/runs/{run_id}`), иначе
+  `unmatched` (404, а также ранний отказ 400/413 до маршрутизации). Сырой path, query,
+  body, headers, cookies, tokens, CSV, причина пользователя и текст исключений не пишутся.
+- Необработанное исключение до отправки заголовков: один ответ 500 `Internal Server Error`
+  с security headers (и CORS для разрешённого origin), событие `status: 500`,
+  `code: HTTP_REQUEST_FAILED`. Серверу передаётся только `RuntimeError: HTTP_REQUEST_FAILED`
+  без исходного исключения и цепочки (SQL-параметры, CSV, секреты). Ошибка **после**
+  заголовков: второй ответ не отправляется, в событии остаётся отправленный статус и
+  `code: HTTP_REQUEST_FAILED`; соединение закрывает сервер. Отмена запроса до ответа даёт
+  событие без `status` с `code: HTTP_REQUEST_CANCELLED` — статус не выдумывается.
+- Коды job: `JOB_ACCESS_REVOKED`, `JOB_SCOPE_INVALID`, `JOB_INPUT_INVALID`,
+  `JOB_CALCULATION_FAILED`, `JOB_TIMEOUT`. Повтор SQLite BUSY/LOCKED публикует один
+  terminal success без повторного вычисления; ошибочная попытка видна как
+  `job.publication_error`. Статичные текстовые строки retry/heartbeat сохранены и тоже не
+  содержат SQL/значений.
+- Uvicorn запускается с `--no-access-log` (start.ps1/start.sh/cloud_verify.sh/Dockerfile.api):
+  стандартный access log записывает сырой path и query. Nginx пишет собственный
+  `proxy.request` только со статусом, временем и `X-Request-ID` ответа API.
+
+Границы: error log Nginx/Uvicorn и логи платформы хостинга — сторонние компоненты; например
+error log Nginx при недоступном upstream может содержать адрес клиента и строку запроса.
+Их уровень, доступ, ротацию и хранение настраивает оператор целевой среды. JSON-события не
+содержат tenant/user ID и не заменяют business audit в БД.

@@ -25,6 +25,8 @@ from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, Log
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
 from .lineage import capture_lineage, input_freshness, input_provenance
+from .observability import emit_event
+from .request_logging import RequestLoggingMiddleware
 from .security import password_hash, token_hash, verify_password
 from .stock import StockError
 from .stock_api import register_stock_routes
@@ -172,7 +174,8 @@ def create_app(database_url=None):
     app.state.settings = runtime_settings
     allowed_origins = list(runtime_settings.allowed_origins)
     secure = runtime_settings.cookie_secure
-    app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'], allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'])
+    cors = dict(allow_origins=allowed_origins, allow_credentials=True, allow_methods=['GET','POST','PATCH'],
+                allow_headers=['Content-Type','X-CSRF-Token','Idempotency-Key','Authorization'], expose_headers=['X-Request-ID'])
 
     @app.exception_handler(ImportProblem)
     @app.exception_handler(DataPolicyError)
@@ -486,7 +489,7 @@ def create_app(database_url=None):
         return result
 
     @app.post('/api/v1/forecasts',status_code=202,response_model=QueuedResponse)
-    def create_forecast(data:ForecastInput,user=Depends(current),db=Depends(get_db)):
+    def create_forecast(data:ForecastInput,request:Request,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager');branch_access(db,user,data.branch_id)
         context=execution_context(db,user.organization_id,data.branch_id,data.origin.isoformat() if data.origin else None)
         origin=context['origin']
@@ -504,8 +507,11 @@ def create_app(database_url=None):
             {'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':origin},
             {'kind':'meals','rows':snapshot['meals']}])
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload={**data.model_dump(mode='json'),'origin':origin},snapshot=snapshot)
-        db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id);db.commit()
-        return {'run_id':job.id,'status':'queued'}
+        db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id)
+        job_id=job.id
+        db.commit()
+        emit_event('job.queued',request_id=request.state.request_id,job_id=job_id,kind='forecast')
+        return {'run_id':job_id,'status':'queued'}
     def run_json(row,meta,observed_at):
         return {k:getattr(row,k) for k in ('id','kind','status','result_id','error','created_at','started_at','heartbeat_at','finished_at')} | {'run_id':row.id,'observed_at':observed_at,**meta}
     @app.get('/api/v1/runs',response_model=RunCollection)
@@ -540,7 +546,7 @@ def create_app(database_url=None):
         freshness_cache={}
         return {'items':[forecast_json(r,freshness_cache) for r in rows],'total':total,'next_cursor':str(cursor+limit) if cursor+limit<total else None,**metadata(db,user.organization_id)}
     @app.post('/api/v1/procurement',status_code=202,response_model=QueuedResponse)
-    def create_procurement(data:ProcurementInput,user=Depends(current),db=Depends(get_db)):
+    def create_procurement(data:ProcurementInput,request:Request,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager');branch_access(db,user,data.branch_id)
         forecast=scoped(db,Forecast,user,data.forecast_id)
         if forecast.branch_id!=data.branch_id: fail('BRANCH_MISMATCH','Болжам бөлімшесі сәйкес емес.',422)
@@ -570,8 +576,11 @@ def create_app(database_url=None):
         snapshot['input_lineage']=capture_lineage(db,user.organization_id,collections,
             inherited=forecast.result.get('input_lineage') or {},stock_dependencies=snapshot['stock_dependencies'])
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='procurement',payload=data.model_dump(mode='json'),snapshot=snapshot)
-        db.add(job);audit(db,user,'procurement.queued',job.id,data.branch_id);db.commit()
-        return {'run_id':job.id,'status':'queued'}
+        db.add(job);audit(db,user,'procurement.queued',job.id,data.branch_id)
+        job_id=job.id
+        db.commit()
+        emit_event('job.queued',request_id=request.state.request_id,job_id=job_id,kind='procurement')
+        return {'run_id':job_id,'status':'queued'}
     @app.get('/api/v1/plans')
     def plan_list(branch_id:str|None=None,limit:int=Query(50,ge=1,le=200),cursor:int=Query(0,ge=0),user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
@@ -719,6 +728,11 @@ def create_app(database_url=None):
         revoke_user_access(db,other,actor_id=user.id)
         audit(db,user,'user.access_changed',other.id,details=data.model_dump());db.commit()
         return user_json(other)
+    # Outer to inner: request correlation, CORS, protection, routes. Early protection
+    # refusals and the correlation layer's generated 500 stay readable by allowed origins.
+    app.add_middleware(CORSMiddleware, **cors)
+    app.add_middleware(RequestLoggingMiddleware, routes=app.router.routes,
+                       production=runtime_settings.environment == 'production', cors=cors)
     return app
 
 app=create_app()

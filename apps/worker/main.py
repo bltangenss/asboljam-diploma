@@ -11,6 +11,7 @@ from sqlalchemy.exc import DBAPIError, OperationalError
 from apps.api.accounts import lock_user
 from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, now, sessions
 from apps.api.engine import forecast, procurement, validate_calculation_context
+from apps.api.observability import emit_event
 from apps.worker.calculation_process import (CalculationCancelled, CalculationFailed,
     CalculationTimeout, calculate_snapshot, load_timeout, run_calculation)
 
@@ -24,6 +25,16 @@ ERROR_MESSAGES = {
     'JOB_CALCULATION_FAILED': 'Есептеу орындалмады. Әкімшіге есеп идентификаторын беріңіз.',
     'JOB_TIMEOUT': 'Есептеу уақыты аяқталды. Әкімшіге есеп идентификаторын беріңіз.',
 }
+
+
+def _emit_event(event, **fields):
+    """Observability is best effort and must never undo a committed job change."""
+    try:
+        emit_event(event, **fields)
+    except Exception:
+        # The shared emitter suppresses output failures; retain this boundary
+        # so an alternate sink cannot change the worker's transaction outcome.
+        pass
 
 
 def sqlite_contention(exc):
@@ -211,10 +222,24 @@ def result_error(job, result):
 
 
 def finish(factory, job_id, claim_time, result=None, error=None):
+    """Report publication faults without claiming an uncommitted terminal state."""
+    try:
+        return _finish(factory, job_id, claim_time, result=result, error=error)
+    except DBAPIError:
+        _emit_event('job.publication_error', job_id=job_id, claim_time=claim_time, code='DATABASE_ERROR')
+        raise
+    except Exception:
+        _emit_event('job.publication_error', job_id=job_id, claim_time=claim_time, code='PUBLICATION_ERROR')
+        raise
+
+
+def _finish(factory, job_id, claim_time, result=None, error=None):
     with factory() as db:
         job = db.get(Job, job_id)
         if job is None:
+            _emit_event('job.discarded', job_id=job_id, claim_time=claim_time, code='JOB_MISSING')
             return
+        kind = job.kind
         # Tenant suspension, credential changes and publication share this lock order.
         actor = lock_user(db,job.actor_id,job.organization_id)
         if result is not None:
@@ -228,6 +253,7 @@ def finish(factory, job_id, claim_time, result=None, error=None):
         ).values(**values)).rowcount
         if not changed:
             db.rollback()
+            _emit_event('job.discarded', job_id=job_id, kind=kind, claim_time=claim_time, code='CLAIM_LOST')
             return
         if not error:
             if job.kind == 'forecast':
@@ -243,15 +269,22 @@ def finish(factory, job_id, claim_time, result=None, error=None):
                      details={'code': error} if error else
                      {'input_snapshot_sha256': result['input_snapshot_sha256']}))
         db.commit()
+        _emit_event('job.finished', job_id=job_id, kind=kind, claim_time=claim_time,
+                    status=values['status'], **({'code': error} if error else {}))
 
 
 def claim(factory):
     claim_time = time.time()
     with factory() as db:
-        db.execute(update(Job).where(Job.status == 'running',
+        # RETURNING lists exactly the rows this statement requeued. It yields new
+        # values, so the expired claim time is not available here and is not invented.
+        expired = db.scalars(update(Job).where(Job.status == 'running',
                    func.coalesce(Job.heartbeat_at, Job.started_at) < claim_time - LEASE_SECONDS)
-                   .values(status='queued', started_at=None, heartbeat_at=None))
+                   .values(status='queued', started_at=None, heartbeat_at=None)
+                   .returning(Job.id)).all()
         db.commit()
+        for expired_id in expired:
+            _emit_event('job.lease_expired', job_id=expired_id)
         job = db.scalar(select(Job).where(Job.status == 'queued').order_by(Job.created_at).limit(1))
         if job is None:
             return None
@@ -262,17 +295,25 @@ def claim(factory):
         payload, snapshot, kind = job.payload, job.snapshot, job.kind
         claimed = db.execute(update(Job).where(Job.id == job_id, Job.status == 'queued')
                              .values(status='running', started_at=claim_time, heartbeat_at=claim_time)).rowcount
-        db.commit()
         if not claimed:
+            db.rollback()
+            _emit_event('job.discarded', job_id=job_id, kind=kind, claim_time=claim_time, code='CLAIM_LOST')
             return ()
+        db.commit()
+        _emit_event('job.claimed', job_id=job_id, kind=kind, claim_time=claim_time)
         return job_id, claim_time, error, payload, snapshot, kind
 
 
 def release_unstarted_claim(factory, job_id, claim_time):
     with factory() as db:
-        db.execute(update(Job).where(Job.id == job_id, Job.status == 'running',
+        changed = db.execute(update(Job).where(Job.id == job_id, Job.status == 'running',
                    Job.started_at == claim_time).values(status='queued', started_at=None, heartbeat_at=None))
+        if not changed.rowcount:
+            db.rollback()
+            _emit_event('job.discarded', job_id=job_id, claim_time=claim_time, code='CLAIM_LOST')
+            return
         db.commit()
+        _emit_event('job.released', job_id=job_id, claim_time=claim_time)
 
 
 def run_once(factory, stop_event=None, *, calculator=None, timeout_seconds=None):
@@ -344,8 +385,6 @@ def execute_claim(factory, claimed, *, calculator=None, timeout_seconds=None):
     except Exception as exc:
         calculation_error = 'JOB_INPUT_INVALID' if isinstance(exc, ValueError) else 'JOB_CALCULATION_FAILED'
         result = None
-        # DB exceptions can include bound rows or credentials; never log exception text.
-        print(f'Job {job_id} failed ({calculation_error})', flush=True)
     # Publication has a fresh transaction on each retry and retains the original
     # claim-time fence. SQLite contention must not discard or recompute a result.
     retry_sqlite_contention(lambda: finish(factory, job_id, claim_time,

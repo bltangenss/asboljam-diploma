@@ -41,7 +41,7 @@ New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $processes = @()
 try {
     $specs = @(
-        @{ Name='api'; File=$pythonPath; Arguments='-X utf8 -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000' },
+        @{ Name='api'; File=$pythonPath; Arguments='-X utf8 -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --no-access-log' },
         @{ Name='worker'; File=$pythonPath; Arguments='-X utf8 -m apps.worker.main' },
         @{ Name='web'; File=$nodePath; Arguments='node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3000' }
     )

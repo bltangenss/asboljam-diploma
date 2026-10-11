@@ -81,18 +81,17 @@ git diff --stat
 
 Эти коммиты отправлены в `origin/main`. Commit самого README и дальнейшую историю определяйте через Git.
 
-### 1.3. Незавершённый локальный diff — важно новому чату
+### 1.3. Состояние на момент обновления README
 
-**Интеграция диагностики request → job начата, но не принята как завершённая.** При составлении README:
+**Диагностика request → job завершена и проверена 11.10.2026** (критерии [15.1](#observability-next)):
+server-generated `X-Request-ID`, allowlisted JSON-события API/worker, события задания только после commit,
+безопасный 500 до/после заголовков, CORS-доступ к ID, `--no-access-log` в launchers/Docker и JSON access log Nginx.
+Проверки: focused 36 тестов (первый прогон 35/36 — ошибка в самом тесте, исправлена), полная Python-регрессия
+490: 489 PASS + 1 POSIX skip, настоящий uvicorn и Docker/Nginx/PostgreSQL workflow 87/87. Подробности —
+[request-logging-20261011.json](artifacts/verification/request-logging-20261011.json).
 
-- Изменены `apps/api/main.py`, `apps/worker/main.py`; добавлен локальный `apps/api/request_logging.py`.
-- Добавлен `tests/test_worker_logging.py` с 18 тестовыми методами. Запуск был начат, но его итоговый вывод недоступен; **PASS не подтверждён**.
-- Планировавшегося `tests/test_request_logging.py` ещё нет.
-- Изменены `infra/Dockerfile.api`, `infra/nginx.conf`, `scripts/start.ps1`, `scripts/start.sh`, `scripts/cloud_verify.sh`: выключение сырого Uvicorn access log и безопасный формат access log прокси. Полная проверка ещё не проведена.
-- В `tests/test_observability.py` добавлен случай ошибки `flush`. Прежний отчёт 5/5 относится к ранее сохранённой версии.
-- Нужны доработка диагностики ошибки после отправки HTTP-заголовков, согласование фиксированного кода HTTP failure с emitter и CORS для сформированного middleware 500.
-
-Не выдавайте прежнюю полную регрессию за проверку этого diff. В clone может присутствовать только committed emitter. Первое техническое действие — изучить фактическую разницу, закончить согласованный участок и выполнить его проверки. Критерии приведены в разделе [15.1](#observability-next).
+Следующий пункт — [backlog запуска](docs/commercial/LAUNCH_BACKLOG_RU.md) №2: чистая установка из нового ZIP
+и проверенный backup/restore. Перед продолжением всё равно проверьте `git status` и последние записи PROGRESS.
 
 <a id="product"></a>
 ## 2. Продукт простыми словами
@@ -161,7 +160,7 @@ git diff --stat
 | Сотрудники/пароль | Управление доступом, смена своего пароля | `UserAdmin.tsx`, `AccountSecurity.tsx` |
 | Аудит/выгрузки | Бизнес-действия, разрешённые CSV, исторический approved export | API/import service |
 | Mobile | Просмотр, профиль, сессия, решение по существующему плану | `apps/mobile`, `packages/api-client` |
-| Диагностика | Базовый emitter проверен, интеграция незавершена | `observability.py`, текущий diff |
+| Диагностика | X-Request-ID, JSON-события запроса и жизненного цикла задания, безопасный 500 | `observability.py`, `request_logging.py`, `apps/worker/main.py` |
 
 Карта экранов — [design/screens.json](design/screens.json). Web содержит login, dashboard, продажи, импорт, прогноз, закупки, склад, рецептуры, поставщиков, отчёты, настройки и аудит. Скрытая кнопка не заменяет проверку прав на сервере.
 
@@ -545,7 +544,7 @@ SQLite BUSY/LOCKED повторяет короткую операцию, сох�
 
 Коды ошибок: `JOB_ACCESS_REVOKED`, `JOB_SCOPE_INVALID`, `JOB_INPUT_INVALID`, `JOB_CALCULATION_FAILED`, `JOB_TIMEOUT`. UI показывает их на KK/RU. Heartbeat — связь с БД, **не процент готовности**.
 
-См. [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md). Диагностика сейчас дорабатывается: `X-Request-ID` → committed enqueue `job_id` → claim → committed terminal/discarded. Логи не заменяют audit и не содержат payload/CSV/password/cookie/token/user reason/raw path/query/DB exception text. Точный текущий статус — [15.1](#observability-next).
+См. [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md), раздел «Диагностика request → job». Цепочка: `X-Request-ID` ответа → `job.queued` (после commit) → `job.claimed` → `job.finished`/`job.discarded`/`job.released`/`job.lease_expired`. Логи — best effort в stdout, не audit; в них нет payload/CSV/password/cookie/token/user reason/raw path/query/текста исключений БД. Хранение и ротацию логов настраивает оператор целевой среды.
 
 <a id="run"></a>
 ## 11. Локальный запуск
@@ -579,7 +578,7 @@ bash scripts/start.sh --install
 - Логи `.cache/logs`.
 - Остановка Windows: `.\scripts\stop.ps1`; Linux/macOS: `bash scripts/stop.sh`.
 
-Launcher не перезапускался при написании README. Новый `--no-access-log` в локальном diff требует завершения диагностики.
+API запускается с `--no-access-log`: стандартный access log Uvicorn пишет сырой path/query (проверено контрольным запуском). Вместо него API пишет JSON `http.request` с шаблоном маршрута.
 
 ### 11.3. Вручную
 
@@ -653,7 +652,7 @@ HTTP protection отдельно ограничивает заявленное �
 | TypeScript/Vite | **PASS**, Vite 4.17 s на том же этапе | Тот же browser report |
 | Основная SQLite 0007→0008 | Проверенный backup,21 прежняя таблица неизменна, integrity/FK PASS, новая таблица пуста | [count-anchor-main-migration](artifacts/verification/count-anchor-main-migration-20261010.json) |
 | Базовый JSON emitter | **5/5 PASS**,0.022 s, версия commit c9b288a | [observability-emitter](artifacts/verification/observability-emitter-20261010.json) |
-| Текущий diff диагностики | **IN PROGRESS**, результаты интеграции не подтверждены | Нужны новые проверки/отчёт |
+| Диагностика request → job | Focused 36 тестов; полная регрессия **490: 489 PASS + 1 SKIP**, 346.5 s; настоящий uvicorn PASS; Docker/Nginx/PostgreSQL workflow **87/87** | [request-logging-20261011](artifacts/verification/request-logging-20261011.json) |
 
 Live stock test прошёл цепочку: login → журнал → старый approved plan → HTTP CSV correction → блокировка → два пересчёта и прихода → старый день → сверка → forecast/procurement через worker → UI approval → audit/export. Старый approved CSV остался побайтно прежним. Часть подготовительных шагов выполнена через HTTP API, не весь сценарий через UI.
 
@@ -794,10 +793,10 @@ Android Emulator обычно обращается к API компьютера �
 <a id="next"></a>
 ## 15. Что делать дальше
 
-### 15.1. P0 — закончить request → job диагностику
+### 15.1. P0 — request → job диагностика (DONE 11.10.2026)
 <a id="observability-next"></a>
 
-Это ближайшая начатая задача. Сверьте diff: базовый emitter committed, остальная интеграция может оставаться локальной. Критерии:
+Выполнено и проверено; свидетельство — [request-logging-20261011.json](artifacts/verification/request-logging-20261011.json), правила эксплуатации — [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md). Ниже сохранены исходные критерии приёмки:
 
 1. Server-generated `X-Request-ID`, входной ID полностью игнорируется, параллельные запросы не смешиваются.
 2. `http.request`: только ID, fixed method, registered route template/unmatched, status, duration. Без raw path/query/body/headers.
@@ -821,11 +820,11 @@ python -X utf8 -m unittest test_observability test_worker_logging test_request_l
 python -X utf8 -m unittest test_worker_security test_worker_contention test_worker_heartbeat test_worker_shutdown -v
 ```
 
-Это план следующей проверки, не запись её выполнения. Изменение middleware требует связанных API/security checks. Research без изменения математики не нужен автоматически.
+Эти команды и полная регрессия выполнены 11.10.2026 (см. отчёт). Не выполнено в этом этапе: focused-тесты на PostgreSQL (сам код проверен на PostgreSQL через Docker HTTP workflow), POSIX SIGTERM, error log Nginx при отказе upstream, доставка/ротация логов. Research не запускался: математика не менялась.
 
 ### 15.2. Дальше можно делать без предприятия
 
-Выбирать конкретный scope по [RELEASE_GATES_RU.md](docs/commercial/RELEASE_GATES_RU.md):
+Приоритетный порядок с критериями готовности — [LAUNCH_BACKLOG_RU.md](docs/commercial/LAUNCH_BACKLOG_RU.md). Общие условия — [RELEASE_GATES_RU.md](docs/commercial/RELEASE_GATES_RU.md):
 
 - Чистая установка выбранного ZIP в отдельную папку/БД и smoke полного workflow.
 - Целевая эксплуатация: TLS/proxy, backup restore, supervision worker, logging/rotation, health/readiness, recovery, затем нагрузка/failover.
