@@ -121,9 +121,13 @@ test('duplicate counts, source metadata and incomplete scans are explained witho
  await expect(page.getByText('Файлды тексеру аяқталмады. Сандар тек орындалған тексерулерді көрсетеді.',{exact:false})).toBeVisible();
  await expect(page.getByText('Қателер тізімі қысқартылған. Қателерді түзетіп, файлды қайта тексеріңіз.',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeDisabled();
+ // Row errors are shown from the code in the selected language, not as raw API text.
+ await expect(page.getByRole('cell',{name:'Мәннің түрі немесе ауқымы жарамсыз.',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
  await expect(page.getByRole('heading',{name:'История импортов',exact:true})).toBeVisible();
  await expect(page.getByText('Проверка файла не завершена. Счётчики отражают только выполненные проверки.',{exact:false})).toBeVisible();
+ await expect(page.getByRole('cell',{name:'Недопустимый тип или диапазон значения.',exact:true})).toBeVisible();
+ await expect(page.locator('body')).not.toContainText('Invalid quantity');
 });
 
 test('analyst can read an owned batch but has no correction or commit controls',async({page})=>{

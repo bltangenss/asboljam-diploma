@@ -163,3 +163,26 @@ test('REAL history refusal explains each blocked meal in Kazakh and Russian with
  // The refusal is shown once; nothing is retried or queued automatically.
  expect(state.requests.filter(item=>item.path==='/forecasts'&&item.body).length).toBe(1);
 });
+
+test('API refusals and dashboard warnings follow the selected language instead of raw API text',async({page})=>{
+ const state=fixture();
+ await install(page,state,async(route,path)=>{
+  if(path==='/forecasts'&&route.request().method()==='POST'){
+   await route.fulfill({status:422,json:{detail:{code:'ORIGIN_NOT_CLOSED',message:'API-ONLY-ORIGIN-TEXT'}}});return true;
+  }
+  if(path==='/dashboard'){
+   await route.fulfill({json:{data_origin:'REAL',as_of:'2026-09-21',sold_portions:1,revenue:'100',history:[],top_meals:[],latest_plans:[],
+    warnings:[{code:'INVENTORY_UNKNOWN',count:null,message:'API-ONLY-INVENTORY-TEXT'}]}});return true;
+  }
+  return false;
+ });
+ await page.goto('/');
+ await expect(page.locator('.attention-list')).toContainText('Таңдалған күнге қойма кесіндісі жоқ.');
+ await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
+ await expect(page.locator('.attention-list')).toContainText('На выбранную дату нет среза остатков.');
+ await page.locator('.sidebar').getByRole('button',{name:'Прогноз',exact:true}).click();
+ await page.getByRole('button',{name:'Рассчитать',exact:true}).click();
+ await expect(page.getByRole('alert').filter({hasText:'часовому поясу'})).toContainText('Выберите только завершённый день по часовому поясу организации.');
+ await expect(page.locator('body')).not.toContainText('API-ONLY-ORIGIN-TEXT');
+ await expect(page.locator('body')).not.toContainText('API-ONLY-INVENTORY-TEXT');
+});
