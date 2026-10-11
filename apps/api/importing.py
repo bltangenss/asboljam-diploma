@@ -38,10 +38,11 @@ def natural_key(kind, row):
     return json.dumps([str(row[x]) for x in KEYS[kind]], separators=(',', ':'))
 
 def rows_for(db, org, kind, branch=None):
-    query = select(Record).where(Record.organization_id == org, Record.kind == kind)
+    # The data column only: same filter/index as before, without ORM identity overhead.
+    query = select(Record.data).where(Record.organization_id == org, Record.kind == kind)
     if branch is not None:
         query = query.where(Record.branch_id == str(branch))
-    return [r.data for r in db.scalars(query)]
+    return list(db.scalars(query))
 
 def validate_rows(db, org, kind, rows, allowed_branches=None, *, allow_existing=False, report=None):
     """Return reference/scope errors; optional metadata distinguishes an unchecked tail."""

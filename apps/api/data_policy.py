@@ -122,8 +122,8 @@ def workspace_context(db, organization_id, branch_id=None):
         return result
     if source and branch_id != source['branch_id']:
         raise DataPolicyError('SOURCE_BRANCH_MISMATCH', 'Дерек көзінің бөлімшесі сәйкес емес.', 403)
-    rows = [row.data for row in db.scalars(select(Record).where(Record.organization_id == organization_id,
-            Record.branch_id == branch_id, Record.kind.in_(['daily_sales', 'inventory_lots'])))]
+    rows = list(db.scalars(select(Record.data).where(Record.organization_id == organization_id,
+            Record.branch_id == branch_id, Record.kind.in_(['daily_sales', 'inventory_lots']))))
     ensure_rows(context, rows)
     days = sorted({row['date'] for row in rows if 'date' in row})
     snapshots = sorted({row['snapshot_date'] for row in rows if 'snapshot_date' in row})

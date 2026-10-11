@@ -4,12 +4,14 @@ Decimal representation is normalized only for comparison, never in stored rows.
 Freshness is derived from current data and revision history; saved computations
 remain immutable. Collection selectors also detect newly added relevant rows.
 """
+from collections import namedtuple
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 import hashlib
 import json
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import Text, and_, cast, func, select
 
 from .db import Record
 from .importing import DECIMAL_FIELDS, SCHEMAS, natural_key
@@ -50,49 +52,74 @@ def row_digest(data):
     return hashlib.sha256(payload).hexdigest()
 
 
-def _state(db, organization_id, selectors, cache=None):
-    # Lazy import permits consumers of row_digest to load without schema coupling.
+# Selection facts of one stored row; the full JSON object is not retained.
+_Row = namedtuple('_Row', 'kind branch_id date snapshot_date')
+
+
+@lru_cache(maxsize=65536)
+def _stored_row_facts(text):
+    """Digest and selection fields of one stored JSON text.
+
+    Content-addressed: the same stored text always yields the same canonical digest,
+    so reuse across requests cannot hide a change. Any edited row has new text.
+    """
+    data = json.loads(text)
+    if not isinstance(data, dict):
+        raise ValueError('A canonical operational row must be an object')
+    return row_digest(data), data.get('date', ''), data.get('snapshot_date')
+
+
+def _selector_state(db, organization_id, selector):
     from .db import RecordRevision
-    filters = [{key: selector[key] for key in ('kind', 'branch_id', 'date_lte', 'snapshot_date')
-                if key in selector} for selector in selectors]
-    cache_key = (organization_id, json.dumps(filters, sort_keys=True))
-    if cache is not None and cache_key in cache:
-        return cache[cache_key]
-    clauses = []
-    for selector in filters:
-        clause = [Record.kind == selector['kind']]
-        if selector.get('branch_id') is not None:
-            clause.append(Record.branch_id == selector['branch_id'])
-        if selector.get('date_lte') is not None:
-            clause.append(Record.data['date'].as_string() <= selector['date_lte'])
-        if selector.get('snapshot_date') is not None:
-            clause.append(Record.data['snapshot_date'].as_string() == selector['snapshot_date'])
-        clauses.append(and_(*clause))
-    if not clauses:
-        return {}
+    clause = [Record.organization_id == organization_id, Record.kind == selector['kind']]
+    if selector.get('branch_id') is not None:
+        clause.append(Record.branch_id == selector['branch_id'])
+    if selector.get('date_lte') is not None:
+        clause.append(Record.data['date'].as_string() <= selector['date_lte'])
+    if selector.get('snapshot_date') is not None:
+        clause.append(Record.data['snapshot_date'].as_string() == selector['snapshot_date'])
     latest = select(func.max(RecordRevision.revision)).where(
         RecordRevision.organization_id == Record.organization_id,
         RecordRevision.kind == Record.kind,
         RecordRevision.natural_key == Record.natural_key).correlate(Record).scalar_subquery()
     # The indexed correlated lookup reads only latest metadata. Historical
     # before/after JSON and unrelated branches/future dates are never loaded.
-    rows = db.execute(select(Record, RecordRevision.revision, RecordRevision.batch_id).outerjoin(
+    # Columns, not ORM objects; stored JSON text is digested once per distinct text.
+    rows = db.execute(select(Record.id, Record.kind, Record.natural_key, Record.branch_id,
+                             cast(Record.data, Text), RecordRevision.revision, RecordRevision.batch_id).outerjoin(
         RecordRevision, and_(RecordRevision.organization_id == Record.organization_id,
             RecordRevision.kind == Record.kind, RecordRevision.natural_key == Record.natural_key,
-            RecordRevision.revision == latest)).where(
-        Record.organization_id == organization_id, or_(*clauses)))
+            RecordRevision.revision == latest)).where(and_(*clause)))
     result = {}
-    for row, revision, batch_id in rows:
-        result[(row.kind, row.natural_key)] = {
-            'row': row,
-            'entry': {'kind': row.kind, 'natural_key': row.natural_key,
-                      'branch_id': row.branch_id, 'row_sha256': row_digest(row.data),
-                      'record_id': row.id,
+    for record_id, kind, key, branch_id, text, revision, batch_id in rows:
+        digest, row_date, snapshot_date = _stored_row_facts(text)
+        result[(kind, key)] = {
+            'row': _Row(kind, branch_id, row_date, snapshot_date),
+            'entry': {'kind': kind, 'natural_key': key,
+                      'branch_id': branch_id, 'row_sha256': digest,
+                      'record_id': record_id,
                       'revision': revision if revision is not None else 0,
                       'batch_id': batch_id},
         }
-    if cache is not None:
-        cache[cache_key] = result
+    return result
+
+
+def _state(db, organization_id, selectors, cache=None):
+    """Union of the rows matched by each selector.
+
+    The optional cache lives for one request; it is keyed per selector so a
+    forecast and the plans built on it share their sales state.
+    """
+    result = {}
+    for selector in selectors:
+        filters = {key: selector[key] for key in ('kind', 'branch_id', 'date_lte', 'snapshot_date') if key in selector}
+        cache_key = (organization_id, json.dumps(filters, sort_keys=True))
+        part = cache.get(cache_key) if cache is not None else None
+        if part is None:
+            part = _selector_state(db, organization_id, filters)
+            if cache is not None:
+                cache[cache_key] = part
+        result.update(part)
     return result
 
 
@@ -102,9 +129,9 @@ def _selected(row, selector):
     branch = selector.get('branch_id')
     if branch is not None and row.branch_id != branch:
         return False
-    if selector.get('date_lte') is not None and row.data.get('date', '') > selector['date_lte']:
+    if selector.get('date_lte') is not None and row.date > selector['date_lte']:
         return False
-    if selector.get('snapshot_date') is not None and row.data.get('snapshot_date') != selector['snapshot_date']:
+    if selector.get('snapshot_date') is not None and row.snapshot_date != selector['snapshot_date']:
         return False
     return True
 

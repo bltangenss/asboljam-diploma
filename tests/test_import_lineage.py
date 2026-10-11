@@ -1,5 +1,6 @@
 """Calculation provenance/freshness with real stores and stubbed computations."""
 from copy import deepcopy
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -13,6 +14,7 @@ from database_fixture import isolated_database_url
 
 from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, RecordRevision, User
 from apps.api.importing import insert_rows, natural_key, rows_for
+from apps.api import lineage as lineage_module
 from apps.api.lineage import capture_lineage, input_freshness, row_digest
 from apps.api.main import create_app
 from apps.api.security import password_hash
@@ -178,6 +180,9 @@ class ImportLineageTests(unittest.TestCase):
             insert_rows(db, 'A', 'daily_sales', [dict(original, date='2026-01-02'), dict(original, branch_id='2')])
             db.commit()
         self.correct_sale(8, 'B')
+        # The content-addressed digest memo would hide which rows are read; start empty
+        # so the count shows that other branches and future dates are never loaded.
+        lineage_module._stored_row_facts.cache_clear()
         with patch('apps.api.lineage.row_digest', wraps=row_digest) as digest:
             self.assertEqual(self.fresh(lineage), 'unchanged')
         self.assertEqual(digest.call_count, 1)
@@ -247,10 +252,13 @@ class ImportLineageTests(unittest.TestCase):
         self.assertEqual(source['batches'], [{'batch_id': lineage['records'][0]['batch_id'],
             'record_count': 1, 'href': '/api/v1/imports/' + lineage['records'][0]['batch_id']}])
         self.assertNotIn('row_sha256', str(summary))
-        with patch('apps.api.lineage.row_digest', wraps=row_digest) as digest:
+        lineage_module._stored_row_facts.cache_clear()
+        with patch('apps.api.lineage.row_digest', wraps=row_digest) as digest,                 patch('apps.api.lineage._selector_state', wraps=lineage_module._selector_state) as state:
             listed = client.get('/api/v1/plans').json()
         self.assertEqual(listed['total'], 2)
         self.assertEqual(len(listed['items']), 2)
+        # Both plans share one request-scoped state for their single selector.
+        self.assertEqual(state.call_count, 1)
         self.assertEqual(digest.call_count, 1)
         self.assertTrue(all('input_lineage' not in item for item in listed['items']))
         first_page = client.get('/api/v1/plans?limit=1').json()
@@ -260,6 +268,29 @@ class ImportLineageTests(unittest.TestCase):
         # No stale request cache may survive into a later request.
         self.assertEqual(client.get('/api/v1/plans/' + identifier).json()['input_freshness'], 'changed')
         self.assertEqual(client.get('/api/v1/plans/' + identifier).json()['input_provenance'], summary)
+
+    def test_dashboard_shares_selector_state_and_never_keeps_it_between_requests(self):
+        client = self.client()
+        forecast_id = self.compute_forecast(client)
+        plans = [self.compute_plan(client, forecast_id) for _ in range(2)]
+        with self.factory() as db:
+            lineages = [db.get(Forecast, forecast_id).result['input_lineage']] + [
+                db.get(Plan, identifier).result['input_lineage'] for identifier in plans]
+        selectors = {json.dumps({key: selector[key] for key in ('kind', 'branch_id', 'date_lte', 'snapshot_date') if key in selector},
+                                sort_keys=True) for lineage in lineages for selector in lineage['selectors']}
+        with patch('apps.api.lineage._selector_state', wraps=lineage_module._selector_state) as state:
+            dashboard = client.get('/api/v1/dashboard?branch_id=1').json()
+        # The forecast and both plans share their sales selector; nothing is computed twice.
+        self.assertEqual(state.call_count, len(selectors))
+        self.assertLess(len(selectors), sum(len(lineage['selectors']) for lineage in lineages))
+        self.assertEqual([plan['input_freshness'] for plan in dashboard['latest_plans']], ['unchanged', 'unchanged'])
+        self.assertEqual(dashboard['latest_forecast']['input_freshness'], 'unchanged')
+        self.correct_sale(9)
+        # The digest memo is content-addressed and the selector state is request-scoped:
+        # a correction is visible in the very next dashboard response.
+        dashboard = client.get('/api/v1/dashboard?branch_id=1').json()
+        self.assertEqual([plan['input_freshness'] for plan in dashboard['latest_plans']], ['changed', 'changed'])
+        self.assertEqual(dashboard['latest_forecast']['input_freshness'], 'changed')
 
     def test_correction_during_compute_keeps_original_lineage_and_requires_recompute(self):
         client = self.client()
