@@ -1,5 +1,9 @@
 # AsBoljam — передача проекта для продолжения разработки
 
+## 11.10.2026 — финальный ZIP проверен; дальше нужны сервер/домен или mobile
+
+Финальный архив `releases/2026-10-11-final/AsBoljam_Final.zip` (commit `fc0af29`, SHA256 `da5abe1b0dc6e0e5005e82b583b02302634825ee58c9e6cc4d8d36764036ee1f`) установлен с нуля и прошёл HTTP 87/87, browser 88/88 (включая REAL/TEST и складские live), SQLite restore drill 14/14; ранее на том же коде — PostgreSQL suites 77/77, Docker/Nginx 87/87, PostgreSQL restore drill 13/13. Детали — верхняя запись [PROGRESS](templates/PROGRESS.md) и [свидетельство](artifacts/verification/release-20261011-final.json). Следующее по [backlog](docs/commercial/LAUNCH_BACKLOG_RU.md): пакет целевого развёртывания (нужны сервер/домен/решение владельца), onboarding/неполные данные, надёжность заданий, mobile (Expo update + APK + эмулятор). Проверочные установки лежат вне Git в `C:\Users\ASUS\AsBoljam-install-check`; процессы остановлены.
+
 ## 11.10.2026 — PostgreSQL и восстановление проверены, следующий шаг — финальный ZIP
 
 Проверено на финальном коде: PostgreSQL suites 77/77 (повтор после исправления учёта раннера), Docker/Nginx workflow 87/87, учение по восстановлению PostgreSQL 13/13, полная регрессия (490 PASS + 1 skip; в venv из lockfile после исправления теста `test_worker_process` 13/13). Детали — [PROGRESS](templates/PROGRESS.md), [свидетельство](artifacts/verification/launch-readiness-20261011.json). Следующее: финальный ZIP → установка → полный browser-suite с REAL/складскими фикстурами → SQLite restore drill. Compose-проекты `asboljam-logcheck-*` и `asboljam-final-*` остановлены, volume сохранены.

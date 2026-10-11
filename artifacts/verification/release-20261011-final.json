@@ -1,0 +1,165 @@
+{
+  "status": "passed",
+  "date": "2026-10-11",
+  "archive": "releases/2026-10-11-final/AsBoljam_Final.zip",
+  "source_commit": "fc0af29b0491d433aedb973e43dc4218b682cb61",
+  "files": 323,
+  "bytes": 1930862,
+  "sha256": "da5abe1b0dc6e0e5005e82b583b02302634825ee58c9e6cc4d8d36764036ee1f",
+  "packager": "committed_blobs, includes_uncommitted_changes=false, crc_and_all_file_hashes PASS, secret scan 0 findings",
+  "independent_check": "zipfile.testzip OK; SHA256 equals the .sha256 sidecar; 323/323 members equal manifest hashes and sizes; member set equals git ls-tree of the commit; 323/323 members byte-equal to git blobs",
+  "clean_install": {
+    "location": "new folder outside the repository (C:/Users/ASUS/AsBoljam-install-check/final-20261011-fc0af29)",
+    "command": "scripts/start.ps1 -Install with a private .env from .env.example",
+    "python_dependencies": "new .venv from requirements.lock (anyio 4.14.2)",
+    "node_dependencies": "npm ci: 75 packages, found 0 vulnerabilities",
+    "database": "new SQLite; migrations 0001-0008 applied; synthetic demo seeded with a private password",
+    "services": "API ready, web 200, worker ready",
+    "note": "PowerShell 5.1 wrapped a pip [notice] stderr line as NativeCommandError in the redirected log; installation succeeded"
+  },
+  "verify_runtime_through_web_proxy": {
+    "status": "passed",
+    "checks_passed": 87,
+    "checks_total": 87
+  },
+  "browser": {
+    "main_suite": {
+      "command": "npx playwright test (installed copy, Vite dev server, SYNTHETIC and REAL/TEST fixtures from prepare_e2e.py and prepare_real_e2e.py)",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 2,
+      "minutes": 9.2,
+      "skipped_reason": "the two stock live specs need dedicated databases; run separately below"
+    },
+    "stock_ledger_live": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 26.8,
+      "fixture": "new SQLite from prepare_stock_e2e.py; API/worker on 8012, Vite on 3013"
+    },
+    "stock_count_anchors_live": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 46.7,
+      "fixture": "new generated REAL/TEST SQLite from prepare_stock_e2e.py --real-test"
+    },
+    "total": {
+      "executed": 88,
+      "passed": 88,
+      "failed": 0
+    },
+    "api_latency_from_json_logs_ms": {
+      "dashboard": {
+        "n": 21,
+        "p50": 1516.1,
+        "p95": 3998.4,
+        "max": 4315.8
+      },
+      "forecast_list": {
+        "n": 31,
+        "p50": 540.3,
+        "p95": 2563.2,
+        "max": 4920.5
+      },
+      "plan_detail": {
+        "n": 26,
+        "p50": 241.6,
+        "p95": 1890.0,
+        "max": 3667.1
+      },
+      "release_candidate_before_fix": {
+        "dashboard_p50": 7674.6,
+        "dashboard_max": 22187.9,
+        "forecast_list_max": 24007.2,
+        "plan_detail_p95": 7977.9
+      },
+      "http_failure_codes": [],
+      "machine": "Windows 11, 8 GB RAM shared with other desktop applications (CPU often 90-100%)"
+    }
+  },
+  "restore_drill_sqlite": {
+    "status": "passed",
+    "mode": "sqlite_backup_and_restore",
+    "checks": {
+      "restored_table_rows_equal_backup": true,
+      "source_unchanged_during_drill": true,
+      "restored_api_ready_with_expected_schema": true,
+      "restored_admin_login": true,
+      "branches_identical": true,
+      "users_identical": true,
+      "plans_identical": true,
+      "plan_exports_identical": true,
+      "runs_identical": true,
+      "imports_identical": true,
+      "exports_identical": true,
+      "audit_common_rows_identical": true,
+      "audit_no_source_rows_missing": true,
+      "audit_only_restored_login_added": true
+    },
+    "counts": {
+      "branches": 3,
+      "plans": 1,
+      "decided_plan_exports": 1,
+      "audit_rows": 18,
+      "runs": 2,
+      "import_batches": 3,
+      "csv_exports": 9
+    },
+    "started_at_utc": "2026-10-11T15:18:15.990102+00:00",
+    "finished_at_utc": "2026-10-11T15:18:30.857173+00:00",
+    "backup": {
+      "sha256": "44bf9d200c25bf2382d0f1314a84dc697ab549e271627290c40c1fea0bf4605d",
+      "integrity_check": "ok",
+      "foreign_key_check": "ok"
+    },
+    "restore": {
+      "sha256": "44bf9d200c25bf2382d0f1314a84dc697ab549e271627290c40c1fea0bf4605d",
+      "integrity_check": "ok",
+      "foreign_key_check": "ok"
+    },
+    "table_rows": {
+      "audit_events": 79,
+      "auth_sessions": 19,
+      "forecasts": 6,
+      "idempotency_keys": 5,
+      "import_batches": 18,
+      "import_evidence": 18,
+      "import_receipts": 16,
+      "jobs": 13,
+      "login_attempts": 104,
+      "operational_records": 58337,
+      "organization_sources": 1,
+      "organizations": 5,
+      "plans": 7,
+      "recipe_activations": 0,
+      "recipe_command_receipts": 0,
+      "record_revisions": 97,
+      "refresh_tokens": 1,
+      "schema_migrations": 8,
+      "stock_command_receipts": 0,
+      "stock_count_anchors": 0,
+      "stock_ledgers": 0,
+      "stock_movements": 0,
+      "users": 10
+    },
+    "restored_table_rows_equal": true,
+    "note": "SQLite online backup and restore into new files inside the installed release copy; temporary API on the restored copy without a worker. Work directory and local paths omitted."
+  },
+  "web_production_build": "npm run build PASS (tsc + Vite 5.69 s), source-map-js 1.2.2 installed by npm ci",
+  "mobile": "apps/mobile npm run typecheck PASS; npm test 13/13 PASS (repository copy; mobile code and OpenAPI unchanged)",
+  "cleanup": "install API/worker/web and live-test processes stopped; install folder, its private .env and test databases kept outside Git",
+  "related_evidence": [
+    "artifacts/verification/launch-readiness-20261011.json",
+    "artifacts/verification/postgres-lineage-observability-20261011-retry.json",
+    "artifacts/verification/restore-drill-postgres-20261011.json",
+    "artifacts/verification/runtime-docker-final-20261011.json",
+    "artifacts/verification/request-logging-20261011.json"
+  ],
+  "not_tested": [
+    "Production deployment on a target server, TLS, domain, load and failover",
+    "Android APK of the current code and any device/emulator run",
+    "Real business data or pilot",
+    "POSIX SIGTERM drain in this stage"
+  ],
+  "evidence_commit_note": "This report is committed after the archive; the commit adding it changes documentation and evidence only. The archive corresponds exactly to source_commit."
+}
