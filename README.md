@@ -740,6 +740,8 @@ docker compose stop
 
 Не использовать `down -v`/удаление volumes для обычной диагностики. Compose config, настоящий PostgreSQL runtime, восстановление backup и production deployment — отдельные результаты с отдельными доказательствами. Base images пока не все закреплены immutable digest; deployment воспроизводимость остаётся задачей.
 
+Production-вариант для одного сервера: `docker-compose.yml` + `infra/compose.prod.yml` (Caddy с HTTPS, внутренние API/web, ротация логов), настройки по `infra/production.env.example`, backup `scripts/backup_postgres.sh`, проверка `scripts/verify_tls_deployment.py`. Пошагово — [DEPLOYMENT_VPS_RU.md](docs/commercial/DEPLOYMENT_VPS_RU.md). Конфигурация проверена локально 11.10.2026 ([отчёт](artifacts/verification/deployment-config-20261011.json)); на реальном сервере не разворачивалась.
+
 ### 13.2. Backup/restore
 
 Выберите новые несуществующие имена:
@@ -974,7 +976,10 @@ Push только после успешного commit, без force. При о�
 | [STOCK_LEDGER_DESIGN_RU.md](docs/commercial/STOCK_LEDGER_DESIGN_RU.md) | Журнал, рецепты, count anchors |
 | [STOCK_BROWSER_TEST_RU.md](docs/commercial/STOCK_BROWSER_TEST_RU.md) | Изолированные browser fixtures |
 | [SECURITY_RUNBOOK_RU.md](docs/commercial/SECURITY_RUNBOOK_RU.md) | Настройки безопасности/пароли |
-| [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md) | Queue/heartbeat/deadline/shutdown |
+| [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md) | Queue/heartbeat/deadline/shutdown, диагностика request → job |
+| [INSTALL_UPDATE_BACKUP_RU.md](docs/commercial/INSTALL_UPDATE_BACKUP_RU.md) | Установка, обновление, backup/restore, release checklist |
+| [DEPLOYMENT_VPS_RU.md](docs/commercial/DEPLOYMENT_VPS_RU.md) | Вариант запуска на одном сервере с HTTPS и что нужно от владельца |
+| [LAUNCH_BACKLOG_RU.md](docs/commercial/LAUNCH_BACKLOG_RU.md) | Приоритетный backlog запуска с критериями готовности |
 | [POS_ADAPTER_RU.md](docs/POS_ADAPTER_RU.md) | Офлайн CSV, без live-коннектора |
 | [POS_MAPPING_PROFILE_RU.md](docs/commercial/POS_MAPPING_PROFILE_RU.md) | Сопоставление полей источника |
 | [Коммерческие промпты](docs/commercial_prompts/README_RU.md) | План развития, не замена свежему коду/прогрессу |

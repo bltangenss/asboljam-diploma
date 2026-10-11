@@ -1,0 +1,18 @@
+# TLS entry point for the single-server Compose deployment (infra/compose.prod.yml).
+# ASBOLJAM_SITE_ADDRESS is the public domain (automatic HTTPS certificate) or, for a
+# local configuration check only, "localhost" (Caddy's internal certificate authority).
+{
+	# The admin endpoint is not needed: configuration changes require a redeploy.
+	admin off
+	# No access log here: Caddy would record raw URIs, queries and client addresses.
+	# The web container writes the sanitized JSON proxy.request log instead.
+}
+
+{$ASBOLJAM_SITE_ADDRESS} {
+	encode zstd gzip
+	reverse_proxy web:80
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

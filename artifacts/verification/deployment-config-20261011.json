@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "date": "2026-10-11",
+  "scope": "Local check of the single-server production overlay (docker-compose.yml + infra/compose.prod.yml); not a deployment",
+  "configuration": {
+    "ASBOLJAM_ENV": "production",
+    "ASBOLJAM_SITE_ADDRESS": "localhost (Caddy internal CA)",
+    "ALLOWED_ORIGINS": "https://localhost",
+    "COOKIE_SECURE": "true",
+    "DEMO_PASSWORD": "empty",
+    "postgres": "PostgreSQL 17.11 (postgres:17-alpine)",
+    "caddy_image": "caddy:2.10.2-alpine",
+    "caddy_digest": "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+    "published_ports": {
+      "caddy": [
+        80,
+        443
+      ],
+      "api": [],
+      "web": [],
+      "postgres": [],
+      "worker": []
+    },
+    "log_rotation": "json-file max-size 10m, max-file 5 on caddy, api, web, worker, postgres"
+  },
+  "checks": {
+    "compose_config_valid": true,
+    "api_healthy_with_production_validation": true,
+    "demo_seed_refused_in_production": "ConfigurationError: DEMO_PASSWORD must be unset in production (exit 1)",
+    "tls_http_checks": {
+      "https_index_200_with_verified_certificate": true,
+      "hsts_header": true,
+      "no_server_header": true,
+      "nosniff_and_frame_deny": true,
+      "http_redirects_to_https": true,
+      "api_ready_through_tls": true,
+      "server_request_id": true,
+      "loopback_port_8000_closed": true,
+      "loopback_port_3000_closed": true,
+      "foreign_origin_login_refused": true,
+      "login_200": true,
+      "session_cookie_secure_httponly_lax": true,
+      "session_me_200": true,
+      "logout_200": true,
+      "session_revoked_after_logout": true
+    },
+    "tls_http_checks_passed": "15/15",
+    "logs": {
+      "caddy_request_log_lines": 0,
+      "raw_uri_lines": 0,
+      "secrets_present": false,
+      "web_proxy_events": "proxy.request only",
+      "api_events": "http.request only in this check"
+    },
+    "backup_script": {
+      "writes_dump_and_sha256": true,
+      "table_data_entries": 23,
+      "sha256sum_check": "OK for 3 dumps",
+      "invalid_retention_rejected_before_backup": true,
+      "valid_retention_exit_code": 0,
+      "deleted_files": 0,
+      "restore_into_new_database": "organizations 1/1, users 1/1, audit_events 2/2, schema_migrations 8/8, auth_sessions 1/1"
+    }
+  },
+  "fixture": "Organization prod-config-check created programmatically inside the api container (bootstrap_tenant) with a generated password passed by environment variable; the operator procedure uses the interactive manage_tenant CLI.",
+  "not_tested": [
+    "Public certificate issuance (ACME) and DNS",
+    "A real server, firewall and OS hardening",
+    "Load, failover, backup copy off the server",
+    "Interactive manage_tenant bootstrap through a TTY"
+  ],
+  "cleanup": "docker compose stop; containers, images and volumes retained; nothing deleted"
+}

@@ -1,0 +1,40 @@
+# Single-server production overlay:
+#   docker compose --env-file .env -f docker-compose.yml -f infra/compose.prod.yml up -d --build
+# Only Caddy publishes ports (80/443). API and web stay on the internal network.
+# See docs/commercial/DEPLOYMENT_VPS_RU.md. This file does not create a server, DNS or backups.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    logging: *logging
+  api:
+    ports: !reset []
+    logging: *logging
+  worker:
+    logging: *logging
+  web:
+    ports: !reset []
+    logging: *logging
+  caddy:
+    image: caddy:2.10.2-alpine
+    depends_on:
+      - web
+    environment:
+      ASBOLJAM_SITE_ADDRESS: ${ASBOLJAM_SITE_ADDRESS:?Set ASBOLJAM_SITE_ADDRESS to the public domain}
+    ports:
+      - "${ASBOLJAM_HTTP_PORT:-80}:80"
+      - "${ASBOLJAM_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:
