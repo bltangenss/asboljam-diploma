@@ -53,13 +53,13 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
  expect(initial.organization.data_policy).toBe('real_only');expect(initial.onboarding.branch_count).toBe(0);
  expect(initial.data_context).toMatchObject({mode:'real_business',data_origin:'REAL',usage_mode:'TEST',branch_id:null,forecast_origin:null,target_date:null,inventory_date:null});
 
- await page.getByRole('button',{name:'Бөлімшелер CSV импорттау',exact:true}).click();
+ await page.getByRole('button',{name:'Бөлімшелер CSV файлын импорттау',exact:true}).click();
  await page.getByText('Дерек көзі туралы мәлімет',{exact:true}).click();
  const batches:string[]=[];
  for(const kind of kinds) {
   await test.step('Import artificial TEST '+kind,async()=>{
    await page.getByLabel('Деректер',{exact:true}).selectOption(kind);await assertSource(page,fixture);
-   await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'artificial-test-'+kind+'.csv',mimeType:'text/csv',buffer:Buffer.from(fixture.csvs[kind])});
+   await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'artificial-test-'+kind+'.csv',mimeType:'text/csv',buffer:Buffer.from(fixture.csvs[kind])});
    const previewResponse=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/imports/preview'&&response.request().method()==='POST');
    await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
    const response=await previewResponse;expect(response.status()).toBe(200);

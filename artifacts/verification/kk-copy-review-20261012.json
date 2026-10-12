@@ -1,0 +1,89 @@
+{
+  "stage": "Independent Kazakh proofreading of UI copy and demo names",
+  "date": "2026-10-12",
+  "base_commit": "082358612fce411ebda9e794a4e0ec345640de4e",
+  "review": {
+    "reviewer": "Fable subagent, read-only; given one extracted file with 627 strings (web dictionary, inline component copy, data/kz names and RK holiday names), no repository access",
+    "suggestions": 67,
+    "severity": {
+      "error": 6,
+      "improve": 61
+    },
+    "applied": "all 67 after review; 3 adjusted: RU \"Временной тест\" instead of a longer phrase, \"кері күнмен\" for \"задним числом\", journal-opening button keeps \"алдын ала\"; plus 2 consistency fixes from the review glossary (error_EXECUTION_CONTEXT_INVALID, emptySub: есеп -> есептеу for \"расчёт\")",
+    "glossary_decisions": [
+      "срез остатков -> қор кесіндісі",
+      "остаток -> қалдық",
+      "источник данных -> дерек көзі",
+      "режим данных -> деректер режимі",
+      "расчёт -> есептеу (есептер = отчёты)",
+      "провести документ -> өткізу",
+      "расход по рецепту -> шығыс",
+      "нетто -> нетто",
+      "флажок -> құсбелгі",
+      "манты -> Мәнті / Манты"
+    ],
+    "also_updated": "identical Kazakh API fallback messages in apps/api (13 occurrences, 5 files), the mobile stock label, browser specs that assert the changed text (11 files), regenerated design copy and data manifest"
+  },
+  "changed_files": [
+    "apps/api/accounts.py",
+    "apps/api/data_policy.py",
+    "apps/api/import_service.py",
+    "apps/api/importing.py",
+    "apps/api/main.py",
+    "apps/mobile/App.tsx",
+    "apps/web/src/Dashboard.tsx",
+    "apps/web/src/DataPages.tsx",
+    "apps/web/src/Planning.tsx",
+    "apps/web/src/shared.tsx",
+    "apps/web/src/stockCopy.ts",
+    "contracts/data_manifest.json",
+    "data/kz/README.md",
+    "data/kz/meals.csv",
+    "design/copy.kk.json",
+    "design/copy.ru.json",
+    "scripts/generate_kz_demo.py",
+    "tests/e2e/import_history.spec.ts",
+    "tests/e2e/import_lineage_live.spec.ts",
+    "tests/e2e/real_data_context.spec.ts",
+    "tests/e2e/real_data_live.spec.ts",
+    "tests/e2e/sessions_imports.spec.ts",
+    "tests/e2e/stock_count_anchors_live.spec.ts",
+    "tests/e2e/stock_ledger.spec.ts",
+    "tests/e2e/stock_ledger_live.spec.ts",
+    "tests/e2e/tenant_onboarding.spec.ts",
+    "tests/e2e/tenant_onboarding_live.spec.ts",
+    "tests/e2e/workflow.spec.ts"
+  ],
+  "tests": [
+    {
+      "command": "DATABASE_URL=sqlite:///.cache/copy-full-regression-import.sqlite python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "result": "503 tests in 297.523 s: 502 PASS + 1 POSIX-only skip, 0 failures/errors"
+    },
+    {
+      "command": "browser suite, fresh SQLite fixture, servers from scripts/start.ps1, npx playwright test --config .cache/pw-list.config.ts",
+      "result": "87 passed, 2 failed, 2 skipped (stock live specs need flags), 15.9 min; both failures were 15 s waits for dashboard metrics while /dashboard took up to 15.2 s (p50 1.9 s; v3 release run p50 0.57 s); no HTTP 5xx"
+    },
+    {
+      "command": "workflow.spec.ts rerun on a new fixture",
+      "result": "5 passed (both earlier failures passed), 1 failed: the login page did not render within the 180 s test timeout while API calls returned in <= 3 s; no HTTP 5xx"
+    },
+    {
+      "command": "workflow.spec.ts -g stale on a new fixture",
+      "result": "1/1 passed (42.6 s)"
+    },
+    {
+      "command": "stock live specs (stock_ledger_live, stock_count_anchors_live with --real-test) on new fixtures",
+      "result": "stock_ledger_live 1/1 (43.1 s); stock_count_anchors_live with --real-test 1/1 (55.8 s); fresh fixtures, real HTTP, no mocks"
+    },
+    {
+      "command": "npm run build (tsc --noEmit && vite build)",
+      "result": "PASS: tsc --noEmit and vite build (15.9 s)"
+    }
+  ],
+  "environment": "Windows 11, 7.8 GB RAM with 0.4-0.9 GB free during the runs; timeouts are attributed to memory pressure, not proven product defects. Every browser test case passed at least once on this code, but not in one clean run.",
+  "not_tested": [
+    "mobile typecheck/tests after the one-label change",
+    "Docker image",
+    "native speaker review by a person"
+  ]
+}

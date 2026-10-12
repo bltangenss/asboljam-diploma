@@ -26,7 +26,7 @@ test('real empty workspace imports its first branch and refreshes session access
  const settingsResponse=await page.request.get('/api/v1/settings');expect(settingsResponse.status()).toBe(200);
  const metadata=await settingsResponse.json();expect(metadata.organization.id).toBe(login.organization_id);
  expect(metadata.onboarding.branch_count).toBe(0);expect(metadata.organization.data_policy).toBe('synthetic_only');
- await page.getByRole('button',{name:'Бөлімшелер CSV импорттау',exact:true}).click();
+ await page.getByRole('button',{name:'Бөлімшелер CSV файлын импорттау',exact:true}).click();
  await expect(page.getByLabel('Деректер',{exact:true})).toHaveValue('branches');
  const downloaded=page.waitForEvent('download');
  await page.locator('a[href="/api/v1/imports/template/branches"]').click();
@@ -35,7 +35,7 @@ test('real empty workspace imports its first branch and refreshes session access
  const header=template.split(/\r?\n/)[0].split(',');expect(header).toEqual(['branch_id','branch_name','data_origin']);
  const row:Record<string,string>={branch_id:'001',branch_name:'Browser Synthetic Branch',data_origin:'SYNTHETIC'};
  const csv=header.join(',')+'\n'+header.map(field=>row[field]).join(',')+'\n';
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'branches.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'branches.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();
  await page.getByRole('button',{name:'Импорттау',exact:true}).click();

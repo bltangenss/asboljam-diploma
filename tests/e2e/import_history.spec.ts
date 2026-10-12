@@ -30,7 +30,7 @@ async function install(page:Page,options:{role?:string;history?:Batch[];intercep
  });
  return requests;
 }
-async function upload(page:Page){await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'synthetic.csv',mimeType:'text/csv',buffer:Buffer.from(csv)})}
+async function upload(page:Page){await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'synthetic.csv',mimeType:'text/csv',buffer:Buffer.from(csv)})}
 async function preview(page:Page){await upload(page);await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click()}
 
 test('lost commit reply recovers the saved receipt and history survives reload',async({page})=>{
@@ -50,7 +50,7 @@ test('lost commit reply recovers the saved receipt and history survives reload',
  await page.reload();await page.getByRole('button',{name:'Импортты ашу batch-1',exact:true}).click();
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toHaveCount(0);
- await page.getByText('Импорттың дерек көзі',{exact:true}).click();
+ await page.getByText('Импорттың шығу тегі',{exact:true}).click();
  await expect(page.getByText('Сервер алған CSV мәтінінің SHA256 хэші',{exact:true})).toBeVisible();
  await expect(page.getByText('a'.repeat(64),{exact:true})).toBeVisible();
  expect(requests.filter(item=>item.path.endsWith('/commit'))).toHaveLength(1);
@@ -139,7 +139,7 @@ test('analyst can read an owned batch but has no correction or commit controls',
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Осы импортты түзету',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toHaveCount(0);
- await expect(page.getByLabel('CSV файлды таңдаңыз')).toBeDisabled();
+ await expect(page.getByLabel('CSV файлын таңдаңыз')).toBeDisabled();
  expect(requests.filter(item=>item.method==='POST')).toHaveLength(0);
 });
 

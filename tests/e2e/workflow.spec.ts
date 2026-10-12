@@ -55,10 +55,10 @@ test('login → CSV validation/commit → sales → forecast → procurement →
  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы'})).toBeVisible();
  await expect(page.locator('.metric-value').first()).not.toHaveText('—');
  await page.locator('.sidebar').getByRole('button',{name:'Дерек импорттау',exact:true}).click();
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'invalid.csv',mimeType:'text/csv',buffer:Buffer.from('date,branch_id,meal_id,units_sold\nwrong,1,1,-1\n')});
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'invalid.csv',mimeType:'text/csv',buffer:Buffer.from('date,branch_id,meal_id,units_sold\nwrong,1,1,-1\n')});
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();await expect(page.getByRole('region',{name:'Импорт нәтижесі',exact:true}).getByText('Қате жолдар бар: импорт орындалмайды')).toBeVisible();await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeDisabled();
  const keys=Object.keys(login.sale);const csv=keys.join(',')+'\n'+keys.map(k=>login.sale[k]).join(',')+'\n';
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Импорттау',exact:true}).click();await expect(page.getByText('Деректер транзакциямен импортталды')).toBeVisible();
  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();await expect(page.locator('tbody tr')).toHaveCount(50);
  await page.getByLabel('Тағам',{exact:true}).selectOption('1');await expect(page.locator('tbody tr')).toHaveCount(28);

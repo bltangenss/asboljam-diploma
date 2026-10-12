@@ -92,7 +92,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await page.goto('/imports');
   await expect(page.getByRole('status').filter({hasText:'Сіз CSV үлгілерін жүктей аласыз.'})).toBeVisible();
   await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['daily_sales','inventory_lots','calendar']);
-  const input=page.getByLabel('CSV файлды таңдаңыз');
+  const input=page.getByLabel('CSV файлын таңдаңыз');
   await expect(input).toBeDisabled();
   // Even a programmatic file selection must not enable a forbidden submission.
   await input.setInputFiles({name:'blocked.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nblocked\n')});
@@ -123,7 +123,7 @@ test('manager and warehouse import selectors expose only authorized schemas',asy
     await page.goto('/imports');
     const selector=page.getByLabel('Деректер',{exact:true});
     await expect(selector.locator('option')).toHaveText(role==='manager'?['daily_sales','inventory_lots','calendar']:['inventory_lots']);
-    await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'allowed.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nallowed\n')});
+    await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'allowed.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nallowed\n')});
     await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
     await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();
   }
@@ -209,7 +209,7 @@ for (const change of ['file','schema'] as const) {
       return false;
     });
     await page.goto('/imports');
-    const input=page.getByLabel('CSV файлды таңдаңыз');
+    const input=page.getByLabel('CSV файлын таңдаңыз');
     await input.setInputFiles({name:'first.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nfirst\n')});
     await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
     await started.promise;

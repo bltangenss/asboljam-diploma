@@ -111,7 +111,7 @@ def preview_import(db, user, *, kind, csv_text, mode='append', reason=None,
     if corrects_batch_id:
         prior, _ = get_batch(db, user, corrects_batch_id)
         if prior.status != 'committed' or prior.kind != kind:
-            raise ImportProblem('CORRECTION_SOURCE_INVALID', 'Бұрынғы импорт түрі немесе күйі сәйкес емес.')
+            raise ImportProblem('CORRECTION_SOURCE_INVALID', 'Бастапқы импорттың түрі немесе күйі сәйкес емес.')
         prior_keys = {natural_key(kind, row) for row in prior.rows}
     organization = db.get(Organization, user.organization_id)
     if not organization or organization.status != 'active':
@@ -133,7 +133,7 @@ def preview_import(db, user, *, kind, csv_text, mode='append', reason=None,
         for index, row in enumerate(rows, 2):
             if kind == 'daily_sales' and row['date'] >= today or kind == 'inventory_lots' and row['snapshot_date'] > today:
                 errors.append({'row_number': index, 'field': 'date', 'code': 'BUSINESS_DATE_NOT_CLOSED',
-                               'message': 'Күндік сатылым аяқталған күнге, ал қойма кесіндісі бүгінге не өткен күнге тиесілі болуы керек.'})
+                               'message': 'Сатылым тек аяқталған күнге, ал қор кесіндісі бүгінге не өткен күнге тиесілі болуы керек.'})
     validation_report = dict(rows_checked=0, complete=False,
                              stop_reason='parser_errors', errors_truncated=False)
     if not errors:
@@ -247,7 +247,7 @@ def commit_import(db, user, batch_id, idempotency_key=None):
     if not kind_allowed(user, batch.kind, write=True):
         raise ImportProblem('FORBIDDEN', 'Өз импортыңызды ғана сақтай аласыз.', 403)
     if evidence is None:
-        raise ImportProblem('IMPORT_PREVIEW_REQUIRED', 'Импортты жаңа тексеруден өткізіңіз.', 409)
+        raise ImportProblem('IMPORT_PREVIEW_REQUIRED', 'Алдымен импортты қайта тексеріңіз.', 409)
     context = policy_context(db, user.organization_id)
     ensure_rows(context, batch.rows)
     if (evidence.source.get('data_origin') != context['data_origin']

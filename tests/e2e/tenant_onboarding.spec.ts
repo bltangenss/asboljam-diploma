@@ -59,7 +59,7 @@ async function installApi(page:Page,state:Tenant,intercept?:(route:Route,path:st
 }
 async function importBranch(page:Page,id:string,name:string) {
  await expect(page.getByLabel('Деректер',{exact:true})).toHaveValue('branches');
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'branches.csv',mimeType:'text/csv',
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'branches.csv',mimeType:'text/csv',
   buffer:Buffer.from('branch_id,branch_name,data_origin\n'+id+','+name+',SYNTHETIC\n')});
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
  await page.getByRole('button',{name:'Импорттау',exact:true}).click();
@@ -79,7 +79,7 @@ test('empty administrator imports the first branch without fabricated data or an
  await expect(page.locator('.sidebar-note')).not.toContainText('12');
  // Development StrictMode may repeat the startup read; the import must add exactly one refresh.
  const startupReads=state.sessionReads;
- await page.getByRole('button',{name:'Бөлімшелер CSV импорттау',exact:true}).click();
+ await page.getByRole('button',{name:'Бөлімшелер CSV файлын импорттау',exact:true}).click();
  await importBranch(page,'007','First synthetic branch');
  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue('007');
  await expect(page.getByLabel('Бөлімше',{exact:true})).toBeEnabled();
@@ -127,7 +127,7 @@ test('a nonadmin without branches can use settings and unscoped audit without fa
  const state=fixture('unknown','analyst');state.organization.name=null;
  await installApi(page,state);await page.goto('/');
  await expect(page.getByRole('heading',{name:'Қолжетімді бөлімше жоқ',exact:true})).toBeVisible();
- await expect(page.getByRole('button',{name:'Бөлімшелер CSV импорттау',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Бөлімшелер CSV файлын импорттау',exact:true})).toHaveCount(0);
  await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();
  await expect(page.getByTestId('workspace-onboarding')).toBeVisible();
  expect(operationalRequests(state)).toEqual([]);
@@ -145,11 +145,11 @@ test('a nonadmin without branches can use settings and unscoped audit without fa
 test('unconfigured organization sees its real metadata and cannot open operational imports',async({page})=>{
  const state=fixture('pending','admin',[],'unconfigured');state.organization.name='Pending Business';state.organization.timezone='Asia/Almaty';
  await installApi(page,state);await page.goto('/');
- await expect(page.getByRole('heading',{name:'Деректер көзін дайындау',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Дерек көзін дайындау',exact:true})).toBeVisible();
  await expect(page.locator('.scenario-banner')).not.toContainText('01.01.2026');
  await expect(page.getByText('SYNTHETIC',{exact:true})).toHaveCount(0);
  await page.locator('.sidebar').getByRole('button',{name:'Дерек импорттау',exact:true}).click();
- await expect(page.getByLabel('CSV файлды таңдаңыз')).toHaveCount(0);
+ await expect(page.getByLabel('CSV файлын таңдаңыз')).toHaveCount(0);
  expect(operationalRequests(state)).toEqual([]);
  expect(state.requests.some(item=>item.path==='/branches')).toBe(false);
  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();

@@ -70,7 +70,7 @@ def _replace_password(db, user, new_password, *, actor_id, action, details):
 def change_password(db, *, organization_id, user_id, current_password, new_password, session_id):
     _validate_new_password(new_password)
     if not isinstance(current_password, str) or not 1 <= len(current_password) <= 1024:
-        raise CredentialError('CURRENT_PASSWORD_INVALID', 'Қазіргі құпиясөз сәйкес емес.', 400)
+        raise CredentialError('CURRENT_PASSWORD_INVALID', 'Қазіргі құпиясөз қате.', 400)
     user = lock_user(db, user_id, organization_id)
     auth = db.get(AuthSession, session_id, populate_existing=True)
     if (user is None or not user.active or auth is None or auth.user_id != user_id
@@ -78,7 +78,7 @@ def change_password(db, *, organization_id, user_id, current_password, new_passw
             or not organization_active(db, organization_id)):
         raise CredentialError('AUTH_REQUIRED', 'Қайта кіріңіз.', 401)
     if not verify_password(current_password, user.password_hash):
-        raise CredentialError('CURRENT_PASSWORD_INVALID', 'Қазіргі құпиясөз сәйкес емес.', 400)
+        raise CredentialError('CURRENT_PASSWORD_INVALID', 'Қазіргі құпиясөз қате.', 400)
     return _replace_password(db, user, new_password, actor_id=user.id,
                              action='account.password_changed', details={})
 

@@ -83,7 +83,7 @@ test('REAL imports use configured source and coverage refresh preserves selected
  await expect(page.getByLabel('Дерек көзінің коды',{exact:true})).toHaveValue('registered_test_pos');
  await expect(page.getByLabel('Дерек көзінің коды',{exact:true})).toHaveAttribute('readonly','');
  await expect(page.getByLabel('Сәйкестендіру нұсқасы',{exact:true})).toHaveValue('test-v2');
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'artificial-real-contract.csv',mimeType:'text/csv',buffer:Buffer.from('data_origin\nREAL\n')});
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'artificial-real-contract.csv',mimeType:'text/csv',buffer:Buffer.from('data_origin\nREAL\n')});
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();const readsBeforeCommit=sessionReads;await page.getByRole('button',{name:'Импорттау',exact:true}).click();
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();await expect.poll(()=>sessionReads).toBe(readsBeforeCommit+1);
  const preview=state.requests.find(item=>item.path==='/imports/preview')!;expect(preview.body.source).toEqual({source_id:'registered_test_pos',mapping_version:'test-v2'});
@@ -96,7 +96,7 @@ test('missing REAL context cannot fall back to synthetic branch requests',async(
   if(path!=='/settings')return false;const response:any=settings(state,null);delete response.data_context;
   await route.fulfill({json:response});return true;
  });
- await page.goto('/');await expect(page.getByRole('heading',{name:'Деректер көзін дайындау',exact:true})).toBeVisible();
+ await page.goto('/');await expect(page.getByRole('heading',{name:'Дерек көзін дайындау',exact:true})).toBeVisible();
  expect(state.requests.some(item=>['/branches','/dashboard','/forecasts','/inventory'].includes(item.path))).toBe(false);
  await expect(page.locator('body')).not.toContainText('01.01.2026');
 });
@@ -126,7 +126,7 @@ test('saved forecast without an origin makes no guessed history request',async({
   await route.fulfill({json:{id:'legacy',branch_id:state.branch,data_origin:'REAL',model:'seasonal_naive_7',target_date:'2026-09-21',predictions:[{meal_id:'meal-test',point_forecast:2,p10:null,p50:null,p90:null}],metadata:{},input_freshness:'unknown'}});return true;
  });
  await page.goto('/forecasts/legacy');
- await expect(page.getByText('Есептің тарих күні белгісіз. График үшін деректер сұралмады.',{exact:true})).toBeVisible();
+ await expect(page.getByText('Есептеу тарихының шекті күні белгісіз. График үшін деректер сұралмады.',{exact:true})).toBeVisible();
  expect(state.requests.some(item=>item.path==='/sales')).toBe(false);await expect(page.getByTestId('forecast-time-chart')).toHaveCount(0);
 });
 
@@ -177,7 +177,7 @@ test('API refusals and dashboard warnings follow the selected language instead o
   return false;
  });
  await page.goto('/');
- await expect(page.locator('.attention-list')).toContainText('Таңдалған күнге қойма кесіндісі жоқ.');
+ await expect(page.locator('.attention-list')).toContainText('Таңдалған күнге қор кесіндісі жоқ.');
  await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
  await expect(page.locator('.attention-list')).toContainText('На выбранную дату нет среза остатков.');
  await page.locator('.sidebar').getByRole('button',{name:'Прогноз',exact:true}).click();
@@ -206,7 +206,7 @@ test('procurement refusals name the required count date and each uncounted ingre
  });
  await page.goto('/procurement');
  await page.getByRole('button',{name:'Есептеу',exact:true}).click();
- const kk=page.getByRole('region',{name:'Қойма кесіндісінің толықтығы',exact:true});
+ const kk=page.getByRole('region',{name:'Қор кесіндісінің толықтығы',exact:true});
  await expect(kk).toContainText('22.09.2026 күнгі саналған қор кесіндісі қажет');
  await expect(kk).toContainText('Бар кесінділер: 20.09.2026, 21.09.2026.');
  await page.getByRole('button',{name:'Есептеу',exact:true}).click();

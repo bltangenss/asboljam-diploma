@@ -42,7 +42,7 @@ async function uploadAndCommit(page:Page,sale:Sale,mode:'append'|'correction',re
  await expect(page.getByLabel('Деректер',{exact:true})).toHaveValue('daily_sales');
  await page.getByLabel('Импорт режимі',{exact:true}).selectOption(mode);
  if(mode==='correction')await page.getByLabel('Түзету себебі',{exact:true}).fill(reason);
- await page.getByLabel('CSV файлды таңдаңыз').setInputFiles({name:'synthetic-lineage-sales.csv',mimeType:'text/csv',buffer:Buffer.from(csvFor(sale))});
+ await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'synthetic-lineage-sales.csv',mimeType:'text/csv',buffer:Buffer.from(csvFor(sale))});
  const previewRequest=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/imports/preview'&&response.request().method()==='POST');
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
  const previewResponse=await previewRequest;expect(previewResponse.status()).toBe(200);const preview=await previewResponse.json();

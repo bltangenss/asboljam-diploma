@@ -43,7 +43,7 @@ test('explicit baseline preview keeps counted stock distinct and requires confir
  await expect(page.getByRole('heading',{name:'Саналған қор кесіндісі',exact:true})).toBeVisible();
  await page.getByLabel('Бастапқы саналған кесінді күні',{exact:true}).fill('2026-01-01');
  await page.getByLabel('Құжаттың себебі',{exact:true}).filter({visible:true}).fill('Baseline counted fixture');
- await page.getByRole('button',{name:'Ашуды алдын ала тексеру',exact:true}).click();
+ await page.getByRole('button',{name:'Журнал ашуды алдын ала тексеру',exact:true}).click();
  await expect(page.getByRole('button',{name:'Журналды ашу',exact:true})).toBeDisabled();expect(state.postCount).toBe(0);
  await expect(page.getByRole('region',{name:'Өткізер алдындағы тексеру',exact:true})).toContainText('10.000000001');
  await page.getByLabel('Күнді, себебін, партиялар мен мөлшерлерді тексердім.',{exact:true}).check();await page.getByRole('button',{name:'Журналды ашу',exact:true}).click();
@@ -94,7 +94,7 @@ test('recipe activation previews frozen yield then consumption requests dated gr
  const previewRegion=recipe.getByRole('region',{name:'Толық рецептті тексеру',exact:true});await expect(previewRegion).toContainText('0.8');await expect(recipe.getByRole('button',{name:'Рецептті белсендіру',exact:true})).toBeDisabled();
  await recipe.getByLabel('Рецепттің барлық ингредиенттерін, нетто мөлшерін, шығымын және күнін тексердім.',{exact:true}).check();await recipe.getByRole('button',{name:'Рецептті белсендіру',exact:true}).click();await expect(recipe.getByText('Рецепт нұсқасы сақталды. Бұрынғы құжаттар өзгерген жоқ.',{exact:true})).toBeVisible();
  expect(state.requests.find(item=>item.path==='/stock/recipes'&&item.method==='POST')!.body).toMatchObject({recipe_version:'v1.0 тест',expected_version:0,rows:[{ingredient_id:'I-1',net_qty_per_portion:'0.08'}]});
- await doc(page).getByLabel('Қозғалыс түрі',{exact:true}).selectOption('recipe_usage');await doc(page).getByLabel('Тағам 1',{exact:true}).selectOption('M-1');await doc(page).getByLabel('Шығынға негіз болатын порциялар 1',{exact:true}).fill('2');await doc(page).getByRole('button',{name:'Күнге белсенді рецептті есептеу',exact:true}).click();await expect(doc(page).getByText('0.2',{exact:true})).toBeVisible();
+ await doc(page).getByLabel('Қозғалыс түрі',{exact:true}).selectOption('recipe_usage');await doc(page).getByLabel('Тағам 1',{exact:true}).selectOption('M-1');await doc(page).getByLabel('Шығысқа негіз болатын порциялар 1',{exact:true}).fill('2');await doc(page).getByRole('button',{name:'Күнге белсенді рецептті есептеу',exact:true}).click();await expect(doc(page).getByText('0.2',{exact:true})).toBeVisible();
  expect(state.requests.find(item=>item.path==='/stock/recipe-requirements')!.body).toEqual({branch_id:'B-1',business_date:'2026-01-01',portions:{'M-1':2}});
 });
 

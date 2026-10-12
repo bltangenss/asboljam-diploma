@@ -445,7 +445,7 @@ def create_app(database_url=None):
         expiring_count=sum(1 for r in lots if snapshot_date<=r['expiry_date']<=expiry_limit)
         warnings=[]
         if not lots:
-            warnings.append({'code':'INVENTORY_UNKNOWN','count':None,'message':'Таңдалған күнге қойма кесіндісі жоқ.'})
+            warnings.append({'code':'INVENTORY_UNKNOWN','count':None,'message':'Таңдалған күнге қор кесіндісі жоқ.'})
         if expired_count:
             warnings.append({'code':'EXPIRED_LOTS','count':expired_count,'message':f'{expired_count} партияның жарамдылық мерзімі өткен.'})
         if expiring_count:
@@ -574,7 +574,7 @@ def create_app(database_url=None):
         snapshot['inventory_lots']=[r for r in branch_lots if r['snapshot_date']==target_date]
         if not snapshot['inventory_lots']:
             # Name the required count date and the latest dates that do exist; nothing is inferred.
-            raise HTTPException(422,{'code':'STALE_INVENTORY','message':'Қойма кесіндісі мақсат күніне сәйкес емес.',
+            raise HTTPException(422,{'code':'STALE_INVENTORY','message':'Қор кесіндісі болжам күніне сәйкес емес.',
                 'inventory':{'required_snapshot_date':target_date,
                              'available_snapshot_dates':sorted({str(r.get('snapshot_date')) for r in branch_lots})[-10:]}})
         active_recipes=prepare_procurement_stock(db,user,snapshot)
@@ -591,7 +591,7 @@ def create_app(database_url=None):
                 for row in snapshot['recipes']:
                     if row['meal_id'] in meals and row['ingredient_id'] in required-present: users[row['ingredient_id']].add(str(row['meal_id']))
                 raise HTTPException(422,{'code':'INVENTORY_COVERAGE_REQUIRED',
-                    'message':'Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жоқ жазба нөл емес.',
+                    'message':'Қажетті әр ингредиенттің қалдығы көрсетілуі керек. Жазба жоқ болса, ол нөл деп есептелмейді.',
                     'inventory':{'required_snapshot_date':target_date,'missing_count':len(missing),'missing_ingredients':[
                         {'ingredient_id':item,'ingredient_name':catalog.get(item,{}).get('ingredient_name'),'unit':catalog.get(item,{}).get('unit'),
                          'meals':[{'meal_id':meal,'meal_name':meal_names.get(meal)} for meal in sorted(users[item])]} for item in missing[:100]]}})
@@ -642,7 +642,7 @@ def create_app(database_url=None):
             elif policy_context(db,user.organization_id)['data_origin']=='REAL':
                 fail('EXECUTION_CONTEXT_INVALID','Жоспардың дерек көзі белгісіз. Қайта есептеңіз.',409)
             if not plan.result.get('constraints_valid'): fail('CONSTRAINTS_INVALID','Шектеулері тексерілмеген жоспар бекітілмейді.',422)
-            if plan.result.get('shortage_count',0)>0 and not data.acknowledge_shortage: fail('SHORTAGE_ACK_REQUIRED','Тапшылықты арнайы растау қажет.',422)
+            if plan.result.get('shortage_count',0)>0 and not data.acknowledge_shortage: fail('SHORTAGE_ACK_REQUIRED','Тапшылықты бөлек растау қажет.',422)
             freshness=input_freshness(db,user.organization_id,plan.result.get('input_lineage'))
             if freshness=='unknown': fail('INPUTS_UNVERIFIED','Дерек көзі тексерілмеген. Жоспарды қайта есептеңіз.',409)
             if freshness=='changed': fail('INPUTS_CHANGED','Кіріс деректері өзгерген. Жоспарды қайта есептеңіз.',409)

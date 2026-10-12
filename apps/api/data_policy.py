@@ -60,7 +60,7 @@ def metadata(db, organization_id):
 def ensure_rows(context, rows):
     expected = context['data_origin']
     if expected is None:
-        raise DataPolicyError('TENANT_DATA_POLICY_REQUIRED', 'Деректер режимін оператор баптауы керек.', 403)
+        raise DataPolicyError('TENANT_DATA_POLICY_REQUIRED', 'Ұйымның деректер режимін оператор баптауы керек.', 403)
     source = context.get('source')
     for row in rows:
         if not isinstance(row, dict) or row.get('data_origin') != expected:
@@ -72,7 +72,7 @@ def ensure_rows(context, rows):
 def execution_context(db, organization_id, branch_id, origin, *, instant=None):
     context = policy_context(db, organization_id)
     if not context['data_origin']:
-        raise DataPolicyError('TENANT_DATA_POLICY_REQUIRED', 'Деректер режимін оператор баптауы керек.', 403)
+        raise DataPolicyError('TENANT_DATA_POLICY_REQUIRED', 'Ұйымның деректер режимін оператор баптауы керек.', 403)
     if context['source'] and context['source']['branch_id'] != branch_id:
         raise DataPolicyError('SOURCE_BRANCH_MISMATCH', 'Дерек көзінің бөлімшесі сәйкес емес.', 403)
     if origin is None:
@@ -90,7 +90,7 @@ def execution_context(db, organization_id, branch_id, origin, *, instant=None):
     if context['data_origin'] == 'SYNTHETIC' and origin != DEMO_ORIGIN:
         raise DataPolicyError('DEMO_DATE_FIXED', 'Демоның соңғы күні: 2025-12-31.')
     if context['data_origin'] == 'REAL' and day >= today:
-        raise DataPolicyError('ORIGIN_NOT_CLOSED', 'Тек ұйым уақыт белдеуіндегі аяқталған күндерді таңдаңыз.')
+        raise DataPolicyError('ORIGIN_NOT_CLOSED', 'Ұйымның уақыт белдеуі бойынша тек аяқталған күнді таңдаңыз.')
     return {**context, 'version': 'execution-v1', 'organization_id': organization_id,
             'branch_id': branch_id, 'date_policy': 'synthetic_fixed' if context['data_origin'] == 'SYNTHETIC' else 'explicit_closed_day',
             'as_of_utc': instant.astimezone(timezone.utc).isoformat(), 'as_of_date': today.isoformat(),

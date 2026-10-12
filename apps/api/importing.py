@@ -167,7 +167,7 @@ def parse_csv(kind, text, report=None, *, expected_origin='SYNTHETIC'):
                 if kind == 'supplier_offers' and row['min_packs'] > row['max_packs']:
                     err(index, 'min_packs', 'MOQ_EXCEEDS_MAX', 'Ең аз қаптама ең көп мәннен артық.')
                 if kind == 'calendar' and date.fromisoformat(row['date']).weekday() != row['weekday']:
-                    err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні датаға сәйкес емес.')
+                    err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні көрсетілген күнге сәйкес емес.')
                 if kind == 'calendar' and expected_origin == 'REAL' and row['synthetic_event'] != 0:
                     err(index, 'synthetic_event', 'SYNTHETIC_FIELD_FORBIDDEN', 'REAL күнтізбесінде жасанды оқиға белгісіне рұқсат жоқ.')
                 if len(natural_key(kind, row)) > 255:
