@@ -37,6 +37,7 @@ from .data_policy import (DataPolicyError, ensure_rows, execution_context, metad
 
 SCENARIO = '2026-01-01'
 META = {'data_origin': 'SYNTHETIC', 'scenario_date': SCENARIO}
+IDENTITY_AUDIT_PREFIXES = ('session.', 'native.', 'user.', 'account.', 'tenant.')
 
 def uid():
     return uuid.uuid4().hex
@@ -276,6 +277,8 @@ def create_app(database_url=None):
         if not row or row.organization_id != user.organization_id or row.branch_id not in user.branch_ids:
             fail('NOT_FOUND','Жазба табылмады.',404)
         return row
+    # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
+    unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):
         identity = hashlib.sha256((data.email.lower()+'|'+(request.client.host if request.client else 'unknown')).encode()).hexdigest()
         count = db.scalar(select(func.count()).select_from(LoginAttempt).where(LoginAttempt.identity==identity,LoginAttempt.timestamp>time.time()-900))
@@ -287,7 +290,8 @@ def create_app(database_url=None):
         if user:
             # Hold until the session/token creation commits; reset cannot interleave.
             user = lock_user(db,user.id)
-        if (not user or not verify_password(data.password,user.password_hash) or not user.active
+        password_valid = verify_password(data.password,user.password_hash if user else unknown_user_hash)
+        if (not user or not password_valid or not user.active
                 or not organization_active(db,user.organization_id)):
             fail('INVALID_CREDENTIALS','Пошта немесе құпиясөз қате.',401)
         return user
@@ -709,6 +713,9 @@ def create_app(database_url=None):
         roles(user,'admin','manager','analyst')
         if branch_id: branch_access(db,user,branch_id)
         query=select(Audit).where(Audit.organization_id==user.organization_id,or_(Audit.branch_id.in_([branch_id] if branch_id else user.branch_ids),Audit.branch_id==None)).order_by(Audit.created_at.desc())
+        if user.role!='admin':
+            # Sign-ins, account and access changes are staff personal data: administrators only.
+            query=query.where(~or_(*[Audit.action.like(prefix+'%') for prefix in IDENTITY_AUDIT_PREFIXES]))
         rows=list(db.scalars(query))
         return {'items':[{k:getattr(r,k) for k in ('id','branch_id','actor_id','action','entity_id','details','created_at')} for r in rows[cursor:cursor+limit]],'total':len(rows),'next_cursor':str(cursor+limit) if cursor+limit<len(rows) else None,**metadata(db,user.organization_id)}
     @app.get('/api/v1/reports')

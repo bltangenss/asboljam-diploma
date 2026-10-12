@@ -25,6 +25,10 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ORGANIZATION_NAME: ${ORGANIZATION_NAME:-AsBoljam Demo}
       LOKY_MAX_CPU_COUNT: "1"
+      # Uvicorn takes the client address from X-Forwarded-For only when the peer is the
+      # internal proxy (nginx, Caddy on the Compose network); the login limit is keyed by it.
+      # The API port is not published in infra/compose.prod.yml, so outside clients cannot spoof it.
+      FORWARDED_ALLOW_IPS: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"
     depends_on:
       postgres:
         condition: service_healthy

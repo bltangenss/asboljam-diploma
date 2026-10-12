@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import select
 from .db import Record
 
+PLAIN_NEGATIVE_NUMBER = re.compile(r'-\d+(\.\d+)?([eE][-+]?\d+)?')
 SCHEMAS = {
     'branches': 'branch_id branch_name data_origin',
     'meals': 'meal_id meal_name base_price_kzt data_origin',
@@ -52,6 +53,8 @@ def validate_rows(db, org, kind, rows, allowed_branches=None, *, allow_existing=
     existing = set(db.scalars(select(Record.natural_key).where(Record.organization_id == org, Record.kind == kind)))
     references = {field: {r[field] for r in rows_for(db, org, target)} for field, target in FK.items()}
     ingredients = {r['ingredient_id']: r for r in rows_for(db, org, 'ingredients')}
+    # Read once: one query per row made large recipe previews hold the connection for minutes.
+    active_versions = {r['recipe_version'] for r in rows_for(db, org, 'recipes')} if kind == 'recipes' else set()
     seen = set()
     for index, row in enumerate(rows, 2):
         report['rows_checked'] += 1
@@ -71,7 +74,6 @@ def validate_rows(db, org, kind, rows, allowed_branches=None, *, allow_existing=
             if row['unit'] != ingredients[row['ingredient_id']]['unit']:
                 err('unit', 'UNIT_MISMATCH', 'Ингредиент өлшем бірлігі сәйкес емес.')
         if kind == 'recipes':
-            active_versions = {r['recipe_version'] for r in rows_for(db, org, 'recipes')}
             if active_versions and row['recipe_version'] not in active_versions:
                 err('recipe_version', 'RECIPE_VERSION_CONFLICT', 'MVP бір белсенді рецепт нұсқасын қолдайды.')
         if len(errors) >= 500 and report['rows_checked'] < len(rows):
@@ -138,6 +140,10 @@ def parse_csv(kind, text, report=None, *, expected_origin='SYNTHETIC'):
                         number = Decimal(value)
                         if not number.is_finite() or (number < 0 and field != 'temperature_forecast_c') or abs(number) > Decimal('1000000000000'):
                             raise ValueError()
+                        # At most nine decimal places, as in stock quantities: an exponent such as
+                        # 1E-999999999 would otherwise expand to a billion digits in calculations.
+                        if number != number.quantize(Decimal('0.000000001')):
+                            raise ValueError()
                         if field in {'yield_factor','pack_qty','net_qty_per_portion'} and number <= 0:
                             raise ValueError()
                         if field == 'yield_factor' and number > 1:
@@ -200,7 +206,9 @@ def safe_csv(rows):
         clean = {}
         for key in fields:
             value = row.get(key, '')
-            if isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '\t', '\r', '\n')):
+            # A plain negative decimal (winter temperature, stock decrease) is data, not a formula.
+            if (isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '\t', '\r', '\n'))
+                    and not PLAIN_NEGATIVE_NUMBER.fullmatch(value)):
                 value = "'" + value
             clean[key] = value
         writer.writerow(clean)
