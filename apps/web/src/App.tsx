@@ -5,6 +5,7 @@ import Dashboard from './Dashboard';
 import Onboarding from './Onboarding';
 import {Sales,Imports,Reference,Reports} from './DataPages';
 import {Forecasts,Procurement} from './Planning';
+import {usePlanningScrollRestoration} from './planningNavigation';
 import type {User} from '../../../packages/api-client';
 const nav=[['dashboard',LayoutDashboard],['sales',BarChart3],['forecasts',TrendingUp],['procurement',ShoppingBasket],['inventory',Package],['recipes',BookOpen],['suppliers',Truck],['reports',ClipboardCheck],['imports',FileUp]] as const;
 export default function App() {
@@ -35,8 +36,10 @@ export default function App() {
   return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',key);previous?.focus()};
  },[drawer]);
  const userRef=useRef<User|null>(null),loadEpoch=useRef(0),mounted=useRef(true);
- const go=(destination:string)=>{history.pushState({},'',destination);setPath(destination.split('?')[0]);setDrawer(false);window.scrollTo(0,0)};
+ const planningScroll=usePlanningScrollRestoration(path,JSON.stringify([user?.organization_id,user?.id,user?.role,branch]),Boolean(user&&branch));
+ const go=(destination:string)=>{planningScroll.beforeNavigate(destination.split('?')[0]);history.pushState({},'',destination);setPath(destination.split('?')[0]);setDrawer(false);window.scrollTo(0,0)};
  function clearWorkspace() {
+  planningScroll.reset();
   ++loadEpoch.current;setWorkspace(null);setBranches([]);setBranch('');setWorkspaceError(null);setWorkspaceLoading(false);
   ++contextEpoch.current;setDataContext(undefined);setContextError(null);setInventoryDate('');setForecastOrigin('');
   chosenDates.current={branch:'',inventory:'',origin:'',inventoryExplicit:false,originExplicit:false};

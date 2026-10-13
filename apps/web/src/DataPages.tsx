@@ -1,6 +1,7 @@
 import UserAdmin from './UserAdmin';
 import AccountSecurity from './AccountSecurity';
 import StockLedger from './StockLedger';
+import SalesHistory from './SalesHistory';
 import {stockText} from './stockCopy';
 import {useEffect,useState} from 'react';
 import {ArrowDownToLine,ArrowRight,BookOpen,FlaskConical,History,Package,ShieldCheck} from 'lucide-react';
@@ -15,6 +16,13 @@ export function Sales(c:Context){
  const {t,branch,revision,refresh,go,lang}=c,kk=lang==='kk';
  const initialEnd=(c.dataContext?.mode==='synthetic_fixed'?c.dataContext.forecast_origin:c.dataContext?.history_end)||'',initialStart=shiftDate(initialEnd,-27);
  const [from,setFrom]=useState(initialStart),[to,setTo]=useState(initialEnd),[query,setQuery]=useState(''),[cursor,setCursor]=useState('');
+ const [mode,setMode]=useState<'day'|'period'>('period'),[period,setPeriod]=useState({from:initialStart,to:initialEnd});
+ function changeMode(next:'day'|'period'){
+  if(next===mode)return;
+  if(next==='day'){setPeriod({from,to});const selected=to||from||initialEnd;setFrom(selected);setTo(selected)}
+  else{setFrom(period.from);setTo(period.to)}
+  setCursor('');setMode(next);
+ }
  const params=`branch_id=${encodeURIComponent(branch)}${from?'&date_from='+from:''}${to?'&date_to='+to:''}&limit=50&cursor=${cursor||'0'}${query?'&meal_id='+encodeURIComponent(query):''}`;
  const state=useData(`/sales?${params}`,revision),meals=useData('/meals?limit=200');
  useEffect(()=>setCursor(''),[branch,from,to,query]);
@@ -24,9 +32,10 @@ export function Sales(c:Context){
   if(Number(row.stockout_flag))return <Badge tone="amber">{kk?'Тағам таусылған':'Блюдо закончилось'}</Badge>;
   return <Badge tone="neutral">{Number(row.units_sold)===0?(kk?'Сатылым жоқ':'Нет продаж'):t('valid')}</Badge>;
  }
- return <div className="reference-workspace"><Heading title={t('sales')} sub={t('selectedPeriod')+': '+date(from)+' — '+date(to)} action={<a className="button secondary" href={`/api/v1/exports/daily_sales?${params}`}><ArrowDownToLine size={16}/>{t('export')}</a>}/>
+ return <div className="reference-workspace"><Heading title={t('sales')} sub={mode==='day'?(kk?'Таңдалған күн: ':'Выбранный день: ')+date(from):t('selectedPeriod')+': '+date(from)+' — '+date(to)} action={<a className="button secondary" href={`/api/v1/exports/daily_sales?${params}`}><ArrowDownToLine size={16}/>{t('export')}</a>}/>
   <section className="reference-intro"><span className="reference-kicker">01 / {kk?'Болжамның негізі':'Основа прогноза'}</span><h2>{kk?'Не сатылғанын біліңіз. Не қажет болатынын есептеңіз.':'Что продавалось — основа следующего плана.'}</h2><p>{kk?'Әр жол — бір тағамның бір күнгі сатылымы. Болжамға кемінде 84 үздіксіз күн қажет. Жоқ күн нөлдік сатылым емес.':'Каждая строка — продажи одного блюда за день. Для прогноза нужны минимум 84 дня подряд. Пропущенный день не означает нулевые продажи.'}</p>{canImport(c,'sales')&&<button className="text-button" onClick={()=>go('/imports?kind=daily_sales')}>{kk?'Сатылым CSV файлын жүктеу':'Загрузить CSV продаж'}<ArrowRight size={16}/></button>}</section>
-  <section className="panel reference-journal"><div className="filters"><label>{t('from')}<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>{t('to')}<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><label className="grow">{t('meal')}<select aria-label={t('meal')} value={query} onChange={e=>setQuery(e.target.value)}><option value="">{t('viewAll')}</option>{items(meals.data).map(m=><option key={m.meal_id} value={m.meal_id}>{name(m.meal_name)}</option>)}</select></label><button className="text-button" onClick={()=>{setFrom(initialStart);setTo(initialEnd);setQuery('')}}>{t('clear')}</button></div>
+  <section className="panel reference-journal"><div className="sales-period-toolbar"><div className="sales-mode-switch" role="group" aria-label={kk?'Қарау аралығы':'Интервал просмотра'}><button className={mode==='day'?'active':''} aria-pressed={mode==='day'} onClick={()=>changeMode('day')}>{kk?'Бір күн':'Один день'}</button><button className={mode==='period'?'active':''} aria-pressed={mode==='period'} onClick={()=>changeMode('period')}>{kk?'Кезең':'Период'}</button></div><p>{c.dataContext?.history_start&&c.dataContext?.history_end?(kk?'Бөлімшедегі қолжетімді тарих: ':'Доступная история филиала: ')+date(c.dataContext.history_start)+' — '+date(c.dataContext.history_end):kk?'Сүзгілер графикке, кестеге және экспортқа бірге қолданылады.':'Фильтры применяются к графику, таблице и экспорту.'}</p></div><div className="filters">{mode==='day'?<label>{kk?'Күн':'День'}<input type="date" value={from} onChange={e=>{setFrom(e.target.value);setTo(e.target.value)}}/></label>:<><label>{t('from')}<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>{t('to')}<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label></>}<label className="grow">{t('meal')}<select aria-label={t('meal')} value={query} onChange={e=>setQuery(e.target.value)}><option value="">{t('viewAll')}</option>{items(meals.data).map(m=><option key={m.meal_id} value={m.meal_id}>{name(m.meal_name)}</option>)}</select></label><button className="text-button" onClick={()=>{setMode('period');setFrom(initialStart);setTo(initialEnd);setQuery('')}}>{t('clear')}</button></div>
+   <SalesHistory key={JSON.stringify([branch,from,to,query,revision])} context={c} from={from} to={to} meal={query} meals={items(meals.data)} mode={mode}/>
    <DataState state={state} t={t} retry={refresh}><Table t={t} rows={items(state.data)} columns={[{key:'date',label:kk?'Сатылған күн':'День продажи',render:r=>date(r.date)},{key:'meal_name',label:t('meal'),render:r=>name(r.meal_name||items(meals.data).find(m=>m.meal_id===r.meal_id)?.meal_name||r.meal_id)},{key:'units_sold',label:t('sold'),numeric:true},{key:'available_portions',label:t('available'),numeric:true},{key:'price_kzt',label:t('price'),numeric:true,render:r=>fmt(r.price_kzt)},{key:'stockout_flag',label:t('status'),render:status}]}/><Pagination data={state.data} cursor={cursor} setCursor={setCursor}/></DataState>
   </section><p className="reference-footnote">{kk?'Сатылымды импорттау қойма қалдығын автоматты өзгертпейді.':'Импорт продаж не меняет остатки на складе автоматически.'}</p>
  </div>;
