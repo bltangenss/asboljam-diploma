@@ -1,5 +1,5 @@
 {
-  "checked_files": 157,
+  "checked_files": 384,
   "scope": "git-candidates",
   "findings": [],
   "limits": "Known local values and common high-confidence credential formats; not a comprehensive secret audit."

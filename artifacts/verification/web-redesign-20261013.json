@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-13",
+  "scope": "Nory-inspired web interface on existing React/FastAPI workflows",
+  "source_commit": "377eb9de80d133b68cd16ec3360c6d5abac93e23",
+  "application_data": "Generated SYNTHETIC and REAL/TEST fixtures only; user database untouched",
+  "build": {
+    "command": "npm run build",
+    "status": "PASS",
+    "js_kb": 529.53,
+    "gzip_js_kb": 156.69,
+    "warning": "Vite chunk exceeds 500 kB; not a build failure"
+  },
+  "contracts": {
+    "command": "python scripts/generate_contracts.py",
+    "status": "PASS"
+  },
+  "browser": {
+    "command": "npx playwright test",
+    "stats": {
+      "startTime": "2026-10-13T12:53:48.304Z",
+      "duration": 3541665.6119999997,
+      "expected": 115,
+      "skipped": 2,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "raw_report": "artifacts/verification/browser.json",
+    "single_clean_run": false,
+    "isolated_retry": {
+      "command": "npx playwright test tests/e2e/job_status.spec.ts --grep \"reload restores access to an existing forecast\" --reporter=list",
+      "passed": 1,
+      "failure": "Click stability/test timeout after an abnormal 46.8-minute interruption; reason for the interruption unconfirmed. No code change before retry."
+    },
+    "explicit_skips": [
+      "stock_ledger_live.spec.ts: requires a fresh SYNTHETIC stock fixture and opt-in",
+      "stock_count_anchors_live.spec.ts: requires a fresh REAL/TEST stock fixture and opt-in"
+    ]
+  },
+  "supplemental_live": [
+    {
+      "command": "ASBOLJAM_STOCK_E2E=1 npx playwright test tests/e2e/stock_ledger_live.spec.ts --reporter=list",
+      "passed": 1,
+      "duration_seconds": 32.0,
+      "fixture": "Fresh SYNTHETIC SQLite",
+      "scope": "counted opening, dated recipe, receipt, consumption, reversal, reconciliation, plan approval and export",
+      "code_note": "Executed before the final additive sales overview, audit receipt and list-return enhancements; stock logic unchanged"
+    },
+    {
+      "command": "ASBOLJAM_STOCK_ANCHOR_E2E=1 npx playwright test tests/e2e/stock_count_anchors_live.spec.ts --reporter=list",
+      "passed": 1,
+      "duration_seconds": 44.7,
+      "fixture": "Fresh generated REAL/TEST SQLite",
+      "scope": "count correction, immutable anchors, posting, preserved approved export bytes",
+      "code_note": "Executed before final sales/navigation additions; stock logic unchanged"
+    }
+  ],
+  "focused_additions": {
+    "planning_decision_and_navigation": "14/14 PASS",
+    "sales_overview": "7/7 PASS"
+  },
+  "visual": {
+    "languages": [
+      "kk",
+      "ru"
+    ],
+    "widths_px": [
+      360,
+      390,
+      768,
+      1024,
+      1440
+    ],
+    "operational_captures": 40,
+    "final_detail_captures": 5,
+    "notes": "Selected actual screenshots reviewed; keyboard navigation and page overflow checked. Not a screen-reader certification."
+  },
+  "attempt_history": [
+    "Initial targeted failures from password-label collision and outdated selectors were corrected and rerun.",
+    "Earlier full run: 94 PASS, 1 FAIL, 2 explicit skips; REAL/TEST login referenced another database.",
+    "Fresh REAL retry revealed obsolete forecast selector, then accessible budget name included its hint; both corrected. Full REAL flow subsequently passed.",
+    "First stock run used REAL fixture with a SYNTHETIC-only date test; rerun on correct fresh fixture passed. Test now rejects the wrong fixture before mutations.",
+    "First count-anchor attempt started before Vite listened; rerun after readiness passed.",
+    "New decision tests: initially 5 PASS / 1 selector failure; corrected accessible-role selector, combined rerun 14/14 PASS.",
+    "Final full suite repeated because shared navigation, sales overview and audit receipt were added after the earlier full run."
+  ],
+  "design_adaptations": [
+    "Detailed forecasts and plans remain full pages on desktop/mobile; no universal row side drawer",
+    "Sales coverage is bounded to observed dishes, selected period, 366 days and 10000 rows; no atomic snapshot or forecast-readiness guarantee",
+    "Approval identity/time shown from matching scoped audit event only; missing evidence stays unknown"
+  ],
+  "not_tested_this_scope": [
+    "Real business pilot and measured value",
+    "Production deployment",
+    "Native APK/device",
+    "Hardware screen reader and user UX study",
+    "Full Python/research/PostgreSQL suites were not rerun for frontend-only changes"
+  ],
+  "runtime_end": "Task-owned API/worker/web stopped; original user database preserved",
+  "blocked": []
+}
