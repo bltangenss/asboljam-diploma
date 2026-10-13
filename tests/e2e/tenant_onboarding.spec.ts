@@ -88,10 +88,10 @@ test('empty administrator imports the first branch without fabricated data or an
  await page.locator('.sidebar').getByRole('button',{name:'Шолу',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
  await expect.poll(()=>state.requests.some(item=>item.path==='/dashboard'&&item.branch==='007')).toBe(true);
- await expect(page.getByRole('status')).toContainText('Бұл бөлімшеде сатылым деректері әлі жоқ.');
+ await expect(page.locator('.next-action')).toContainText('Бұл бөлімшеде сатылым деректері әлі жоқ.');
  await expect(page.locator('.metric-value').nth(0)).toHaveText('—');
  await expect(page.locator('.metric-value').nth(1)).toHaveText('—');
- await expect(page.locator('.chart-panel .period-button')).toHaveText('Сатылым тарихы жоқ');
+ await expect(page.locator('.readiness-row small').first()).toHaveText('Сатылым тарихы жоқ');
  await expect(page.locator('.attention-list')).not.toContainText('31.12.2025');
  expect(state.requests.some(item=>item.branch==='1')).toBe(false);
 });
@@ -105,8 +105,8 @@ test('dated zero sales remain zero and actual history dates replace demo labels'
  await page.goto('/');
  await expect(page.locator('.metric-value').nth(0)).toHaveText('0');
  await expect(page.locator('.metric-value').nth(1)).toHaveText('0 ₸');
- await expect(page.locator('.chart-panel .period-button')).toHaveText('20.11.2025 — 20.11.2025');
- await expect(page.locator('.attention-list')).toContainText('Соңғы сатылым: 20.11.2025');
+ await expect(page.locator('.chart-panel .chart-legend small')).toHaveText('20.11.2025 — 20.11.2025');
+ await expect(page.locator('.readiness-journal')).toContainText('Соңғы сатылым: 20.11.2025');
  await expect(page.getByRole('status')).toHaveCount(0);
 });
 
@@ -134,7 +134,7 @@ test('a nonadmin without branches can use settings and unscoped audit without fa
  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Тіркелгі қауіпсіздігі',exact:true})).toBeVisible();
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Ұйым',exact:true})}).locator('span')).toHaveText('—');
- await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Timezone',exact:true})}).locator('span')).toHaveText('—');
+ await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Уақыт белдеуі',exact:true})}).locator('span')).toHaveText('—');
  await expect(page.getByText('AsBoljam Demo',{exact:true})).toHaveCount(0);
  await expect(page.getByText('Asia/Qyzylorda',{exact:true})).toHaveCount(0);
  await page.locator('.sidebar').getByRole('button',{name:'Аудит журналы',exact:true}).click();

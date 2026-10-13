@@ -66,7 +66,7 @@ test('password change signs out the analyst locally and translates the login not
   await fillPasswords(page);
   await page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true}).click();
   await expectLogin(page,'Құпиясөз өзгертілді. Қайта кіріңіз.');
-  await page.getByRole('button',{name:'ҚАЗ / РУС',exact:true}).click();
+  await page.getByRole('button',{name:'Тілді ауыстыру',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('Пароль изменён. Войдите снова.');
   expect(writes).toEqual(['/account/password']);
   const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage}}));
