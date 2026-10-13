@@ -52,7 +52,7 @@ async function uploadAndCommit(page:Page,sale:Sale,mode:'append'|'correction',re
   expect(preview.counts.updated).toBe(1);expect(preview.changes[0].operation).toBe('update');
   const result=page.getByRole('region',{name:'Импорт нәтижесі',exact:true});
   await expect(result.getByRole('columnheader',{name:'Бұрын',exact:true})).toBeVisible();
-  await expect(result.getByRole('row').filter({has:page.getByRole('cell',{name:'units_sold',exact:true})}).getByRole('cell')).toHaveText(['units_sold',String(preview.changes[0].before.units_sold),String(sale.units_sold)]);
+  await expect(result.getByRole('row').filter({has:page.getByRole('cell',{name:/^Сатылған порция\s*units_sold$/})}).getByRole('cell')).toHaveText([/^Сатылған порция\s*units_sold$/,String(preview.changes[0].before.units_sold),String(sale.units_sold)]);
   await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeDisabled();
   await page.getByRole('checkbox',{name:'Өзгерістер үлгісін, санын және түзету себебін тексердім.',exact:true}).check();
  } else {

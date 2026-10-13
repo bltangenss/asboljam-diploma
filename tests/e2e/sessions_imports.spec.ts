@@ -74,7 +74,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   auth.user={...user,role:'analyst'};
   await page.goto('/forecasts');
   await expect(page.getByRole('status').filter({hasText:'Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.'})).toBeVisible();
-  await expect(page.getByRole('button',{name:'stored-f',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'01.01.2026 күніне болжам',exact:true})).toBeVisible();
   await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
   const forecastButton=page.getByRole('button',{name:'Есептеу',exact:true});
   await expect(forecastButton).toBeDisabled();
@@ -91,7 +91,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await expect(page.getByRole('link',{name:'CSV жүктеу',exact:true})).toHaveAttribute('href','/api/v1/plans/stored-plan/export');
   await page.goto('/imports');
   await expect(page.getByRole('status').filter({hasText:'Сіз CSV үлгілерін жүктей аласыз.'})).toBeVisible();
-  await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['daily_sales','inventory_lots','calendar']);
+  await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі']);
   const input=page.getByLabel('CSV файлын таңдаңыз');
   await expect(input).toBeDisabled();
   // Even a programmatic file selection must not enable a forbidden submission.
@@ -122,7 +122,7 @@ test('manager and warehouse import selectors expose only authorized schemas',asy
     auth.user={...user,role};
     await page.goto('/imports');
     const selector=page.getByLabel('Деректер',{exact:true});
-    await expect(selector.locator('option')).toHaveText(role==='manager'?['daily_sales','inventory_lots','calendar']:['inventory_lots']);
+    await expect(selector.locator('option')).toHaveText(role==='manager'?['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі']:['Қойма қалдықтары']);
     await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'allowed.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nallowed\n')});
     await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
     await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();

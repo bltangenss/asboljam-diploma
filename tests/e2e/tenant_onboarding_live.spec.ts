@@ -48,10 +48,10 @@ test('real empty workspace imports its first branch and refreshes session access
  const imported=await page.request.get('/api/v1/branches');expect(imported.status()).toBe(200);
  expect((await imported.json()).items.map((item:{branch_id:string})=>item.branch_id)).toEqual(['001']);
  await page.locator('.sidebar').getByRole('button',{name:'Шолу',exact:true}).click();
- await expect(page.getByRole('status')).toContainText('Бұл бөлімшеде сатылым деректері әлі жоқ.');
+ await expect(page.locator('.next-action')).toContainText('Бұл бөлімшеде сатылым деректері әлі жоқ.');
  await expect(page.locator('.metric-value').nth(0)).toHaveText('—');
  await expect(page.locator('.metric-value').nth(1)).toHaveText('—');
- await expect(page.locator('.chart-panel .period-button')).toHaveText('Сатылым тарихы жоқ');
+ await expect(page.locator('.chart-panel .empty')).toContainText('Бұл жерде әзірше дерек жоқ');
  await expect(page.locator('.attention-list')).not.toContainText('31.12.2025');
  await expect(page.locator('.lower')).not.toContainText('01.01.2026');
  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
@@ -60,7 +60,7 @@ test('real empty workspace imports its first branch and refreshes session access
  await expect(page.getByText('Соңғы сатылым: 31.12.2025',{exact:true})).toHaveCount(0);
  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Ұйым',exact:true})}).locator('span')).toHaveText(metadata.organization.name??'—');
- await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Timezone',exact:true})}).locator('span')).toHaveText(metadata.organization.timezone??'—');
+ await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Уақыт белдеуі',exact:true})}).locator('span')).toHaveText(metadata.organization.timezone??'—');
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Бөлімше',exact:true})}).locator('span')).toHaveText('001');
  await page.locator('.sidebar').getByRole('button',{name:'Аудит журналы',exact:true}).click();
  await expect(page.locator('tbody')).toContainText('import.committed');

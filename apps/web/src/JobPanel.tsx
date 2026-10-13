@@ -35,7 +35,7 @@ export default function JobPanel({runId,t,onDone,onDismiss}:Props) {
   {failed||error||stale?<AlertTriangle size={20}/>:<span className="spinner" aria-hidden="true"/>}
   <div>
    <strong role="status">{error?t('jobConnectionLost'):t('job_'+status)}</strong>
-   <p className="job-id">{t('jobId')}: {runId}</p>
+   <details className="job-technical"><summary>{t('jobId')}</summary><p className="job-id">{runId}</p></details>
    {!error&&!failed&&<p>{t(status==='queued'?'jobQueueHint':'jobRunningHint')}</p>}
    {!error&&status==='running'&&<p>{age===null?t('jobHeartbeatUnknown'):`${t('jobHeartbeatAge')}: ${age} ${t('jobSeconds')}`}</p>}
    {stale&&!error&&<p>{t('jobHeartbeatStale')}</p>}

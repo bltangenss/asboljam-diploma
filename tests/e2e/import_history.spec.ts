@@ -93,7 +93,7 @@ test('correction requires reason, before-after review and explicit confirmation'
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
  const result=page.getByRole('region',{name:'Импорт нәтижесі',exact:true});
  await expect(result.getByRole('columnheader',{name:'Бұрын',exact:true})).toBeVisible();
- await expect(result.getByRole('row').filter({has:page.getByRole('cell',{name:'units_sold',exact:true})}).getByRole('cell')).toHaveText(['units_sold','2','3']);
+ await expect(result.getByRole('row').filter({has:page.getByRole('cell',{name:/^Сатылған порция\s*units_sold$/})}).getByRole('cell')).toHaveText([/^Сатылған порция\s*units_sold$/,'2','3']);
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeDisabled();
  expect(requests.filter(item=>item.path.endsWith('/commit'))).toHaveLength(0);
  await page.getByRole('checkbox',{name:'Өзгерістер үлгісін, санын және түзету себебін тексердім.',exact:true}).check();
