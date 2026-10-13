@@ -118,7 +118,7 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
  const forecast=await getJson(page,'/forecasts/'+forecastId);
  expect(forecast).toMatchObject({data_origin:'REAL',target_date:fixture.target_date,input_freshness:'unchanged'});
  expect(forecast.execution_context.usage_mode).toBe('TEST');
- await expect(page.locator('.context-line')).toContainText('REAL');
+ await expect(page.locator('.forecast-result-context')).toContainText('REAL');
  await expect(page.getByTestId('forecast-time-chart')).toBeVisible();
 
  await page.locator('.panel-heading').getByRole('button',{name:'Сатып алу',exact:true}).click();
