@@ -1,18 +1,21 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {BarChart3,BookOpen,ChevronDown,ChevronRight,ClipboardCheck,Database,Eye,EyeOff,FileUp,FlaskConical,LayoutDashboard,Leaf,LogOut,Menu,Package,Settings,ShieldCheck,ShoppingBasket,TrendingUp,Truck,WifiOff,ArrowRight,X} from 'lucide-react';
+import {ChevronDown,ChevronRight,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X} from 'lucide-react';
 import {api,words,items,date,shiftDate,workspaceData,ErrorBox,type Lang,type Row,type Context,type WorkspaceSettings,type WorkspaceDataContext} from './shared';
 import Dashboard from './Dashboard';
+import DataWorkspace from './DataWorkspace';
+import {workdaySections,managementSection,sectionGroup,sectionLabel,SectionNavigation} from './WorkdayNavigation';
 import Onboarding from './Onboarding';
 import {Sales,Imports,Reference,Reports} from './DataPages';
 import {Forecasts,Procurement} from './Planning';
 import {usePlanningScrollRestoration} from './planningNavigation';
 import type {User} from '../../../packages/api-client';
-const nav=[['dashboard',LayoutDashboard],['sales',BarChart3],['forecasts',TrendingUp],['procurement',ShoppingBasket],['inventory',Package],['recipes',BookOpen],['suppliers',Truck],['reports',ClipboardCheck],['imports',FileUp]] as const;
+
 export default function App() {
  const [lang,setLang]=useState<Lang>(localStorage.getItem('asboljam-language')==='ru'?'ru':'kk');
  const t=(key:string)=>words[key]?.[lang==='kk'?0:1]||key;
  const [user,setUser]=useState<User|null>(null),[authLoading,setAuthLoading]=useState(true),[authError,setAuthError]=useState<any>(null);
- const [path,setPath]=useState(location.pathname==='/'?'/dashboard':location.pathname),[branch,setBranch]=useState(''),[branches,setBranches]=useState<Row[]>([]);
+ const [route,setRoute]=useState((location.pathname==='/'?'/dashboard':location.pathname)+location.search),[branch,setBranch]=useState(''),[branches,setBranches]=useState<Row[]>([]);
+ const path=route.split('?')[0];
  const [workspace,setWorkspace]=useState<WorkspaceSettings|null>(null),[workspaceLoading,setWorkspaceLoading]=useState(false),[workspaceError,setWorkspaceError]=useState<any>(null);
  const [dataContext,setDataContext]=useState<WorkspaceDataContext>(),[contextError,setContextError]=useState<any>(null);
  const [inventoryDate,setInventoryDate]=useState(''),[forecastOrigin,setForecastOrigin]=useState('');
@@ -37,7 +40,7 @@ export default function App() {
  },[drawer]);
  const userRef=useRef<User|null>(null),loadEpoch=useRef(0),mounted=useRef(true);
  const planningScroll=usePlanningScrollRestoration(path,JSON.stringify([user?.organization_id,user?.id,user?.role,branch]),Boolean(user&&branch));
- const go=(destination:string)=>{planningScroll.beforeNavigate(destination.split('?')[0]);history.pushState({},'',destination);setPath(destination.split('?')[0]);setDrawer(false);window.scrollTo(0,0)};
+ const go=(destination:string)=>{planningScroll.beforeNavigate(destination.split('?')[0]);history.pushState({},'',destination);setRoute(destination);setDrawer(false);window.scrollTo(0,0)};
  function clearWorkspace() {
   planningScroll.reset();
   ++loadEpoch.current;setWorkspace(null);setBranches([]);setBranch('');setWorkspaceError(null);setWorkspaceLoading(false);
@@ -86,7 +89,7 @@ export default function App() {
   let active=true;mounted.current=true;
   api.onUnauthorized=resetSession;
   api.session().then(next=>{if(active)acceptUser(next)}).catch(error=>{if(active&&error.status!==401)setAuthError(error)}).finally(()=>{if(active)setAuthLoading(false)});
-  const pop=()=>setPath(location.pathname),on=()=>setOnline(true),off=()=>setOnline(false);
+  const pop=()=>setRoute((location.pathname==='/'?'/dashboard':location.pathname)+location.search),on=()=>setOnline(true),off=()=>setOnline(false);
   window.addEventListener('popstate',pop);window.addEventListener('online',on);window.addEventListener('offline',off);
   return()=>{active=false;mounted.current=false;++loadEpoch.current;api.onUnauthorized=undefined;window.removeEventListener('popstate',pop);window.removeEventListener('online',on);window.removeEventListener('offline',off)};
  },[]);
@@ -136,16 +139,16 @@ export default function App() {
  else if(!operations||(!branch&&!(section==='imports'&&canBootstrap)))content=<Onboarding {...ctx}/>;
  else if(contextError&&section!=='imports')content=<ErrorBox error={contextError} t={t} retry={()=>void refreshWorkspace()}/>;
  else if(branch&&dataContext?.branch_id!==branch&&section!=='imports')content=<div className="alert info" role="status">{t('workspaceLoading')}</div>;
- else content=section==='dashboard'?<Dashboard {...ctx}/>:section==='sales'?<Sales {...ctx}/>:section==='forecasts'?<Forecasts {...ctx} id={id}/>:section==='procurement'?<Procurement {...ctx} id={id}/>:section==='imports'?<Imports {...ctx}/>:section==='reports'?<Reports {...ctx}/>:<Reference {...ctx} section={section}/>;
+ else content=section==='dashboard'?<Dashboard {...ctx}/>:section==='data'?<DataWorkspace {...ctx}/>:section==='sales'?<Sales {...ctx}/>:section==='forecasts'?<Forecasts {...ctx} id={id}/>:section==='procurement'?<Procurement {...ctx} id={id}/>:section==='imports'?<Imports {...ctx}/>:section==='reports'?<Reports {...ctx}/>:<Reference {...ctx} section={section}/>;
  return <div className="app" key={user.organization_id+':'+user.id}>
   <a className="skip-link" href="#main">{lang==='kk'?'Негізгі мазмұнға өту':'Перейти к содержимому'}</a>
   {drawer&&<button className="drawer-overlay" aria-label={lang==='kk'?'Мәзірді жабу':'Закрыть меню'} tabIndex={-1} onClick={()=>setDrawer(false)}/>}
   <aside ref={drawerRef} id="workspace-navigation" inert={compact&&!drawer?true:undefined} aria-hidden={compact&&!drawer?true:undefined} role={drawer?'dialog':undefined} aria-modal={drawer?true:undefined} aria-label={lang==='kk'?'Жұмыс мәзірі':'Рабочее меню'} className={'sidebar '+(drawer?'open':'')}>
    {drawer&&<button className="icon-button drawer-close" aria-label={lang==='kk'?'Мәзірді жабу':'Закрыть меню'} onClick={()=>setDrawer(false)}><X/></button>}
    <a className="brand" href="/dashboard" onClick={event=>{event.preventDefault();go('/dashboard')}}><span className="brand-symbol"><Leaf size={24}/></span><span>AsBoljam<span className="brand-dot">.</span></span></a>
-   {[[lang==='kk'?'ЖҰМЫС КҮНІ':'РАБОЧИЙ ДЕНЬ',['dashboard','sales','forecasts','procurement']],[lang==='kk'?'ДЕРЕКТЕР МЕН ҚОР':'ДАННЫЕ И ЗАПАСЫ',['inventory','recipes','suppliers','imports','reports']]].map(([label,keys])=><div className="nav-group" key={String(label)}><div className="workspace-label">{label}</div><nav aria-label={String(label)}>{nav.filter(([key])=>keys.includes(key)).map(([key,Icon])=><button key={key} aria-current={section===key?'page':undefined} className={'nav-item '+(section===key?'active':'')} onClick={()=>go('/'+key)}><Icon size={19}/><span>{t(key)}</span>{section===key&&<span className="nav-marker"/>}</button>)}</nav></div>)}
+   <div className="nav-group"><div className="workspace-label">{lang==='kk'?'ЖҰМЫС КҮНІ':'РАБОЧИЙ ДЕНЬ'}</div><nav aria-label={lang==='kk'?'Жұмыс күні':'Рабочий день'}>{workdaySections.map(({key,label,icon:Icon})=><button key={key} aria-current={sectionGroup(section)?.key===key?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key===key?'active':'')} onClick={()=>go('/'+key)}><Icon size={19}/><span>{label[lang==='kk'?0:1]}</span>{sectionGroup(section)?.key===key&&<span className="nav-marker"/>}</button>)}</nav></div>
    <div className="workspace-label manage-label">{t('management')}</div>
-   <nav aria-label={t('management')}>{[['settings',Settings],['audit',ShieldCheck]].map(([key,Icon]:any)=><button key={key} aria-current={section===key?'page':undefined} className={'nav-item '+(section===key?'active':'')} onClick={()=>go('/'+key)}><Icon size={19}/>{t(key)}</button>)}</nav>
+   <nav aria-label={t('management')}><button aria-current={sectionGroup(section)?.key==='settings'?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key==='settings'?'active':'')} onClick={()=>go('/settings')}><Settings size={19}/><span>{managementSection.label[lang==='kk'?0:1]}</span></button></nav>
    <div className="sidebar-bottom">
     <div className="sidebar-note"><strong>{organization?.name??'—'}</strong><span>{workspace?t('availableBranches')+': '+branches.length:t('workspaceLoading')}</span></div>
     <div className="user"><span className="avatar">{user.email[0].toUpperCase()}</span><span className="user-info"><strong>{user.email.split('@')[0]}</strong><small>{t('role_'+user.role)}</small></span>
@@ -155,7 +158,7 @@ export default function App() {
   </aside>
   <div className="main-shell" inert={drawer?true:undefined}>
    <header className="topbar">
-    <div className="top-left"><button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button><div className="breadcrumb">AsBoljam<ChevronRight size={13}/><strong>{t(section)}</strong></div></div>
+    <div className="top-left"><button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button><div className="breadcrumb">AsBoljam<ChevronRight size={13}/><strong>{sectionLabel(section,lang)||t(section)}</strong></div></div>
     <div className="top-right"><label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>{setBranch(event.target.value);if(id)go('/'+section)}}>
      {!branches.length&&<option value="">{t('noBranches')}</option>}
      {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
@@ -166,10 +169,11 @@ export default function App() {
     {!online&&<div className="alert danger"><WifiOff size={18}/>{t('offline')}</div>}
     {authError&&<ErrorBox error={authError} t={t} retry={()=>{setAuthError(null);ctx.refresh()}}/>}
     {currentContext?.dates_editable&&dataContext?.branch_id===branch&&section==='inventory'&&<div className="filters"><label>{t('inventoryDate')}<select aria-label={t('inventoryDate')} value={inventoryDate} onChange={event=>ctx.setInventoryDate(event.target.value)}>{!inventoryDate&&<option value="">{t('snapshotMissing')}</option>}{currentContext.inventory_dates.map(value=><option key={value} value={value}>{date(value)}</option>)}</select></label></div>}
+    <SectionNavigation context={ctx} section={section}/>
     {content}
     <footer><span>AsBoljam <span className="footer-dot">·</span>{lang==='kk'?'Дерекке сүйенген шешім':'Решения на основе данных'}</span><span>{!online&&<><WifiOff size={14}/>{lang==='kk'?'Желі жоқ':'Нет сети'}<span className="footer-dot">·</span></>}{globalContext?.data_origin??'—'}</span></footer>
    </main>
-   <nav className="bottom-nav">{nav.filter(([key])=>['dashboard','forecasts','procurement','inventory'].includes(key)).map(([key,Icon])=><button className={section===key?'active':''} key={key} onClick={()=>go('/'+key)}><Icon size={20}/><span>{t(key)}</span></button>)}<button onClick={()=>setDrawer(true)}><Menu size={20}/><span>{lang==='kk'?'Тағы':'Ещё'}</span></button></nav>
+   <nav className="bottom-nav" aria-label={lang==='kk'?'Жылдам навигация':'Быстрая навигация'}>{workdaySections.filter(({key})=>key!=='data').map(({key,label,icon:Icon})=><button aria-current={sectionGroup(section)?.key===key?'page':undefined} className={sectionGroup(section)?.key===key?'active':''} key={key} onClick={()=>go('/'+key)}><Icon size={20}/><span>{label[lang==='kk'?0:1]}</span></button>)}<button onClick={()=>setDrawer(true)}><Menu size={20}/><span>{lang==='kk'?'Тағы':'Ещё'}</span></button></nav>
   </div>
  </div>;
 }

@@ -1,0 +1,14 @@
+.section-navigation{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 24px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.section-navigation a{display:block;padding:10px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600}
+.section-navigation a[aria-current=page]{background:var(--selected);color:var(--action)}
+.section-navigation a:hover{background:var(--surface);color:var(--ink)}
+.section-navigation a:focus-visible,.data-task:focus-visible,.data-review-links a:focus-visible{outline:3px solid var(--action);outline-offset:3px}
+.sidebar .nav-item span{white-space:normal;line-height:1.3}
+.data-workspace{max-width:1080px;margin:auto}.data-workspace h2{font-size:22px;margin:0 0 20px}
+.data-workspace-context{display:flex;flex-wrap:wrap;gap:10px 24px;color:var(--muted);padding:4px 0 28px;font-size:14px}.data-workspace-context strong{color:var(--ink)}
+.data-task-list{border-top:1px solid var(--border)}.data-task{display:flex;align-items:center;gap:22px;padding:24px 8px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--border)}
+.data-task>span{display:grid;gap:8px;flex:1}.data-task strong{font-size:20px}.data-task span span{font-size:15px;line-height:1.6;color:var(--muted)}.data-task>svg{flex-shrink:0;color:var(--action)}.data-task:hover{background:var(--surface)}
+.data-quality-note{margin:30px 0;padding:26px;background:var(--surface);border-left:3px solid var(--accent)}.data-quality-note p,.data-reference-help p{line-height:1.7;color:var(--muted);max-width:850px}.data-quality-note h2{margin-bottom:8px}
+.data-review-links{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0 32px}.data-review-links a{display:flex;align-items:center;gap:14px;color:var(--ink);text-decoration:none;padding:18px 0;border-bottom:1px solid var(--border)}.data-review-links a>span{display:grid;gap:6px;flex:1}.data-review-links a span span{font-size:14px;color:var(--muted)}.data-review-links svg{flex-shrink:0}
+.data-reference-help{border-top:1px solid var(--border);padding:20px 0}.data-reference-help summary{font-weight:600;cursor:pointer}.data-reference-help summary::marker{color:var(--action)}
+@media(max-width:767px){.section-navigation{gap:0;margin-bottom:20px}.section-navigation a{padding:10px;font-size:13px}.data-task{gap:14px;padding:20px 2px}.data-task strong{font-size:18px}.data-task span span{font-size:14px}.data-review-links{grid-template-columns:1fr;gap:0}.data-quality-note{padding:20px}.data-workspace-context{display:grid;gap:8px}}
