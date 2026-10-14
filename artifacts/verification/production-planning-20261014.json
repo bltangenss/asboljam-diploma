@@ -1,0 +1,429 @@
+{
+  "date": "2026-10-14",
+  "scope": "Saved immutable cooking portions -> stock -> procurement -> explicit human approval/export; local verification only",
+  "application_source_commit": "9592c52eeda67c81cb1cd00691fd6bf2984d3389",
+  "backend_commit": "c64d4010c914740af4c445817c6185aadd1e2eb1",
+  "fixture_policy": "Generated SYNTHETIC/DEMO and artificial REAL/TEST fixtures only. REAL/TEST is not an enterprise pilot.",
+  "python": {
+    "full": {
+      "command": "python -X utf8 -m unittest discover -s tests -p \"test_*.py\" -v",
+      "isolated_database": ".cache/production-full-bootstrap-48eb40ed931e4e6b886b1dc9f4b83496.sqlite",
+      "total": 529,
+      "passed": 528,
+      "skipped": 1,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 271.506,
+      "skip": "test_real_sigterm_drains_child_process_and_keeps_heartbeat_until_publication requires POSIX; Windows host",
+      "path": ".cache/production-python-full.log",
+      "sha256": "08d82931203792d11861e5dc43de590b435592cd7bf3ccc10302870a8ba3f81d"
+    },
+    "focused": {
+      "total": 20,
+      "passed": 20,
+      "seconds": 10.353,
+      "path": ".cache/production-backend-tests.log",
+      "sha256": "19024d1e7478679968a133f35b0a1676e97a3556f430321e56d74077846feed2"
+    },
+    "existing_migrations_worker_lineage": {
+      "total": 111,
+      "passed": 111,
+      "seconds": 35.829,
+      "path": ".cache/production-existing-regression.log",
+      "sha256": "cecae3da70608e526cdeeea49b75383e1d11549af217a91150ea6a2a725730d6"
+    }
+  },
+  "browser": {
+    "command": "npx playwright test --config .cache/production-e2e.config.ts --reporter=list,json --output=.cache/production-browser-full-results",
+    "runtime": "Separate API/worker/web on8001/3001, isolated .cache/production-regression.sqlite",
+    "full": {
+      "path": ".cache/.cache/production-browser-full.json",
+      "sha256": "a5048d251a5553836f06d2cc63b71ef9e843351cf852e8241f06f41852f0b094",
+      "stats": {
+        "startTime": "2026-10-14T18:18:04.724Z",
+        "duration": 637849.7309999999,
+        "expected": 156,
+        "skipped": 3,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "focused_final": {
+      "path": ".cache/.cache/production-ui-final-browser.json",
+      "sha256": "27c0b1556f60a17c02732a4432c3667e210399eab28ab787d6537f3656a297d9",
+      "stats": {
+        "startTime": "2026-10-14T18:13:28.626Z",
+        "duration": 84432.33899999999,
+        "expected": 30,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "production_synthetic": {
+      "path": ".cache/.cache/production-live-synthetic-browser-retry.json",
+      "sha256": "9bb8b2700d40c00841e8254bc60971cf16d4c7a396b0b1c4a04d7f8a34ef1fce",
+      "stats": {
+        "startTime": "2026-10-14T18:08:48.765Z",
+        "duration": 71919.91,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "production_real_test": {
+      "path": ".cache/.cache/production-live-real-browser.json",
+      "sha256": "4c81baac7324a91103ec80c299a4c9c736552fe90881a5e5b0174f9b74a1b6f5",
+      "stats": {
+        "startTime": "2026-10-14T18:11:16.096Z",
+        "duration": 36446.699,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "stock_ledger": {
+      "path": ".cache/production-stock-browser.json",
+      "sha256": "dc432b8e60594a6968af97d0fe4d81f9d798fda4c51350f974afdd68b62e21d2",
+      "stats": {
+        "startTime": "2026-10-14T18:30:46.586Z",
+        "duration": 37215.878000000004,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "stock_count_anchor_real_test": {
+      "path": ".cache/production-anchor-browser.json",
+      "sha256": "8d8b711d6bbe027df9d4941560cab663c27f74c112ccf80c790d411f9a12bb91",
+      "stats": {
+        "startTime": "2026-10-14T18:31:42.174Z",
+        "duration": 54185.907,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "coverage_note": "Full invocation passed156 and skipped3 opt-in live cases. Those3 distinct cases passed separately on fresh fixtures; production additionally passed a second origin mode. Not a single159/159 invocation.",
+    "production_synthetic_result": {
+      "data_origin": "SYNTHETIC",
+      "usage_mode": "DEMO",
+      "generated_fixture_only": true,
+      "target_date": "2026-01-01",
+      "forecast_unchanged": true,
+      "first_portions": 200,
+      "second_portions": 0,
+      "gross_required": 20,
+      "usable_stock": 10,
+      "total_cost": "10000",
+      "old_export_byte_identical": true,
+      "stock_posted": false,
+      "browser_errors": []
+    },
+    "production_real_test_result": {
+      "data_origin": "REAL",
+      "usage_mode": "TEST",
+      "generated_fixture_only": true,
+      "target_date": "2026-09-02",
+      "forecast_unchanged": true,
+      "first_portions": 200,
+      "second_portions": 0,
+      "gross_required": 20,
+      "usable_stock": 12,
+      "total_cost": "8000",
+      "old_export_byte_identical": true,
+      "stock_posted": false,
+      "browser_errors": []
+    }
+  },
+  "build": {
+    "command": "npm run build",
+    "status": "PASS",
+    "js_kb": 590.12,
+    "js_gzip_kb": 171.5,
+    "css_kb": 94.07,
+    "css_gzip_kb": 17.45,
+    "warning": "Vite chunk exceeds500kB",
+    "path": ".cache/production-build-final.log",
+    "sha256": "ab42e33f2cd24af8a1a72bf93526b51ade4d344dc42161a060ac8cc8d5c1483c"
+  },
+  "contracts": {
+    "generator": "python scripts/generate_contracts.py: PASS",
+    "openapi": "Regenerated with explicit isolated DATABASE_URL; checked into contracts/openapi.json",
+    "ui_copy_tests": "2/2 PASS, included in full Python suite"
+  },
+  "visual": {
+    "viewports": [
+      1440,
+      390
+    ],
+    "captures": 6,
+    "directory": ".cache/production-visual",
+    "overflow": false,
+    "page_errors": [],
+    "viewed": [
+      "cooking-draft-1440.png",
+      "cooking-saved-390.png",
+      "cooking-purchase-390.png"
+    ]
+  },
+  "working_migration": {
+    "date": "2026-10-14",
+    "scope": "Working Kazakhstan local SQLite0008 to0009 after verified backup and successful copy rehearsal",
+    "source": "data/asboljam-kz.sqlite",
+    "backup": "backups/pre-production-0009-20261014T182205946369Z.sqlite",
+    "backup_sha256": "45120967fbd730549ea320bdbdd039510f18ab90ae55703abe51ad7f1d1873f8",
+    "rehearsal": ".cache/production-migration-rehearsal-20261014T182205946369Z.sqlite",
+    "nonterminal_jobs_before_stop": 0,
+    "checks": [
+      {
+        "stage": "rehearsal",
+        "versions": [
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005",
+          "0006",
+          "0007",
+          "0008",
+          "0009"
+        ],
+        "old_tables_equal": 23,
+        "old_table_hashes": {
+          "audit_events": {
+            "rows": 11,
+            "sha256": "b59cba2b9a611502067a1f02ff141a1661a21c4a17ebc84677f7280d91dc5ae0"
+          },
+          "auth_sessions": {
+            "rows": 3,
+            "sha256": "7eefa14385a8b72a70717cc1e601d5beeabbdf76c07d467b44de28556396fdac"
+          },
+          "forecasts": {
+            "rows": 2,
+            "sha256": "7964e6fdf30dcd44ee0bd12801840733b95893f4bc271b961faba444a07d1301"
+          },
+          "idempotency_keys": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_batches": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_evidence": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "jobs": {
+            "rows": 4,
+            "sha256": "457a3f58383e5db259411202b4e60b43fca1ffd05928bc096763b90116c40044"
+          },
+          "login_attempts": {
+            "rows": 8,
+            "sha256": "2c3aa4d83f0f2d2c35d2059724cf3d2e14e6122e1a3087f7340e38c412acd4a3"
+          },
+          "operational_records": {
+            "rows": 28681,
+            "sha256": "2293f8ecc9592114ad421617f9f0effe2b346d720546724fd41fe6d7d1440703"
+          },
+          "organization_sources": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "organizations": {
+            "rows": 1,
+            "sha256": "cd6b1f60bf1f5cbcfe5c9c606b976b89ab30d67ab13710a5a8f76147b4cfc308"
+          },
+          "plans": {
+            "rows": 2,
+            "sha256": "a74a15ff2e3253d5b34212583e5d8f3f6cc8c10e4c8e3e97acf5149d8f83da29"
+          },
+          "recipe_activations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "recipe_command_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "record_revisions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "refresh_tokens": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "schema_migrations": {
+            "rows": 8,
+            "sha256": "45468d7df04dfc2e53e67989ef0491b0765dfdea32b90192b198f1319f2cadd2"
+          },
+          "stock_command_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_count_anchors": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_ledgers": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_movements": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "users": {
+            "rows": 1,
+            "sha256": "3ce2d2dcb4af1e6d5968a8f86cf0f81e195844b5da4a0fc7600890823078ddae"
+          }
+        },
+        "new_tables_empty": true,
+        "integrity_check": "ok",
+        "foreign_key_check": "ok"
+      },
+      {
+        "stage": "working_database",
+        "versions": [
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005",
+          "0006",
+          "0007",
+          "0008",
+          "0009"
+        ],
+        "old_tables_equal": 23,
+        "old_table_hashes": {
+          "audit_events": {
+            "rows": 11,
+            "sha256": "b59cba2b9a611502067a1f02ff141a1661a21c4a17ebc84677f7280d91dc5ae0"
+          },
+          "auth_sessions": {
+            "rows": 3,
+            "sha256": "7eefa14385a8b72a70717cc1e601d5beeabbdf76c07d467b44de28556396fdac"
+          },
+          "forecasts": {
+            "rows": 2,
+            "sha256": "7964e6fdf30dcd44ee0bd12801840733b95893f4bc271b961faba444a07d1301"
+          },
+          "idempotency_keys": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_batches": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_evidence": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "import_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "jobs": {
+            "rows": 4,
+            "sha256": "457a3f58383e5db259411202b4e60b43fca1ffd05928bc096763b90116c40044"
+          },
+          "login_attempts": {
+            "rows": 8,
+            "sha256": "2c3aa4d83f0f2d2c35d2059724cf3d2e14e6122e1a3087f7340e38c412acd4a3"
+          },
+          "operational_records": {
+            "rows": 28681,
+            "sha256": "2293f8ecc9592114ad421617f9f0effe2b346d720546724fd41fe6d7d1440703"
+          },
+          "organization_sources": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "organizations": {
+            "rows": 1,
+            "sha256": "cd6b1f60bf1f5cbcfe5c9c606b976b89ab30d67ab13710a5a8f76147b4cfc308"
+          },
+          "plans": {
+            "rows": 2,
+            "sha256": "a74a15ff2e3253d5b34212583e5d8f3f6cc8c10e4c8e3e97acf5149d8f83da29"
+          },
+          "recipe_activations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "recipe_command_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "record_revisions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "refresh_tokens": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "schema_migrations": {
+            "rows": 8,
+            "sha256": "45468d7df04dfc2e53e67989ef0491b0765dfdea32b90192b198f1319f2cadd2"
+          },
+          "stock_command_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_count_anchors": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_ledgers": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stock_movements": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "users": {
+            "rows": 1,
+            "sha256": "3ce2d2dcb4af1e6d5968a8f86cf0f81e195844b5da4a0fc7600890823078ddae"
+          }
+        },
+        "new_tables_empty": true,
+        "integrity_check": "ok",
+        "foreign_key_check": "ok"
+      }
+    ],
+    "schema_migration_hash_note": "Old marker rows0001..0008 compared exactly; new0009 marker is the intended addition.",
+    "legacy_database_incident": "Separate older data/asboljam.sqlite was previously migrated by test module import without immediate pre0009 backup; this report does not claim before/after equality for that separate file."
+  },
+  "runtime_after": "User website/API healthy on3000/8000; test services on3001/8001 stopped. Existing local password preserved.",
+  "attempt_history": [
+    "Early sandbox TEMP/realpath failures and an interrupted command were not successful tests; complete final runs are recorded above.",
+    "Initial new SYNTHETIC live case failed before login because test used obsolete Russian button label. Selector corrected; same untouched fixture retry passed.",
+    "First test import without explicit DATABASE_URL migrated separate legacy data/asboljam.sqlite to0009. New tables empty; no immediate pre0009 backup exists, so complete before/after equality is not claimed for that file. Main data/asboljam-kz.sqlite later upgraded through verified backup and rehearsal."
+  ],
+  "not_tested": [
+    "PostgreSQL migration0009 and new production-plan contract: Docker daemon pipe dockerDesktopLinuxEngine unavailable; tests did not start.",
+    "Native/APK/device behavior; new production-plan editor is web only.",
+    "Production deployment, real enterprise data, business/UX pilot, load and external services.",
+    "New release ZIP; previous archives do not include this feature.",
+    "Full research script not repeated: forecasting/training math unchanged; existing model/engine tests included in full suite."
+  ],
+  "limits": [
+    "Cooking variant is planning intent, not kitchen execution, ingredient posting or supplier order.",
+    "Only point demand is accepted for manual variants. Original forecast remains unchanged.",
+    "Unsaved draft guard covers direct planning continuation, local variant switch and recipe detour; no universal global/sidebar navigation guard."
+  ]
+}

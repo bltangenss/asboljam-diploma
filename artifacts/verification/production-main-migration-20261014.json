@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-14",
+  "scope": "Working Kazakhstan local SQLite0008 to0009 after verified backup and successful copy rehearsal",
+  "source": "data/asboljam-kz.sqlite",
+  "backup": "backups/pre-production-0009-20261014T182205946369Z.sqlite",
+  "backup_sha256": "45120967fbd730549ea320bdbdd039510f18ab90ae55703abe51ad7f1d1873f8",
+  "rehearsal": ".cache/production-migration-rehearsal-20261014T182205946369Z.sqlite",
+  "nonterminal_jobs_before_stop": 0,
+  "checks": [
+    {
+      "stage": "rehearsal",
+      "versions": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "old_tables_equal": 23,
+      "old_table_hashes": {
+        "audit_events": {
+          "rows": 11,
+          "sha256": "b59cba2b9a611502067a1f02ff141a1661a21c4a17ebc84677f7280d91dc5ae0"
+        },
+        "auth_sessions": {
+          "rows": 3,
+          "sha256": "7eefa14385a8b72a70717cc1e601d5beeabbdf76c07d467b44de28556396fdac"
+        },
+        "forecasts": {
+          "rows": 2,
+          "sha256": "7964e6fdf30dcd44ee0bd12801840733b95893f4bc271b961faba444a07d1301"
+        },
+        "idempotency_keys": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_batches": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_evidence": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "jobs": {
+          "rows": 4,
+          "sha256": "457a3f58383e5db259411202b4e60b43fca1ffd05928bc096763b90116c40044"
+        },
+        "login_attempts": {
+          "rows": 8,
+          "sha256": "2c3aa4d83f0f2d2c35d2059724cf3d2e14e6122e1a3087f7340e38c412acd4a3"
+        },
+        "operational_records": {
+          "rows": 28681,
+          "sha256": "2293f8ecc9592114ad421617f9f0effe2b346d720546724fd41fe6d7d1440703"
+        },
+        "organization_sources": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "organizations": {
+          "rows": 1,
+          "sha256": "cd6b1f60bf1f5cbcfe5c9c606b976b89ab30d67ab13710a5a8f76147b4cfc308"
+        },
+        "plans": {
+          "rows": 2,
+          "sha256": "a74a15ff2e3253d5b34212583e5d8f3f6cc8c10e4c8e3e97acf5149d8f83da29"
+        },
+        "recipe_activations": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "recipe_command_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "record_revisions": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "refresh_tokens": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "schema_migrations": {
+          "rows": 8,
+          "sha256": "45468d7df04dfc2e53e67989ef0491b0765dfdea32b90192b198f1319f2cadd2"
+        },
+        "stock_command_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_count_anchors": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_ledgers": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_movements": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "users": {
+          "rows": 1,
+          "sha256": "3ce2d2dcb4af1e6d5968a8f86cf0f81e195844b5da4a0fc7600890823078ddae"
+        }
+      },
+      "new_tables_empty": true,
+      "integrity_check": "ok",
+      "foreign_key_check": "ok"
+    },
+    {
+      "stage": "working_database",
+      "versions": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "old_tables_equal": 23,
+      "old_table_hashes": {
+        "audit_events": {
+          "rows": 11,
+          "sha256": "b59cba2b9a611502067a1f02ff141a1661a21c4a17ebc84677f7280d91dc5ae0"
+        },
+        "auth_sessions": {
+          "rows": 3,
+          "sha256": "7eefa14385a8b72a70717cc1e601d5beeabbdf76c07d467b44de28556396fdac"
+        },
+        "forecasts": {
+          "rows": 2,
+          "sha256": "7964e6fdf30dcd44ee0bd12801840733b95893f4bc271b961faba444a07d1301"
+        },
+        "idempotency_keys": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_batches": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_evidence": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "import_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "jobs": {
+          "rows": 4,
+          "sha256": "457a3f58383e5db259411202b4e60b43fca1ffd05928bc096763b90116c40044"
+        },
+        "login_attempts": {
+          "rows": 8,
+          "sha256": "2c3aa4d83f0f2d2c35d2059724cf3d2e14e6122e1a3087f7340e38c412acd4a3"
+        },
+        "operational_records": {
+          "rows": 28681,
+          "sha256": "2293f8ecc9592114ad421617f9f0effe2b346d720546724fd41fe6d7d1440703"
+        },
+        "organization_sources": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "organizations": {
+          "rows": 1,
+          "sha256": "cd6b1f60bf1f5cbcfe5c9c606b976b89ab30d67ab13710a5a8f76147b4cfc308"
+        },
+        "plans": {
+          "rows": 2,
+          "sha256": "a74a15ff2e3253d5b34212583e5d8f3f6cc8c10e4c8e3e97acf5149d8f83da29"
+        },
+        "recipe_activations": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "recipe_command_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "record_revisions": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "refresh_tokens": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "schema_migrations": {
+          "rows": 8,
+          "sha256": "45468d7df04dfc2e53e67989ef0491b0765dfdea32b90192b198f1319f2cadd2"
+        },
+        "stock_command_receipts": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_count_anchors": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_ledgers": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stock_movements": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "users": {
+          "rows": 1,
+          "sha256": "3ce2d2dcb4af1e6d5968a8f86cf0f81e195844b5da4a0fc7600890823078ddae"
+        }
+      },
+      "new_tables_empty": true,
+      "integrity_check": "ok",
+      "foreign_key_check": "ok"
+    }
+  ],
+  "schema_migration_hash_note": "Old marker rows0001..0008 compared exactly; new0009 marker is the intended addition.",
+  "legacy_database_incident": "Separate older data/asboljam.sqlite was previously migrated by test module import without immediate pre0009 backup; this report does not claim before/after equality for that separate file."
+}
