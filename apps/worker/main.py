@@ -9,7 +9,7 @@ import uuid
 from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import DBAPIError, OperationalError
 from apps.api.accounts import lock_user
-from apps.api.db import Audit, Forecast, Job, Organization, Plan, Record, User, make_engine, migrate, now, sessions
+from apps.api.db import Audit, Forecast, Job, Organization, Plan, ProductionPlan, Record, User, make_engine, migrate, now, sessions
 from apps.api.engine import forecast, procurement, validate_calculation_context
 from apps.api.observability import emit_event
 from apps.worker.calculation_process import (CalculationCancelled, CalculationFailed,
@@ -154,6 +154,23 @@ def access_error(db, job, actor):
                 or source.branch_id != job.branch_id
                 or source.result != job.snapshot.get('forecast_result')):
             return 'JOB_SCOPE_INVALID'
+        production_id = job.payload.get('production_plan_id')
+        if production_id is not None:
+            from fastapi import HTTPException
+            from apps.api.lineage import input_freshness
+            from apps.api.production import validate_production_binding
+            production = db.get(ProductionPlan, production_id) if isinstance(production_id, str) else None
+            if (production is None or production.organization_id != job.organization_id
+                    or production.document != job.snapshot.get('production_plan_evidence')):
+                return 'JOB_SCOPE_INVALID'
+            try:
+                validate_production_binding(production, source, job.branch_id)
+            except (HTTPException, TypeError, ValueError):
+                return 'JOB_INPUT_INVALID'
+            if input_freshness(db, job.organization_id, production.input_lineage) != 'unchanged':
+                return 'JOB_INPUT_INVALID'
+        elif job.snapshot.get('production_plan_evidence') is not None:
+            return 'JOB_INPUT_INVALID'
     elif job.kind != 'forecast':
         return 'JOB_INPUT_INVALID'
     return None
@@ -201,6 +218,24 @@ def snapshot_error(job):
                 or (source.get('execution_context') != context
                     and not (expected_origin == 'SYNTHETIC' and source.get('execution_context') is None))):
             return 'JOB_SCOPE_INVALID'
+        production = job.snapshot.get('production_plan_evidence')
+        if production is not None:
+            from fastapi import HTTPException
+            from apps.api.production import validate_portions
+            if not isinstance(production, dict):
+                return 'JOB_INPUT_INVALID'
+            if (job.payload.get('strategy') != 'point' or production.get('basis') != 'manual_portions'
+                    or production.get('id') != job.payload.get('production_plan_id')
+                    or production.get('forecast_id') != job.payload.get('forecast_id')
+                    or production.get('branch_id') != job.branch_id
+                    or production.get('target_date') != source.get('target_date')):
+                return 'JOB_SCOPE_INVALID'
+            try:
+                validate_portions(production.get('portions'), source.get('predictions'))
+            except (HTTPException, TypeError, ValueError):
+                return 'JOB_INPUT_INVALID'
+        elif job.payload.get('production_plan_id') is not None:
+            return 'JOB_INPUT_INVALID'
     return None
 
 
@@ -218,6 +253,15 @@ def result_error(job, result):
             return 'JOB_SCOPE_INVALID'
     elif result.get('execution_context') is not None:
         return 'JOB_SCOPE_INVALID'
+    if job.kind == 'procurement':
+        production = job.snapshot.get('production_plan_evidence')
+        if production is not None:
+            if (result.get('production_plan_evidence') != production
+                    or result.get('production_plan_id') != production['id']
+                    or result.get('demand_basis') != 'production_plan' or result.get('strategy') != 'point'):
+                return 'JOB_INPUT_INVALID'
+        elif any(result.get(key) is not None for key in ('production_plan_id', 'production_plan_evidence', 'demand_basis')):
+            return 'JOB_INPUT_INVALID'
     return None
 
 

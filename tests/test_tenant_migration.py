@@ -15,7 +15,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
 
 from apps.api.db import Base, Organization, make_engine, migrate
-from apps.api.migrations import IMPORT_TABLE_NAMES, LEGACY_TABLE_NAMES, SOURCE_TABLE_NAMES, STOCK_TABLE_NAMES, RECIPE_TABLE_NAMES, COUNT_ANCHOR_TABLE_NAMES, VERSIONS, MigrationError, _initial_schema
+from apps.api.migrations import IMPORT_TABLE_NAMES, LEGACY_TABLE_NAMES, SOURCE_TABLE_NAMES, STOCK_TABLE_NAMES, RECIPE_TABLE_NAMES, COUNT_ANCHOR_TABLE_NAMES, PRODUCTION_TABLE_NAMES, VERSIONS, MigrationError, _initial_schema
 from database_fixture import isolated_database_url
 from scripts.backup_db import copy_database
 
@@ -77,7 +77,7 @@ class TenantMigrationTests(unittest.TestCase):
         self.assertEqual(self.versions(), list(VERSIONS))
         self.assertEqual(self.organizations(), [])
         self.assertEqual(set(inspect(self.engine).get_table_names()),
-                         set(LEGACY_TABLE_NAMES) | set(IMPORT_TABLE_NAMES) | set(SOURCE_TABLE_NAMES) | set(STOCK_TABLE_NAMES) | set(RECIPE_TABLE_NAMES) | set(COUNT_ANCHOR_TABLE_NAMES) | {'organizations', 'schema_migrations'})
+                         set(LEGACY_TABLE_NAMES) | set(IMPORT_TABLE_NAMES) | set(SOURCE_TABLE_NAMES) | set(STOCK_TABLE_NAMES) | set(RECIPE_TABLE_NAMES) | set(COUNT_ANCHOR_TABLE_NAMES) | set(PRODUCTION_TABLE_NAMES) | {'organizations', 'schema_migrations'})
 
     def test_0001_table_allowlist_excludes_new_models(self):
         self.legacy_schema(populated=False)

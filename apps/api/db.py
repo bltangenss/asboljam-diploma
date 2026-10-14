@@ -293,6 +293,30 @@ class Plan(Base):
     status: Mapped[str] = mapped_column(String(32), default='ready')
     result: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[str] = mapped_column(String(64), default=now)
+class ProductionPlan(Base):
+    __tablename__ = 'production_plans'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    forecast_id: Mapped[str] = mapped_column(String(64), ForeignKey('forecasts.id'))
+    target_date: Mapped[str] = mapped_column(String(10))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    document: Mapped[dict] = mapped_column(JSON)
+    input_lineage: Mapped[dict] = mapped_column(JSON)
+    forecast_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (Index('ix_production_plan_scope', 'organization_id', 'branch_id', 'forecast_id', 'created_at'),)
+class ProductionPlanReceipt(Base):
+    __tablename__ = 'production_plan_receipts'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    key: Mapped[str] = mapped_column(String(128))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    production_plan_id: Mapped[str] = mapped_column(String(64), ForeignKey('production_plans.id'))
+    response: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_production_plan_receipt'),)
 class Audit(Base):
     __tablename__ = 'audit_events'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

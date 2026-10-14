@@ -63,10 +63,37 @@ def calculate_snapshot(payload, snapshot, kind, *, forecast_fn=None, procurement
         for item in result['predictions']:
             item['meal_name'] = names.get(str(item['meal_id']), str(item['meal_id']))
     else:
-        result = procurement_fn(snapshot['forecast_result'], snapshot['ingredients'], snapshot['recipes'],
+        demand = snapshot['forecast_result']
+        production = snapshot.get('production_plan_evidence')
+        if production is not None:
+            # Preserve the actual model output in the snapshot. Only this local
+            # calculation input uses the explicitly saved integer portions.
+            from apps.api.production import validate_portions
+            try:
+                validate_portions(production.get('portions'), demand.get('predictions'))
+            except Exception:
+                raise ValueError('Invalid production portions') from None
+            if (payload.get('strategy') != 'point' or production.get('basis') != 'manual_portions'
+                    or production.get('id') != payload.get('production_plan_id')
+                    or production.get('forecast_id') != payload.get('forecast_id')
+                    or production.get('branch_id') != payload.get('branch_id')
+                    or production.get('target_date') != demand.get('target_date')):
+                raise ValueError('Invalid production binding')
+            portions = {r['meal_id']: r['portions'] for r in production['portions']}
+            demand = deepcopy(demand)
+            demand['predictions'] = [dict(r, point_forecast=portions[r['meal_id']], p10=None, p50=None, p90=None)
+                                     for r in demand['predictions']]
+        elif payload.get('production_plan_id') is not None:
+            raise ValueError('Missing production evidence')
+        result = procurement_fn(demand, snapshot['ingredients'], snapshot['recipes'],
             snapshot['inventory_lots'], snapshot['supplier_offers'], snapshot['suppliers'],
             payload['branch_id'], snapshot['forecast_result']['target_date'],
             payload['budget'], payload['strategy'], **context_argument)
+        if production is not None:
+            result.update(production_plan_id=production['id'], demand_basis='production_plan',
+                          production_plan_evidence=deepcopy(production))
+            result['warnings'] = [message.replace('the selected forecast cannot be fully served',
+                'the saved cooking portions cannot be fully prepared') for message in result.get('warnings', [])]
         result['recipe_versions'] = sorted({r['recipe_version'] for r in snapshot['recipes']})
         for name in ('stock_evidence', 'recipe_evidence'):
             if name in snapshot:

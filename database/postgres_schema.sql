@@ -1,4 +1,4 @@
--- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006 + 0007 + 0008. No external source schema was supplied.
+-- Current SQLAlchemy schema after migrations 0001 + 0002 + 0003 + 0004 + 0005 + 0006 + 0007 + 0008 + 0009. No external source schema was supplied.
 -- Use database/migrate.py to upgrade existing data and backfill tenant metadata transactionally.
 
 
@@ -406,3 +406,34 @@ CREATE TABLE stock_count_anchors (
 );
 
 CREATE INDEX ix_stock_count_anchor_scope ON stock_count_anchors (organization_id, branch_id, count_date);
+
+CREATE TABLE production_plans (
+	id VARCHAR(64) NOT NULL,
+	organization_id VARCHAR(64) NOT NULL,
+	branch_id VARCHAR(64) NOT NULL,
+	forecast_id VARCHAR(64) NOT NULL,
+	target_date VARCHAR(10) NOT NULL,
+	actor_id VARCHAR(64) NOT NULL,
+	document JSON NOT NULL,
+	input_lineage JSON NOT NULL,
+	forecast_sha256 VARCHAR(64) NOT NULL,
+	created_at VARCHAR(64) NOT NULL,
+	PRIMARY KEY (id),
+	FOREIGN KEY(forecast_id) REFERENCES forecasts (id)
+);
+
+CREATE INDEX ix_production_plan_scope ON production_plans (organization_id, branch_id, forecast_id, created_at);
+
+CREATE TABLE production_plan_receipts (
+	id VARCHAR(64) NOT NULL,
+	organization_id VARCHAR(64) NOT NULL,
+	actor_id VARCHAR(64) NOT NULL,
+	key VARCHAR(128) NOT NULL,
+	payload_hash VARCHAR(64) NOT NULL,
+	production_plan_id VARCHAR(64) NOT NULL,
+	response JSON NOT NULL,
+	created_at VARCHAR(64) NOT NULL,
+	PRIMARY KEY (id),
+	CONSTRAINT uq_production_plan_receipt UNIQUE (organization_id, actor_id, key),
+	FOREIGN KEY(production_plan_id) REFERENCES production_plans (id)
+);

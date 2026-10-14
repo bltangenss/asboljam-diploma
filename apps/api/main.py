@@ -21,7 +21,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import object_session
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
-from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, Record, RefreshToken, User, make_engine, migrate, sessions
+from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, ProductionPlan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
 from .lineage import capture_lineage, input_freshness, input_provenance
@@ -31,6 +31,7 @@ from .security import password_hash, token_hash, verify_password
 from .stock import StockError
 from .stock_api import register_stock_routes
 from .stock_dependencies import prepare_procurement_stock
+from .production import public_document, register_production_routes, require_fresh, validate_production_binding
 from .tenants import organization_active, organization_json
 from .data_policy import (DataPolicyError, ensure_rows, execution_context, metadata,
                           policy_context, validate_execution_context, workspace_context)
@@ -75,6 +76,7 @@ class ProcurementInput(StrictModel):
     forecast_id: str
     budget: Decimal = Field(ge=0, le=1000000000, max_digits=14, decimal_places=2)
     strategy: Literal['point','p50','p90_stress'] = 'point'
+    production_plan_id: str | None = Field(default=None, pattern=r'^[A-Za-z0-9_-]{1,64}$')
 class ApprovalInput(StrictModel):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=3, max_length=1000)
@@ -154,6 +156,8 @@ def result_metadata(result):
 def plan_json(plan, freshness_cache=None):
     lineage=plan.result.get('input_lineage')
     result={key:value for key,value in plan.result.items() if key!='input_lineage'}
+    if result.get('production_plan_evidence') is not None:
+        result['production_plan_evidence']=public_document(result['production_plan_evidence'])
     return {**result, **result_metadata(result), 'id':plan.id,'run_id':plan.id,'branch_id':plan.branch_id,'forecast_id':plan.forecast_id,'version':plan.version,'status':plan.status,'created_at':plan.created_at,
             'input_freshness':input_freshness(object_session(plan),plan.organization_id,lineage,state_cache=freshness_cache),
             'input_provenance':input_provenance(plan.organization_id,lineage)}
@@ -277,6 +281,8 @@ def create_app(database_url=None):
         if not row or row.organization_id != user.organization_id or row.branch_id not in user.branch_ids:
             fail('NOT_FOUND','Жазба табылмады.',404)
         return row
+    register_production_routes(app, current=current, get_db=get_db, roles=roles,
+                               branch_access=branch_access, scoped=scoped)
     # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
     unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):
@@ -570,8 +576,18 @@ def create_app(database_url=None):
         validate_execution_context(db,user.organization_id,context)
         if forecast.result.get('data_origin')!=context['data_origin']:
             fail('DATA_ORIGIN_MISMATCH','Болжамның шығу тегі ұйымға сәйкес емес.',422)
+        production_plan=None
+        if data.production_plan_id is not None:
+            production_plan=scoped(db,ProductionPlan,user,data.production_plan_id)
+            validate_production_binding(production_plan,forecast,data.branch_id)
+            validate_execution_context(db,user.organization_id,production_plan.document['execution_context'])
+            require_fresh(db,user.organization_id,production_plan.input_lineage)
+            if data.strategy!='point':
+                fail('PRODUCTION_STRATEGY_INVALID','Дайындау жоспарының нақты порциялары қолданылады; квантиль таңдауға болмайды.',422)
         if data.strategy!='point' and any(r.get('p50' if data.strategy=='p50' else 'p90') is None for r in forecast.result['predictions']): fail('QUANTILES_UNAVAILABLE','Бұл модельде квантильдер жоқ.',422)
         snapshot={'forecast_result':forecast.result,'execution_context':context,**{k:rows_for(db,user.organization_id,k,data.branch_id if k=='inventory_lots' else None) for k in ['ingredients','recipes','inventory_lots','supplier_offers','suppliers']}}
+        if production_plan is not None:
+            snapshot['production_plan_evidence']=production_plan.document
         for kind in ('ingredients','recipes','inventory_lots','supplier_offers','suppliers'): ensure_rows(context,snapshot[kind])
         target_date=forecast.result['target_date']
         branch_lots=snapshot['inventory_lots']
@@ -704,7 +720,14 @@ def create_app(database_url=None):
             anchor=stock['count_anchor']
             common.update(stock_count_anchor_id=anchor.get('id'),
                 stock_count_anchor_date=anchor.get('count_date'))
+        production=plan.result.get('production_plan_evidence')
+        if production is not None:
+            common.update(demand_basis='production_plan',production_plan_id=production['id'],
+                production_plan_name=production['name'],production_plan_reason=production['reason'],
+                production_plan_created_at=production['created_at'])
         rows=[{**common,'row_type':'summary','total_cost':plan.result.get('total_cost'),'budget':plan.result.get('budget'),'shortage_count':plan.result.get('shortage_count'),'constraints_valid':plan.result.get('constraints_valid')}]
+        if production is not None:
+            rows += [{**common,'row_type':'production_portion',**r} for r in production['portions']]
         rows += [{**common,'row_type':'requirement',**r} for r in plan.result.get('requirements',[])]
         rows += [{**common,'row_type':'purchase',**r} for r in plan.result.get('lines',[])]
         return Response(safe_csv(rows),media_type='text/csv; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="plan-{plan.id}.csv"'})
