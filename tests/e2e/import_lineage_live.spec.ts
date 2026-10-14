@@ -80,7 +80,7 @@ test('real correction invalidates ready inputs, preserves approved history and l
  const pageErrors:string[]=[];page.on('pageerror',error=>pageErrors.push(error.message));
  await page.goto('/');await page.getByLabel('Электрондық пошта',{exact:true}).fill(fixture.email);
  await page.getByLabel('Құпиясөз',{exact:true}).fill(fixture.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
  const session=await getJson(page,'/session/me');expect(session.user.organization_id).toBe(fixture.organization_id);
  const headers={Origin:new URL(page.url()).origin,'X-CSRF-Token':session.csrf_token};
  const salesPath='/sales?'+new URLSearchParams({branch_id:'1',date_from:String(original.date),date_to:String(original.date),meal_id:String(original.meal_id)});

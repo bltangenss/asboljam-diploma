@@ -1,3 +1,4 @@
+import {navigateTo} from './navigation';
 import {test, expect, type Page, type Route} from '@playwright/test';
 
 // Deterministic browser race tests. No real credentials, worker jobs or database mutations.
@@ -38,7 +39,7 @@ async function installApi(page:Page, intercept?:(route:Route,path:string)=>Promi
   return auth;
 }
 async function expectDashboard(page:Page) {
-  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Бүгін'})).toBeVisible();
   await expect(page.locator('.metric-value').first()).toHaveText('2');
 }
 async function signInAgain(page:Page) {
@@ -74,8 +75,8 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   auth.user={...user,role:'analyst'};
   await page.goto('/forecasts');
   await expect(page.getByRole('status').filter({hasText:'Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.'})).toBeVisible();
-  await expect(page.getByRole('button',{name:'01.01.2026 күніне болжам',exact:true})).toBeVisible();
-  await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
+  await page.locator('.planning-history-disclosure>summary').click();await expect(page.getByRole('button',{name:'01.01.2026 күніне болжам',exact:true})).toBeVisible();
+  await page.locator('.planning-options>summary').click();await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
   const forecastButton=page.getByRole('button',{name:'Есептеу',exact:true});
   await expect(forecastButton).toBeDisabled();
   await forecastButton.evaluate((button:HTMLButtonElement)=>button.click());
@@ -136,7 +137,7 @@ for (const trigger of ['protected read','logout'] as const) {
     await page.goto('/'); await expectDashboard(page);
     auth.authenticated=false;
     if (trigger==='logout') await page.getByTitle('Шығу',{exact:true}).click();
-    else await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+    else await navigateTo(page,'sales');
     await expect(page).toHaveURL(/\/login$/);
     await signInAgain(page);
   });
@@ -152,9 +153,9 @@ test('a delayed 401 from an old session cannot sign out the new login',async({pa
     return true;
   });
   await page.goto('/'); await expectDashboard(page);
-  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+  await navigateTo(page,'sales');
   await started.promise; auth.authenticated=false;
-  await page.locator('.sidebar').getByRole('button',{name:'Қойма',exact:true}).click();
+  await page.locator('.sidebar').getByRole('button',{name:'Қалдықтар',exact:true}).click();
   await signInAgain(page);
   const completed=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/sales');
   release.resolve(); await completed; await settleBrowser(page);
@@ -178,7 +179,7 @@ test('a delayed branch lookup cannot replace branches after signing in again',as
   await page.goto('/');await started.promise;
   auth.authenticated=false;
   // Branch views now wait for an actual branch; settings still verifies the session.
-  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар',exact:true}).click();
+  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
   await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
   auth.user={...user,branch_ids:['2']};newSession=true;
   await signInAgain(page);

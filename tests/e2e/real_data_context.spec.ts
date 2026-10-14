@@ -1,3 +1,4 @@
+import {navigateTo} from './navigation';
 import {test,expect,type Page,type Route} from '@playwright/test';
 
 // These REAL-contract responses and rows are artificial TEST fixtures, never business evidence.
@@ -35,12 +36,12 @@ async function install(page:Page,state:Fixture,intercept?:(route:Route,path:stri
 
 test('REAL TEST workspace uses server dates and explicitly selected forecast origin',async({page})=>{
  const state=fixture();await install(page,state);await page.goto('/');
- await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
  await expect(page.locator('.scenario-banner')).toContainText('TEST · жасанды тексеру мысалы');
  await expect(page.locator('.scenario-banner')).toContainText('REAL');
  await expect(page.locator('body')).not.toContainText('SYNTHETIC');await expect(page.locator('body')).not.toContainText('01.01.2026');
  expect(state.requests.find(item=>item.path==='/dashboard')!.query.get('inventory_date')).toBe('2026-09-21');
- await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();
+ await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();
  await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-21');
  await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
  await expect(page.getByLabel('Болжам күні',{exact:true})).toHaveValue('21.09.2026');
@@ -58,7 +59,7 @@ test('inventory and sales export follow actual selected dates, including expiry 
  await expect(page.getByText('Мерзімі жақын',{exact:true})).toBeVisible();
  const latest=state.requests.filter(item=>item.path==='/inventory').at(-1)!;
  expect(latest.query.get('date_from')).toBe('2026-09-20');expect(latest.query.get('date_to')).toBe('2026-09-20');
- await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+ await navigateTo(page,'sales');
  await expect(page.getByLabel('Дейін',{exact:true})).toHaveValue('2026-09-21');
  await page.getByLabel('Бастап',{exact:true}).fill('2026-09-10');await page.getByLabel('Дейін',{exact:true}).fill('2026-09-19');
  const href=await page.getByRole('link',{name:'CSV жүктеу',exact:true}).getAttribute('href');
@@ -76,8 +77,8 @@ test('REAL imports use configured source and coverage refresh preserves selected
   return false;
  });
  await page.goto('/inventory');await page.getByLabel('Қор кесіндісінің күні',{exact:true}).selectOption('2026-09-20');
- await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
- await page.locator('.sidebar').getByRole('button',{name:'Дерек импорттау',exact:true}).click();
+ await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
+ await navigateTo(page,'imports');
  await expect(page.getByText('Тек бапталған дерек көзі мен бөлімшеге тиесілі REAL деректері қабылданады.',{exact:false})).toBeVisible();
  await page.getByText('Дерек көзі туралы мәлімет',{exact:true}).click();
  await expect(page.getByLabel('Дерек көзінің коды',{exact:true})).toHaveValue('registered_test_pos');
@@ -87,8 +88,8 @@ test('REAL imports use configured source and coverage refresh preserves selected
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();const readsBeforeCommit=sessionReads;await page.getByRole('button',{name:'Импорттау',exact:true}).click();
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();await expect.poll(()=>sessionReads).toBe(readsBeforeCommit+1);
  const preview=state.requests.find(item=>item.path==='/imports/preview')!;expect(preview.body.source).toEqual({source_id:'registered_test_pos',mapping_version:'test-v2'});
- await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-20');
- await page.locator('.sidebar').getByRole('button',{name:'Қойма',exact:true}).click();await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue('2026-09-20');
+ await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-20');
+ await page.locator('.sidebar').getByRole('button',{name:'Қалдықтар',exact:true}).click();await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue('2026-09-20');
 });
 
 test('missing REAL context cannot fall back to synthetic branch requests',async({page})=>{
@@ -113,9 +114,9 @@ test('late branch data context cannot override the dates of a newer login',async
  await page.getByTitle('Шығу',{exact:true}).click();await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
  const next=fixture('new','new-002');state.id=next.id;state.branch=next.branch;state.context={...next.context,forecast_origin:'2026-09-18',target_date:'2026-09-19'};
  await page.getByLabel('Электрондық пошта',{exact:true}).fill('fixture@example.invalid');await page.getByLabel('Құпиясөз',{exact:true}).fill('Fixture-only-passphrase');
- await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
  release.resolve();await expect.poll(()=>completed).toBe(true);
- await page.locator('.sidebar').getByRole('button',{name:'Болжам',exact:true}).click();
+ await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();
  await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-18');
  expect(state.requests.some(item=>item.path==='/dashboard'&&item.query.get('branch_id')==='old-001')).toBe(false);
 });
@@ -125,7 +126,7 @@ test('saved forecast without an origin makes no guessed history request',async({
   if(path!=='/forecasts/legacy')return false;
   await route.fulfill({json:{id:'legacy',branch_id:state.branch,data_origin:'REAL',model:'seasonal_naive_7',target_date:'2026-09-21',predictions:[{meal_id:'meal-test',point_forecast:2,p10:null,p50:null,p90:null}],metadata:{},input_freshness:'unknown'}});return true;
  });
- await page.goto('/forecasts/legacy');
+ await page.goto('/forecasts/legacy');await page.locator('.planning-chart-disclosure>summary').click();
  await expect(page.getByText('Есептеу тарихының шекті күні белгісіз. График үшін деректер сұралмады.',{exact:true})).toBeVisible();
  expect(state.requests.some(item=>item.path==='/sales')).toBe(false);await expect(page.getByTestId('forecast-time-chart')).toHaveCount(0);
 });
@@ -177,10 +178,10 @@ test('API refusals and dashboard warnings follow the selected language instead o
   return false;
  });
  await page.goto('/');
- await expect(page.locator('.attention-list')).toContainText('Таңдалған күнге қор кесіндісі жоқ.');
+ await expect(page.locator('.today-task-list')).toContainText('Таңдалған күнге қор кесіндісі жоқ.');
  await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
- await expect(page.locator('.attention-list')).toContainText('На выбранную дату нет среза остатков.');
- await page.locator('.sidebar').getByRole('button',{name:'Прогноз',exact:true}).click();
+ await expect(page.locator('.today-task-list')).toContainText('На выбранную дату нет среза остатков.');
+ await page.locator('.sidebar').getByRole('button',{name:'План дня',exact:true}).click();
  await page.getByRole('button',{name:'Рассчитать',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'часовому поясу'})).toContainText('Выберите только завершённый день по часовому поясу организации.');
  await expect(page.locator('body')).not.toContainText('API-ONLY-ORIGIN-TEXT');

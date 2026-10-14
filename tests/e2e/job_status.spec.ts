@@ -106,7 +106,7 @@ test('success without a result id is recoverable and never opens a null result',
 for(const kind of ['forecast','procurement'])test(`reload restores access to an existing ${kind} without creating another job`,async({page})=>{
  const state=await install(page,'ru',kind);state.status='running';state.heartbeat_at=990;
  state.history=[{id:'job-status-fixture',status:'running',created_at:'2026-01-01T10:00:00Z'}];
- await page.reload();
+ await page.reload();await page.locator('.planning-runs-disclosure>summary').click();
  const history=page.getByRole('region',{name:'История расчётов'});
  await expect(history).toContainText('Выполняется расчёт');
  await history.getByRole('button',{name:'Открыть задачу job-status-fixture'}).click();
@@ -119,7 +119,7 @@ for(const kind of ['forecast','procurement'])test(`reload restores access to an 
 test('history paginates and refreshes errors without pretending the history is empty',async({page})=>{
  const state=await install(page,'ru');
  state.history=Array.from({length:21},(_,index)=>({id:'history-'+index,status:'succeeded',created_at:'2026-01-01T10:00:00Z'}));
- await page.reload();
+ await page.reload();await page.locator('.planning-runs-disclosure>summary').click();
  const history=page.getByRole('region',{name:'История расчётов'});
  await expect(history.getByRole('button',{name:'Открыть задачу',exact:false})).toHaveCount(20);
  await history.getByRole('button',{name:'Следующая страница'}).click();
@@ -141,7 +141,7 @@ test('saved successful forecast opens from history after reload',async({page})=>
  const state=await install(page,'ru');
  state.history=[{id:'job-status-fixture',status:'succeeded',created_at:'2026-01-01T10:00:00Z'}];
  state.status='succeeded';state.result_id='saved-result';
- await page.reload();
+ await page.reload();await page.locator('.planning-runs-disclosure>summary').click();
  await page.getByRole('region',{name:'История расчётов'}).getByRole('button',{name:'Открыть задачу job-status-fixture'}).click();
  await expect(page).toHaveURL(/\/forecasts\/saved-result$/);
  expect(state.posts).toBe(1);

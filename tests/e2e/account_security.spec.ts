@@ -1,3 +1,4 @@
+import {navigateTo} from './navigation';
 import {test, expect, type Page, type Route} from '@playwright/test';
 
 // All credentials and responses are fabricated. These tests do not contact a real account.
@@ -158,7 +159,7 @@ test('pending password submission is unique and its success signs out after navi
   await expect(page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true})).toBeDisabled();
   await expect(page.getByLabel('Қазіргі құпиясөз',{exact:true})).toBeDisabled();
   await page.getByRole('form',{name:'Құпиясөзді өзгерту',exact:true}).evaluate((form:HTMLFormElement)=>form.requestSubmit());
-  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+  await navigateTo(page,'sales');
   await expect(page.getByRole('heading',{name:'Сатылым',exact:true})).toBeVisible();
   release.resolve();
   await expectLogin(page,'Құпиясөз өзгертілді. Қайта кіріңіз.');
@@ -175,17 +176,17 @@ test('late password success cannot sign out a newer login',async({page})=>{
   await page.goto('/settings');await fillPasswords(page);
   await page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true}).click();await started.promise;
   auth.authenticated=false;
-  await page.locator('.sidebar').getByRole('button',{name:'Сатылым',exact:true}).click();
+  await navigateTo(page,'sales');
   await expectLogin(page,'Сессия аяқталды. Қайта кіріңіз.');
   await page.getByLabel('Электрондық пошта',{exact:true}).fill(user.email);
   await page.getByLabel('Құпиясөз',{exact:true}).fill(replacement);
   await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
   const completed=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/account/password');
   release.resolve();await completed;
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading',{name:'Бөлімшенің жұмыс шолуы',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
 });
 
 test('session expiry during password submission uses the normal login recovery',async({page})=>{

@@ -1,0 +1,214 @@
+{
+  "date": "2026-10-14",
+  "scope": "Task-oriented web UX: Today, day planning, stock, procurement and data workspace on the existing React application",
+  "application_source_commit": "ed5a7785df19af72e1fe0abac921fac9ef9d89c8",
+  "application_source_unchanged_between_full_and_corrected_runs": true,
+  "data": "Generated SYNTHETIC and REAL/TEST fixtures only; no enterprise pilot; configured user database untouched",
+  "build": {
+    "command": "npm run build",
+    "status": "PASS",
+    "js_kb": 568.28,
+    "gzip_js_kb": 165.77,
+    "css_kb": 91.56,
+    "gzip_css_kb": 17.05,
+    "warning": "Vite JavaScript chunk exceeds 500 kB"
+  },
+  "contracts": {
+    "command": "python scripts/generate_contracts.py",
+    "status": "PASS"
+  },
+  "copy_tests": {
+    "command": "python -X utf8 -m unittest discover -s tests -p test_ui_copy.py -v",
+    "passed": 2,
+    "failed": 0
+  },
+  "browser": {
+    "runs": [
+      {
+        "name": "full",
+        "command": "npx playwright test --reporter=list,json --output=.cache/ux-full-results",
+        "local_ignored_report": ".cache/ux-workday-browser.json",
+        "stats": {
+          "startTime": "2026-10-14T17:28:21.565Z",
+          "duration": 489881.845,
+          "expected": 134,
+          "skipped": 2,
+          "unexpected": 6,
+          "flaky": 0
+        },
+        "failed_cases": [
+          {
+            "file": "real_data_context.spec.ts",
+            "title": "saved forecast without an origin makes no guessed history request"
+          },
+          {
+            "file": "real_data_context.spec.ts",
+            "title": "API refusals and dashboard warnings follow the selected language instead of raw API text"
+          },
+          {
+            "file": "sessions_imports.spec.ts",
+            "title": "analyst can read saved plans and templates but cannot submit writes"
+          },
+          {
+            "file": "tenant_onboarding_live.spec.ts",
+            "title": "real empty workspace imports its first branch and refreshes session access"
+          },
+          {
+            "file": "tenant_onboarding.spec.ts",
+            "title": "empty administrator imports the first branch without fabricated data or another login"
+          },
+          {
+            "file": "tenant_onboarding.spec.ts",
+            "title": "dated zero sales remain zero and actual history dates replace demo labels"
+          }
+        ]
+      },
+      {
+        "name": "corrected_selectors_and_import_return",
+        "command": "npx playwright test tests/e2e/real_data_context.spec.ts tests/e2e/sessions_imports.spec.ts tests/e2e/tenant_onboarding.spec.ts tests/e2e/tenant_onboarding_live.spec.ts tests/e2e/workday_import_return.spec.ts --reporter=list,json --output=.cache/ux-corrected-results",
+        "local_ignored_report": ".cache/ux-corrected-browser.json",
+        "stats": {
+          "startTime": "2026-10-14T17:37:10.654Z",
+          "duration": 62538.198,
+          "expected": 31,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "failed_cases": []
+      },
+      {
+        "name": "stock_live",
+        "command": "ASBOLJAM_STOCK_E2E=1 npx playwright test tests/e2e/stock_ledger_live.spec.ts --reporter=list,json --output=.cache/ux-stock-results",
+        "local_ignored_report": ".cache/ux-stock-browser.json",
+        "stats": {
+          "startTime": "2026-10-14T17:39:21.687Z",
+          "duration": 19850.125,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "failed_cases": []
+      },
+      {
+        "name": "count_anchor_live",
+        "command": "ASBOLJAM_STOCK_ANCHOR_E2E=1 npx playwright test tests/e2e/stock_count_anchors_live.spec.ts --reporter=list,json --output=.cache/ux-anchor-results",
+        "local_ignored_report": ".cache/ux-anchor-browser.json",
+        "stats": {
+          "startTime": "2026-10-14T17:42:11.857Z",
+          "duration": 29247.724000000002,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "failed_cases": []
+      }
+    ],
+    "single_clean_full_run": false,
+    "distinct_scenarios_across_runs": 147,
+    "distinct_scenarios_passed_at_least_once": 147,
+    "unresolved_scenarios": [],
+    "full_run_failures": "Six old UI selectors expected removed readiness/attention classes or visible chart/history content now behind explicit disclosures. Tests were adapted without removing business/security assertions. Full-run workers had already loaded the previous selectors.",
+    "corrected_retry": "31/31 PASS: all six formerly failing cases plus existing related cases and five new confirmed/lost/unconfirmed CSV-return and branch-change cases. A new empty onboarding organization was created; main fixture accounts/data were preserved.",
+    "explicit_full_run_skips": "Two opt-in stock live scenarios require separate fresh databases; both were subsequently executed successfully.",
+    "coverage": [
+      "login and roles",
+      "nine CSV schemas, preview, validation and commit",
+      "sales and forecast with worker",
+      "inventory and procurement",
+      "explicit human approval, deficit acknowledgement, audit and export",
+      "correction, freshness and immutable approved exports",
+      "HGB chart and model evidence",
+      "account security and branch access",
+      "responsive KK/RU navigation",
+      "safe return after confirmed CSV receipt"
+    ]
+  },
+  "focused_browser_runs": [
+    {
+      "scope": "Today",
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "scope": "Planning, decision and navigation",
+      "passed": 23,
+      "failed": 0
+    },
+    {
+      "scope": "Stock mock scenarios",
+      "passed": 32,
+      "failed": 0
+    },
+    {
+      "scope": "Stock mobile table and explicit forecast date recheck",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "scope": "Five-group navigation and design journey",
+      "passed": 10,
+      "failed": 0,
+      "duration_seconds": 19.7
+    }
+  ],
+  "stock_live_scope": "Counted opening, activated recipe, receipt, consumption, reversal, reconciliation, procurement evidence, approval and export on a fresh SYNTHETIC SQLite.",
+  "count_anchor_live_scope": "Generated REAL/TEST CSV count correction, explicit acceptance of two count anchors, resumed receipts, worker calculation, human approval, audit, export and byte-identical older approved export on a fresh SQLite.",
+  "visual": {
+    "general_page_captures": 40,
+    "general_capture_scope": "Ten sections, KK/RU, desktop 1440 and mobile 390; no page overflow or browser errors in the test.",
+    "final_task_captures": 10,
+    "final_capture_scope": "Today, data, forecast, stock and procurement at 1440/390 px; no page overflow or browser errors.",
+    "local_ignored_directory": ".cache/ux-final-visual",
+    "visually_reviewed": [
+      "Today KK desktop",
+      "Today RU desktop",
+      "Forecast RU desktop",
+      "Data RU desktop",
+      "Stock RU mobile",
+      "Procurement RU desktop",
+      "Procurement RU mobile"
+    ]
+  },
+  "review": "Independent agent read-only review of current UX and pending test adaptations: no actionable findings; business and security assertions retained.",
+  "security": {
+    "command": "python scripts/check_secrets.py --no-report",
+    "candidate_files": 396,
+    "findings": 0,
+    "prior_staged_scans": "8 files then 21 files; zero findings",
+    "sessions_and_traces": "Remain ignored in .cache; excluded from Git"
+  },
+  "attempt_history": [
+    "Initial sandbox browser attempt could not reach localhost (ERR_NETWORK_ACCESS_DENIED); rerun under approved permissions.",
+    "Early planning tests used pre-redesign selectors and button labels; corrected before final focused 23/23.",
+    "Integration removed two Login icon imports; restored before the final application build and successful login/browser runs.",
+    "An early combined Today/login run was interrupted while login stalled; not counted as a successful run.",
+    "First final screenshot helper lacked the API request baseURL; helper corrected and all ten captures then completed.",
+    "Full browser run and corrected rerun outcomes are retained separately above; no claim of one clean 147/147 run."
+  ],
+  "runtime": {
+    "isolated_databases": [
+      ".cache/ux-workday.sqlite",
+      ".cache/ux-stock-live.sqlite",
+      ".cache/ux-anchor-live.sqlite"
+    ],
+    "services": "Recorded API/worker/web processes stopped after verification",
+    "user_database_modified": false
+  },
+  "not_tested": [
+    "Real-business usability study and pilot",
+    "Production deployment/TLS/load",
+    "APK/native device and hardware screen reader",
+    "Full Python, scientific research and PostgreSQL suites were not rerun for this frontend-only change",
+    "New release ZIP or fresh install from an archive"
+  ],
+  "limitations": [
+    "Day plan is a forecast of portions, not an editable approved production document",
+    "A present inventory snapshot does not establish complete ingredient coverage",
+    "No automatic supplier order or stock posting is performed by procurement approval",
+    "Vite bundle size warning remains"
+  ],
+  "blocked": []
+}
