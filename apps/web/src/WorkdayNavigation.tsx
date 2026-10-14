@@ -22,7 +22,7 @@ export function SectionNavigation({context:c,section}:{context:Context;section:s
  if(saved.current.scope!==scope)saved.current={scope,routes:{}};
  if(['forecasts','procurement'].includes(section))saved.current.routes[section]=location.pathname+location.search;
  const links:Record<string,[string,string,string][]>= {
-  forecasts:[['forecasts','Порция болжамы','Прогноз порций'],['recipes','Тағамдар мен рецепттер','Блюда и рецепты']],
+  forecasts:[['forecasts','Болжам және дайындау','Прогноз и приготовление'],['recipes','Тағамдар мен рецепттер','Блюда и рецепты']],
   procurement:[['procurement','Сатып алу жоспары','План закупки'],['suppliers','Жеткізушілер және бағалар','Поставщики и цены']],
   data:[['data','Деректерді дайындау','Подготовка данных'],['sales','Сатылым','Продажи'],['imports','CSV және түзетулер','CSV и исправления'],['reports','Нәтижелерді талдау','Анализ результатов']],
   settings:[['settings','Ұйым және рұқсаттар','Организация и доступ'],['audit','Әрекеттер журналы','Журнал действий']],

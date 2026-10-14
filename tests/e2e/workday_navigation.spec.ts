@@ -53,7 +53,7 @@ test('reference detours preserve the chosen calculation only within the same bra
  await expect(page).toHaveURL(/\/procurement$/);
  await page.goto('/forecasts/saved-day');
  await page.getByRole('link',{name:'Блюда и рецепты'}).click();
- await page.getByRole('link',{name:'Прогноз порций',exact:true}).click();
+ await page.getByRole('link',{name:'Прогноз и приготовление',exact:true}).click();
  await expect(page).toHaveURL(/\/forecasts\/saved-day$/);
 });
 

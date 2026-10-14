@@ -44,6 +44,7 @@ async function install(page:Page,kind:Kind,reply:Reply='saved'){
   if(path==='/stock/catalog')json={ingredients:[{ingredient_id:'flour',ingredient_name:'Artificial flour',unit:'kg'}],meals:[],...origin};
   if(path==='/forecasts')json={items:[forecast],total:1,next_cursor:null};
   if(path==='/forecasts/'+forecastId)json=forecast;
+  if(path==='/production-plans/cooking-saved')json={id:'cooking-saved',branch_id:'001',forecast_id:forecastId,target_date:'2026-01-01',name:'Artificial cooking variant',reason:'Generated receipt return check',input_freshness:'unchanged',basis:'manual_portions',portions:[],...origin};
   await route.fulfill({json});
  });
  return {requests,batch};
@@ -103,4 +104,15 @@ test('an unconfirmed commit never offers the planning return as a saved result',
  await expect(returnButton(page)).toHaveCount(0);await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toHaveCount(0);
  expect(state.batch.status).toBe('preview');expect(state.batch.receipt).toBeNull();
  expect(state.requests.filter(request=>request.path.endsWith('/commit'))).toHaveLength(1);
+});
+
+test('confirmed stock CSV keeps the explicitly chosen cooking variant in the same branch',async({page})=>{
+ const state=await install(page,'inventory_lots');
+ await page.goto('/imports?kind=inventory_lots&return=inventory&return_branch=001&forecast='+forecastId+'&production_plan_id=cooking-saved');
+ await confirmImport(page,'inventory_lots');await expect(returnButton(page)).toBeVisible();await returnButton(page).click();
+ await expect(page).toHaveURL(/\/inventory\?forecast=day-forecast&production_plan_id=cooking-saved$/);
+ await expect(page.getByTestId('production-saved')).toContainText('Artificial cooking variant');
+ await page.getByRole('region',{name:'Жоспарды жалғастыру',exact:true}).getByRole('button',{name:'Сатып алуды есептеуге',exact:true}).click();
+ await expect(page).toHaveURL(/\/procurement\?forecast=day-forecast&production_plan_id=cooking-saved$/);
+ expect(state.requests.some(request=>request.method==='POST'&&['/production-plans','/forecasts','/procurement'].includes(request.path))).toBe(false);
 });

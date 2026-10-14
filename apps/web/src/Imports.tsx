@@ -39,7 +39,10 @@ export default function Imports(c:Context) {
  const returnQuery=new URLSearchParams(location.search),returnSection=returnQuery.get('return');
  const returnAllowed=returnQuery.get('return_branch')===branch&&['inventory','forecasts'].includes(returnSection||'');
  const returnForecast=returnQuery.get('forecast')||'';
- const returnPath=returnAllowed?'/'+returnSection+(returnSection==='inventory'&&/^[A-Za-z0-9_-]{1,128}$/.test(returnForecast)?'?forecast='+encodeURIComponent(returnForecast):''):null;
+ const returnProduction=returnQuery.get('production_plan_id')||'';
+ const validReturnForecast=/^[A-Za-z0-9_-]{1,128}$/.test(returnForecast);
+ const returnPlanQuery=validReturnForecast&&/^[A-Za-z0-9_-]{1,128}$/.test(returnProduction)?'&production_plan_id='+encodeURIComponent(returnProduction):'';
+ const returnPath=returnAllowed?'/'+returnSection+(returnSection==='inventory'&&validReturnForecast?'?forecast='+encodeURIComponent(returnForecast)+returnPlanQuery:''):null;
  const kindName=(value:string)=>schemaCopy[value]?.name[kk?0:1]||value;
  const fieldName=(value:string)=>fieldCopy[value]?.[kk?0:1]||value;
  const real=c.dataContext?.mode==='real_business',configuredSource=c.dataContext?.source;

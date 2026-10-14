@@ -8,7 +8,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-GENERAL_SOURCES = ('main.py', 'data_policy.py', 'import_service.py', 'importing.py', 'accounts.py', 'lineage.py')
+GENERAL_SOURCES = ('main.py', 'data_policy.py', 'import_service.py', 'importing.py', 'accounts.py', 'lineage.py', 'production.py')
 STOCK_SOURCES = ('stock.py', 'stock_service.py', 'stock_api.py', 'stock_recipes.py', 'stock_dependencies.py')
 CODE = re.compile(r"""['"]([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)['"]""")
 # Codes that never reach the web interface as a refusal: operator CLIs, setting names,

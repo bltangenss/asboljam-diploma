@@ -1,0 +1,25 @@
+.production-planning{margin-top:22px;margin-bottom:24px;overflow:hidden}
+.production-variant,.production-editor{padding:22px 24px}
+.production-variant{border-top:1px solid var(--border)}
+.production-variant label,.production-basis-selector label,.production-form label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:600;min-width:0}
+.production-variant select,.production-basis-selector select,.production-form input,.production-form textarea{width:100%;min-height:44px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font:inherit;color:var(--text)}
+.production-variant label{max-width:620px}
+.production-planning>.alert,.production-planning>p.production-help{margin:16px 24px}
+.production-planning .table-scroll{border-top:1px solid var(--border)}
+.production-planning table{min-width:570px}
+.production-portions{width:120px!important;min-width:100px;min-height:44px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;text-align:right;font:inherit;background:var(--surface);color:var(--text)}
+.production-draft-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.production-planning>.production-draft-actions{padding:22px 24px}
+.production-help{font-size:13px;line-height:1.65;color:var(--muted);margin:14px 0}
+.production-form{display:grid;grid-template-columns:1fr 1.4fr;gap:20px;margin:20px 0}
+.production-form textarea{resize:vertical;min-height:90px}
+.production-evidence{border:1px solid var(--border);border-radius:12px;padding:20px;background:var(--selected);margin:20px 0;overflow:hidden}
+.production-planning>.production-evidence{margin:0 24px 20px}
+.production-evidence-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.production-evidence h3{margin:8px 0 12px;font-size:19px;line-height:1.4;overflow-wrap:anywhere}
+.production-evidence .muted{font-size:12px;line-height:1.6}
+.production-reason{font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.production-basis-selector{margin-top:22px;min-width:0}
+.production-basis-selector .production-evidence table{min-width:430px}
+.production-evidence>.table-scroll{margin-top:16px}
+@media(max-width:600px){.production-form{grid-template-columns:1fr}.production-variant,.production-editor{padding:20px}.production-planning>.production-evidence{margin:0 20px 20px}.production-evidence{padding:16px}.production-draft-actions .button{width:100%;white-space:normal;line-height:1.5}.production-evidence-heading{flex-wrap:wrap}}

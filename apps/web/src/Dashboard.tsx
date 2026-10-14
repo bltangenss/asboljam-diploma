@@ -12,6 +12,7 @@ export default function Dashboard(c:Context){
  const plan=plans.find(p=>p.target_date===target&&p.forecast_id===forecast?.id);
  const forecastCurrent=Boolean(target&&forecast?.target_date===target&&forecast?.input_freshness==='unchanged');
  const planCurrent=forecastCurrent&&plan&&plan.input_freshness==='unchanged';
+ const production=planCurrent&&plan?.demand_basis==='production_plan'?plan.production_plan_evidence:null;
  const stockMatches=Boolean(target&&(c.dataContext?.inventory_dates.includes(target)||(d.inventory_known&&d.inventory_date===target)));
  const canOperate=c.dataContext?.operations_enabled===true&&['admin','manager'].includes(c.user.role);
  const source=d.data_origin??c.dataContext?.data_origin,synthetic=source==='SYNTHETIC',usage=c.dataContext?.usage_mode;
@@ -66,6 +67,7 @@ export default function Dashboard(c:Context){
     </section>
     <section className="today-purchase" aria-labelledby="today-purchase-title">
      <div className="today-purchase-heading"><ShoppingBasket size={23}/><h2 id="today-purchase-title">{copy('Осы күнге сатып алу','Закупка на этот день')}</h2>{planCurrent&&<Badge tone={plan.status==='approved'?'green':plan.status==='rejected'?'red':'amber'}>{t(plan.status)}</Badge>}</div>
+     {production&&<p data-testid="today-production-basis">{copy('Дайындау жоспары бойынша','По плану приготовления')}: <strong>{production.name||'—'}</strong>. {copy('Мөлшерді басқарушы таңдаған.','Объёмы выбраны управляющим.')} <button className="text-button" onClick={()=>go('/forecasts/'+encodeURIComponent(production.forecast_id)+'?production_plan_id='+encodeURIComponent(production.id))}>{copy('Порцияларды қарау','Посмотреть порции')}<ArrowRight size={15}/></button></p>}
      {planCurrent?<><dl><div><dt>{t('purchaseCost')}</dt><dd>{money(plan.total_cost)}</dd></div><div><dt>{t('budget')}</dt><dd>{money(plan.budget)}</dd></div><div className={Number(plan.shortage_count)>0?'today-deficit':''}><dt>{t('shortages')}</dt><dd>{fmt(plan.shortage_count)}</dd></div></dl><button className="text-button" onClick={()=>go('/procurement/'+plan.id)}>{copy('Позициялар мен шешімді қарау','Посмотреть позиции и решение')}<ArrowRight size={16}/></button><p>{t('internalOnly')}</p></>:<p className="today-purchase-empty">{copy('Осы күнге өзекті сатып алу жоспары жоқ. Болжам мен қорды тексеріп, есептеуді жалғастырыңыз.','Актуального плана закупки на этот день нет. Проверьте прогноз и остатки, затем продолжите расчёт.')}</p>}
      <details className="today-evidence"><summary>{copy('Қандай деректер бар','Какие данные доступны')}</summary><dl><div><dt>{copy('Соңғы сатылым','Последние продажи')}</dt><dd>{hasSales?date(d.as_of):t('noSalesHistory')}</dd></div><div><dt>{copy('Соңғы болжам күні','Дата последнего прогноза')}</dt><dd>{date(forecast?.target_date)}</dd></div><div><dt>{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}</dt><dd>{d.inventory_known?date(d.inventory_date):t('snapshotMissing')}</dd></div></dl><button className="text-button" onClick={()=>go('/imports')}>{copy('Деректерді толықтыру','Дополнить данные')}<ArrowRight size={15}/></button></details>
     </section>
