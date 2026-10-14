@@ -1,0 +1,25 @@
+/* Day workflow: the next task is visible; comparison evidence stays available. */
+.planning-day-entry,.planning-next-step{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:26px 28px;border:1px solid var(--border);border-radius:18px;margin-bottom:24px;background:var(--selected)}
+.planning-day-entry>div,.planning-next-step>div{min-width:0}
+.planning-day-entry h2,.planning-next-step h2{font-size:24px;line-height:1.25;margin:12px 0 10px;letter-spacing:-.025em}
+.planning-day-entry p,.planning-next-step p{font-size:14px;line-height:1.6;max-width:650px;margin:0}
+.planning-day-entry>.button{flex-shrink:0}
+.planning-next-step{margin-top:24px;background:var(--surface);align-items:flex-start}
+.planning-next-step .muted{font-size:13px;margin-top:12px}
+.planning-next-actions{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:300px;flex-shrink:0}
+.planning-next-actions>.text-button{font-size:13px;text-align:left;line-height:1.5}
+.planning-options{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 0;margin-top:22px}
+.planning-options>summary{cursor:pointer;font-size:13px;font-weight:600;line-height:1.6;color:var(--muted)}
+.planning-options>label{margin-top:18px;font-size:14px;gap:8px}
+.planning-options select{width:100%;min-height:46px;background:var(--surface)}
+.planning-options small{font-size:13px;line-height:1.5;font-weight:400;color:var(--muted)}
+.planning-history-disclosure>summary,.planning-runs-disclosure>summary{padding:22px 24px;cursor:pointer;font-size:16px;font-weight:650;line-height:1.5}
+.planning-history-disclosure[open]>summary,.planning-runs-disclosure[open]>summary{border-bottom:1px solid var(--border)}
+.planning-runs-disclosure{margin-top:20px}
+.planning-runs-disclosure>.recent-runs{border:0;border-radius:0;margin:0;background:transparent}
+.planning-chart-disclosure>.forecast-history-panel{margin:20px 0 0;box-shadow:none}
+.procurement-evidence>.panel,.procurement-evidence>.detail-panel{margin-bottom:0;box-shadow:none}
+.planning-page .approval-panel{margin-bottom:24px}
+.planning-current-purchases{margin-bottom:24px}
+@media(max-width:900px){.planning-next-step{flex-direction:column}.planning-next-actions{max-width:none;flex-direction:row;align-items:center;flex-wrap:wrap}}
+@media(max-width:600px){.planning-day-entry{align-items:flex-start;flex-direction:column}.planning-day-entry,.planning-next-step{padding:22px 20px}.planning-next-actions{width:100%;align-items:stretch;flex-direction:column}.planning-next-actions>.button,.planning-day-entry>.button{width:100%;justify-content:center}.planning-next-actions>.text-button{justify-content:center}.planning-history-disclosure>summary,.planning-runs-disclosure>summary{padding:20px}}

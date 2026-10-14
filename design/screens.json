@@ -38,8 +38,45 @@
     }
   },
   "navigation": {
-    "desktop": "fixed sidebar",
+    "desktop": "five task groups with contextual secondary navigation",
     "mobile": "drawer and bottom bar",
+    "primary_routes": [
+      "/dashboard",
+      "/forecasts",
+      "/inventory",
+      "/procurement",
+      "/data"
+    ],
+    "groups": {
+      "forecasts": [
+        "forecasts",
+        "recipes"
+      ],
+      "procurement": [
+        "procurement",
+        "suppliers"
+      ],
+      "data": [
+        "data",
+        "sales",
+        "imports",
+        "reports"
+      ],
+      "settings": [
+        "settings",
+        "audit"
+      ]
+    },
+    "stock_tasks": [
+      "balance",
+      "receipt",
+      "consumption",
+      "reconciliation",
+      "history",
+      "recipes"
+    ],
+    "daily_flow": "Today -> forecast portions -> same-branch stock review -> procurement -> explicit human decision",
+    "forecast_limit": "Observed-sales estimate, not a persisted editable production plan",
     "mobile_primary_routes": [
       "/dashboard",
       "/forecasts",
@@ -121,7 +158,7 @@
       "id": "dashboard",
       "route": "/dashboard",
       "component": "apps/web/src/Dashboard.tsx:Dashboard",
-      "title_kk": "Шолу",
+      "title_kk": "Бүгін",
       "read_roles": [
         "admin",
         "manager",
@@ -132,9 +169,42 @@
       ],
       "controls_and_data": [
         "branch",
-        "historical_as_of",
-        "sales_chart",
-        "latest_plans"
+        "calculation_day",
+        "source_and_usage",
+        "priority_tasks",
+        "actionable_warnings",
+        "daily_plan",
+        "current_purchase",
+        "secondary_sales_analytics",
+        "disclosed_plan_history"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "API_error",
+        "offline_notice",
+        "forbidden"
+      ]
+    },
+    {
+      "id": "data",
+      "route": "/data",
+      "component": "apps/web/src/DataWorkspace.tsx",
+      "title_kk": "Деректер және талдау",
+      "read_roles": [
+        "admin",
+        "manager",
+        "analyst",
+        "warehouse"
+      ],
+      "api": [],
+      "controls_and_data": [
+        "add_sales",
+        "add_counted_stock",
+        "explicit_correction",
+        "sales_review",
+        "analysis",
+        "reference_import_help"
       ],
       "states": [
         "loading",
@@ -224,7 +294,7 @@
       "id": "forecasts",
       "route": "/forecasts",
       "component": "apps/web/src/Planning.tsx:Forecasts",
-      "title_kk": "Болжам",
+      "title_kk": "Күн жоспары",
       "read_roles": [
         "admin",
         "manager",
@@ -377,7 +447,7 @@
       "id": "inventory",
       "route": "/inventory",
       "component": "apps/web/src/DataPages.tsx:Reference",
-      "title_kk": "Қойма",
+      "title_kk": "Қалдықтар",
       "read_roles": [
         "admin",
         "manager",

@@ -1,0 +1,26 @@
+/* Task panels stay mounted so an uncertain command keeps its idempotent retry. */
+.stock-ledger [hidden]{display:none!important}
+.stock-ledger{margin-top:24px;padding-top:0;border-top:0}
+.stock-workspace-tasks{display:flex;gap:5px;flex-wrap:wrap;margin:22px 0 0;padding:7px;border:1px solid var(--border);border-radius:10px;background:var(--canvas)}
+.stock-workspace-tasks button{flex:1 1 150px;min-height:46px;border:1px solid transparent;border-radius:7px;padding:10px 14px;background:transparent;color:var(--muted);font-size:13px;line-height:1.4;font-weight:600;cursor:pointer}
+.stock-workspace-tasks button:hover:not(:disabled){color:var(--ink);background:var(--surface)}
+.stock-workspace-tasks button[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--action)}
+.stock-workspace-tasks button:disabled{cursor:wait;opacity:.65}
+.stock-workspace-tasks button:focus-visible{outline:3px solid var(--action);outline-offset:2px}
+.stock-task-description{padding:22px 2px 0}
+.stock-task-description>strong{font-size:19px;letter-spacing:-.02em}
+.stock-task-description>p{font-size:13px;line-height:1.7;color:var(--muted);max-width:850px;margin:9px 0 0}
+.stock-counted-task:empty{display:none}
+.stock-counted-task .table-scroll table{min-width:780px}
+.stock-counted-task table th,.stock-counted-task table td{overflow-wrap:normal;word-break:normal;min-width:80px}
+.stock-planning-context{padding:24px;background:var(--selected);border:1px solid var(--accent);border-radius:10px;margin:20px 0}
+.stock-planning-context h3{font-size:23px;margin:9px 0;letter-spacing:-.03em}
+.stock-planning-context>div>p{max-width:800px;font-size:14px;line-height:1.7}
+.stock-task-kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--action);font-weight:700}
+.stock-planning-context .alert{margin:16px 0}
+.stock-planning-context .text-button{display:block;margin-top:9px}
+.stock-flow-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:20px}
+.stock-ledger-technical{font-size:12px;color:var(--muted)}
+.stock-ledger-technical>summary{font-size:12px}
+.stock-ledger-technical>span{display:block;margin-top:8px}
+@media(max-width:767px){.stock-workspace-tasks{gap:3px;padding:5px}.stock-workspace-tasks button{flex-basis:calc(50% - 6px);padding:10px 7px;font-size:12px}.stock-planning-context{padding:18px}.stock-planning-context h3{font-size:21px}.stock-flow-actions>.button{width:100%}.stock-task-description>strong{font-size:18px}}

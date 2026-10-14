@@ -3,11 +3,12 @@ import {Table,date,type Row,type Lang} from './shared';
 import './import-ui.css';
 
 type Coverage={origin?:string;required_days?:number;ready_meals?:number;meals?:Row[]};
-type Props={details?:Record<string,unknown>;t:(key:string)=>string;lang?:Lang;go?:(path:string)=>void};
+type Props={details?:Record<string,unknown>;t:(key:string)=>string;lang?:Lang;go?:(path:string)=>void;importUrl?:string};
 
 // Explains a DATA_HISTORY_INCOMPLETE refusal per meal. Missing days are shown as missing;
 // the page never offers to fill them with zero or to exclude a meal silently.
-export default function HistoryCoverage({details,t,lang,go}:Props){
+export default function HistoryCoverage({details,t,lang,go,importUrl}:Props){
+ const destination=importUrl||'/imports?kind=daily_sales';
  const kk=lang?lang==='kk':t('date')==='Күн';
  const coverage=details?.coverage as Coverage|undefined;
  const meals=Array.isArray(coverage?.meals)?coverage!.meals:[];
@@ -26,6 +27,6 @@ export default function HistoryCoverage({details,t,lang,go}:Props){
    {key:'first_missing_date',label:t('historyFirstMissing'),render:row=>row.first_missing_date?date(row.first_missing_date):'—'},
    {key:'range',label:t('historyObserved'),render:row=>`${date(row.first_date)} — ${date(row.last_date)}`},
   ]}/>
-  <div className="coverage-next-step"><p>{kk?'Сатылым тарихын түзеткен соң болжамды қайта іске қосыңыз.':'После исправления истории продаж запустите прогноз повторно.'}</p><a className="button secondary" href="/imports?kind=daily_sales" onClick={event=>{if(go){event.preventDefault();go('/imports?kind=daily_sales')}}}>{kk?'Сатылым CSV файлына өту':'Перейти к CSV продаж'}<ArrowRight size={16}/></a></div>
+  <div className="coverage-next-step"><p>{kk?'Сатылым тарихын түзеткен соң болжамды қайта іске қосыңыз.':'После исправления истории продаж запустите прогноз повторно.'}</p><a className="button secondary" href={destination} onClick={event=>{if(go){event.preventDefault();go(destination)}}}>{kk?'Сатылым CSV файлына өту':'Перейти к CSV продаж'}<ArrowRight size={16}/></a></div>
  </section>;
 }

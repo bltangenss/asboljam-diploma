@@ -35,6 +35,7 @@ async function selectFilter(page:Page,section:'forecasts'|'procurement'){
 
 async function openScrolledDetail(page:Page,section:'forecasts'|'procurement'){
  await page.goto('/'+section);
+ await page.locator('.planning-history-disclosure>summary').click();
  await expect(page.locator('.planning-history tbody .row-link')).toHaveCount(40);
  await selectFilter(page,section);
  const link=page.locator('.planning-history tbody .row-link').nth(20);
@@ -65,7 +66,8 @@ for(const section of ['forecasts','procurement'] as const){
   await expect(page).toHaveURL(new RegExp('/'+section+'$'));
   await expect(page.locator('.planning-history tbody .row-link')).toHaveCount(40);
   const filter=section==='forecasts'?page.getByLabel('По дате прогноза',{exact:true}):page.locator('.planning-history').getByRole('combobox',{name:'Статус',exact:true});
-  await expect(filter).toHaveValue('');
+  await expect(section==='forecasts'?filter:page.locator('.planning-history select')).toHaveValue('');
+  await expect(page.locator('.planning-history-disclosure')).not.toHaveAttribute('open','');
   await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeLessThan(3);
  });
 }

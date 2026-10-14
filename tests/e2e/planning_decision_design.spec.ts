@@ -81,6 +81,7 @@ test('own decision uses authenticated identity and a missing timestamp stays una
 
 test('planning list filters survive list detail back and reset when the branch changes',async({page})=>{
  await install(page,'ru');await page.goto('/forecasts');
+ await page.locator('.planning-history-disclosure>summary').click();
  await page.getByLabel('По дате прогноза',{exact:true}).fill('2026-01-01');
  await page.getByRole('button',{name:'Прогноз на 01.01.2026',exact:true}).click();
  await page.getByRole('button',{name:'Посмотреть всё',exact:true}).click();
@@ -89,10 +90,12 @@ test('planning list filters survive list detail back and reset when the branch c
  await expect(page.getByLabel('По дате прогноза',{exact:true})).toHaveValue('');
  await page.getByLabel('Филиал',{exact:true}).selectOption('1');
  await page.locator('.sidebar').getByRole('button',{name:'Закупки',exact:true}).click();
+ await page.locator('.planning-history-disclosure>summary').click();
  await page.getByRole('combobox',{name:'Статус',exact:true}).selectOption('approved');
  await page.getByRole('button',{name:'Закупка на 01.01.2026',exact:true}).click();
  await page.goBack();
  await expect(page.getByRole('combobox',{name:'Статус',exact:true})).toHaveValue('approved');
  await page.getByLabel('Филиал',{exact:true}).selectOption('2');
- await expect(page.getByRole('combobox',{name:'Статус',exact:true})).toHaveValue('');
+ await expect(page.locator('.planning-history select')).toHaveValue('');
+ await expect(page.locator('.planning-history-disclosure')).not.toHaveAttribute('open','');
 });
