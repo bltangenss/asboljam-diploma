@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-15",
+  "scope": "Today keeps the saved cooking basis for rejected/stale purchase retries, stock review and stock CSV entry",
+  "base_commit": "3901ba8",
+  "source_files": [
+    {
+      "path": "apps/web/src/Dashboard.tsx",
+      "sha256": "0f20106c087b0d34ecf642cf6c59afacff167087453a3ccae7702e21e1fa86e9"
+    },
+    {
+      "path": "tests/e2e/today_workflow.spec.ts",
+      "sha256": "fefbd5ae8c7ce911319ef2c11cff4cc752632ea1ea7c33a0b4f7b2c03593409e"
+    }
+  ],
+  "browser": {
+    "command": "npx playwright test tests/e2e/today_workflow.spec.ts --reporter=list,json",
+    "stats": {
+      "startTime": "2026-10-15T02:48:22.152Z",
+      "duration": 64363.811,
+      "expected": 16,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "path": ".cache/production-today-final-browser.json",
+    "sha256": "7309930c25b67d4abc6c9855c01c92e21bb4a25b5114688cc65da8bad5ee4fa4"
+  },
+  "build": {
+    "status": "PASS",
+    "path": ".cache/production-today-fix-build.log",
+    "sha256": "1e5234366ad575069e4c54d5b474e583a827ac2b32c950096439c972535e422f",
+    "source_note": "Build ran for direct-link fix before final stock/import URL propagation. Final TypeScript check below covers final Dashboard. Other concurrent guard work is a separate stage."
+  },
+  "typecheck": {
+    "status": "PASS",
+    "command": "npx tsc --noEmit",
+    "path": ".cache/production-today-typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "contracts": "python scripts/generate_contracts.py completed; no generated diff for Dashboard copy",
+  "meaningful_cases": [
+    "rejected manual purchase retry",
+    "stock-staled manual purchase retry",
+    "missing or foreign manual basis fails visibly",
+    "old forecast-only retry unchanged",
+    "manual stock path and procurement continuation",
+    "missing-stock CSV path preserves saved variant",
+    "invalid manual stock route avoids forecast-only continuation"
+  ],
+  "limits": [
+    "API mocked for focused navigation checks; real backend and full regression previously verified on9592c52 as recorded in production-planning-20261014.json",
+    "No production, device, PostgreSQL or new business-data claim"
+  ]
+}
