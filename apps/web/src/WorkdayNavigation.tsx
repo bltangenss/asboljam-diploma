@@ -20,7 +20,7 @@ export function SectionNavigation({context:c,section}:{context:Context;section:s
  const scope=JSON.stringify([c.user.organization_id,c.user.id,c.user.role,c.branch]);
  const saved=useRef<{scope:string;routes:Record<string,string>}>({scope,routes:{}});
  if(saved.current.scope!==scope)saved.current={scope,routes:{}};
- if(['forecasts','procurement'].includes(section))saved.current.routes[section]=location.pathname+location.search;
+ if(['forecasts','procurement'].includes(section))saved.current.routes[section]=c.route;
  const links:Record<string,[string,string,string][]>= {
   forecasts:[['forecasts','Болжам және дайындау','Прогноз и приготовление'],['recipes','Тағамдар мен рецепттер','Блюда и рецепты']],
   procurement:[['procurement','Сатып алу жоспары','План закупки'],['suppliers','Жеткізушілер және бағалар','Поставщики и цены']],

@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-15",
+  "base_commit": "8df9c45",
+  "scope": "Protect production draft and same-key pending/uncertain command through global voluntary navigation",
+  "focused": {
+    "path": ".cache/production-navigation-guard.json",
+    "sha256": "d4809fa76977660042f6208edd2d2aa24192f0fef020e3635ac7729a5e39c923",
+    "stats": {
+      "startTime": "2026-10-15T03:01:10.684Z",
+      "duration": 53567.570999999996,
+      "expected": 15,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "related": {
+    "path": ".cache/production-navigation-related.json",
+    "sha256": "c624bd1b5bde8e4bddf30036ba6eb84b39743bda10936f8334ae2c3db919c8bb",
+    "stats": {
+      "startTime": "2026-10-15T02:58:26.730Z",
+      "duration": 88980.671,
+      "expected": 29,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "commands": [
+    "npx playwright test tests/e2e/production_navigation_guard.spec.ts --reporter=list,json",
+    "npx playwright test tests/e2e/production_planning.spec.ts tests/e2e/planning_navigation.spec.ts tests/e2e/workday_navigation.spec.ts tests/e2e/workday_import_return.spec.ts --reporter=list,json",
+    "npx tsc --noEmit",
+    "npm run build",
+    "python scripts/generate_contracts.py"
+  ],
+  "build": {
+    "status": "earlier build PASS; final repeat not run after user stop",
+    "path": ".cache/production-navigation-build.log",
+    "sha256": "c47301423bf394d631ae679dc423c3caa8d5e3507ddf8bdc8b6c3108a6414f6f",
+    "note": "This successful build preceded the final root-route alias correction. The final source passed TypeScript and15focused cases. Auto-review rejected the queued repeat build after the user explicitly requested stop; it was not retried."
+  },
+  "coverage": [
+    "dirty sidebar/branch/back needs discard",
+    "pending and uncertain navigation never abandons same-key command",
+    "voluntary logout guarded; forced401 wins over pending navigation",
+    "receipt arriving during Back restitution still selects saved document",
+    "old unmanaged history with and without native indexes",
+    "transient rejected URL cannot replace accepted query or copied draft",
+    "mobile drawer/dialog focus, Escape, beforeunload warning",
+    "Back to root preserves dashboard alias",
+    "existing production, list scroll, workday and CSV-return routes"
+  ],
+  "visual": {
+    "captures": 4,
+    "directory": ".cache/navigation-guard-visual",
+    "viewed": [
+      "desktop-dirty.png",
+      "mobile-uncertain.png"
+    ],
+    "layout": "Dialog legible within viewport; browser cases check mobile focus/Escape"
+  },
+  "attempt_history": [
+    "First focused run:8PASS/3FAIL. Two harness failures corrected (login label and BeforeUnloadEvent construction); real mobile focus race fixed.",
+    "Expanded13/13PASS, followed by final suite including root alias and forced401-during-bounce cases.",
+    "Read-only review fixed completion-during-bounce race, stale owner checks, volatile location.search reads and unmanaged-history URL mismatch."
+  ],
+  "limits": [
+    "Guard applies to the production editor, not every application form.",
+    "Command and draft remain in memory only. Forced close/reload/power loss can discard them despite beforeunload warning.",
+    "Without native indexes for old unmanaged history, a disclosed replacement restores editor URL consistency; that exceptional old entry is not preserved unchanged.",
+    "Browser checks use Chromium with generated API fixtures; other browser engines and production deployment not verified.",
+    "No backend/schema/training changes; full Python suite not repeated for this web-only stage."
+  ]
+}

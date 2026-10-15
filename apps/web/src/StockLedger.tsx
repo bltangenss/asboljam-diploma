@@ -17,7 +17,7 @@ const day=/^\d{4}-\d{2}-\d{2}$/;
 type StockTask='balance'|'receipt'|'consumption'|'reconciliation'|'history'|'recipes';
 type StockProps=Context&{countedStock?:ReactNode};
 const stockTasks:StockTask[]=['balance','receipt','consumption','reconciliation','history','recipes'];
-const taskFromUrl=():StockTask=>{const value=new URLSearchParams(window.location.search).get('task');return stockTasks.includes(value as StockTask)?value as StockTask:'balance'};
+const taskFromUrl=(route:string):StockTask=>{const value=new URLSearchParams(route.split('?')[1]||'').get('task');return stockTasks.includes(value as StockTask)?value as StockTask:'balance'};
 
 export default function StockLedger(c:StockProps) {
  // Remount on account/branch changes. A late response is also fenced by CSRF and generation.
@@ -32,15 +32,15 @@ function StockWorkspace(c:StockProps) {
  const [position,setPosition]=useState<Row|null>(null),[catalog,setCatalog]=useState<Row>({ingredients:[],meals:[]});
  const [history,setHistory]=useState<Row|null>(null),[cursor,setCursor]=useState(''),[refresh,setRefresh]=useState(0);
  const [loading,setLoading]=useState(true),[loadError,setLoadError]=useState('');
- const [kind,setKind]=useState(taskFromUrl()==='consumption'?'recipe_usage':'receipt'),[businessDate,setBusinessDate]=useState(initialDate),[reference,setReference]=useState(''),[reason,setReason]=useState('');
+ const [kind,setKind]=useState(taskFromUrl(c.route)==='consumption'?'recipe_usage':'receipt'),[businessDate,setBusinessDate]=useState(initialDate),[reference,setReference]=useState(''),[reason,setReason]=useState('');
  const [lines,setLines]=useState<Line[]>([blankLine()]),[portions,setPortions]=useState<Portion[]>([{meal_id:'',quantity:''}]);
  const [reverseId,setReverseId]=useState(''),[requirements,setRequirements]=useState<Row|null>(null);
  const [preview,setPreview]=useState<Preview|null>(null),[reviewed,setReviewed]=useState(false),[uncertain,setUncertain]=useState(false);
  const [action,setAction]=useState(''),[error,setError]=useState(''),[done,setDone]=useState(false),[rowErrors,setRowErrors]=useState<number[]>([]);
  const [countDate,setCountDate]=useState(initialDate),[reconciliation,setReconciliation]=useState<Row|null>(null),[countError,setCountError]=useState('');
  const [recipeLocked,setRecipeLocked]=useState(false),[anchorLocked,setAnchorLocked]=useState(false);
- const [task,setTask]=useState<StockTask>(taskFromUrl);
- const flowQuery=new URLSearchParams(window.location.search),forecastId=flowQuery.get('forecast')||'',productionId=flowQuery.get('production_plan_id')||'';
+ const [task,setTask]=useState<StockTask>(()=>taskFromUrl(c.route));
+ const flowQuery=new URLSearchParams(c.route.split('?')[1]||''),forecastId=flowQuery.get('forecast')||'',productionId=flowQuery.get('production_plan_id')||'';
  const production=useProductionPlan(c,forecastId,productionId),productionSuffix=productionQuery(productionId),productionBlocked=!!productionId&&!production.ready;
  // A URL is only a request to recover context. Never use it as proof of branch/date/readiness.
  const forecast=useData(forecastId?`/forecasts/${encodeURIComponent(forecastId)}?branch_id=${scope}`:null,c.revision);
@@ -56,7 +56,7 @@ function StockWorkspace(c:StockProps) {
  const w=(kk:string,ru:string)=>c.lang==='kk'?kk:ru;
  const documentVisible=task==='receipt'||task==='consumption';
  const taskLabels:Record<StockTask,[string,string]>={balance:['Қалдықты тексеру','Проверить остатки'],receipt:['Кірісті енгізу','Записать приход'],consumption:['Шығыс пен есептен шығару','Расход и списание'],reconciliation:['Түгендеумен салыстыру','Сверка с пересчётом'],history:['Құжаттар тарихы','История документов'],recipes:['Күнге белсенді рецепттер','Рецепты с датой действия']};
- useEffect(()=>{selectTask(taskFromUrl())},[window.location.search]);
+ useEffect(()=>{selectTask(taskFromUrl(c.route))},[c.route]);
  useEffect(()=>{if(!canWrite&&documentVisible&&!locked)setTask('balance')},[canWrite,documentVisible,locked]);
  useEffect(()=>{if(task==='recipes'){const element=document.getElementById('stock-active-recipes');if(element instanceof HTMLDetailsElement)element.open=true}},[task]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++generation.current;++reading.current}},[]);

@@ -8,6 +8,7 @@ import Onboarding from './Onboarding';
 import {Sales,Imports,Reference,Reports} from './DataPages';
 import {Forecasts,Procurement} from './Planning';
 import {usePlanningScrollRestoration} from './planningNavigation';
+import {NavigationGuardDialog,useGuardedNavigation} from './navigationGuard';
 import type {User} from '../../../packages/api-client';
 
 export default function App() {
@@ -40,7 +41,8 @@ export default function App() {
  },[drawer]);
  const userRef=useRef<User|null>(null),loadEpoch=useRef(0),mounted=useRef(true);
  const planningScroll=usePlanningScrollRestoration(path,JSON.stringify([user?.organization_id,user?.id,user?.role,branch]),Boolean(user&&branch));
- const go=(destination:string)=>{planningScroll.beforeNavigate(destination.split('?')[0]);history.pushState({},'',destination);setRoute(destination);setDrawer(false);window.scrollTo(0,0)};
+ const navigation=useGuardedNavigation((destination,traversal)=>{const accepted=destination==='/'||destination.startsWith('/?')?'/dashboard'+destination.slice(1):destination;planningScroll.beforeNavigate(accepted.split('?')[0]);setRoute(accepted);setDrawer(false);if(!traversal)window.scrollTo(0,0)},()=>setDrawer(false));
+ const go=navigation.go;
  function clearWorkspace() {
   planningScroll.reset();
   ++loadEpoch.current;setWorkspace(null);setBranches([]);setBranch('');setWorkspaceError(null);setWorkspaceLoading(false);
@@ -48,10 +50,10 @@ export default function App() {
   chosenDates.current={branch:'',inventory:'',origin:'',inventoryExplicit:false,originExplicit:false};
  }
  function acceptUser(next:User) {
-  clearWorkspace();userRef.current=next;setUser(next);setAuthError(null);
+  navigation.clear();clearWorkspace();userRef.current=next;setUser(next);setAuthError(null);
  }
  function resetSession(error:any=null) {
-  api.csrf='';clearWorkspace();userRef.current=null;setUser(null);setAuthError(error);go('/login');
+  api.csrf='';navigation.clear();clearWorkspace();userRef.current=null;setUser(null);setAuthError(error);navigation.force('/login');
  }
  async function refreshWorkspace(reloadSession=true) {
   const identity=userRef.current,csrf=api.csrf;
@@ -89,9 +91,9 @@ export default function App() {
   let active=true;mounted.current=true;
   api.onUnauthorized=resetSession;
   api.session().then(next=>{if(active)acceptUser(next)}).catch(error=>{if(active&&error.status!==401)setAuthError(error)}).finally(()=>{if(active)setAuthLoading(false)});
-  const pop=()=>setRoute((location.pathname==='/'?'/dashboard':location.pathname)+location.search),on=()=>setOnline(true),off=()=>setOnline(false);
-  window.addEventListener('popstate',pop);window.addEventListener('online',on);window.addEventListener('offline',off);
-  return()=>{active=false;mounted.current=false;++loadEpoch.current;api.onUnauthorized=undefined;window.removeEventListener('popstate',pop);window.removeEventListener('online',on);window.removeEventListener('offline',off)};
+  const on=()=>setOnline(true),off=()=>setOnline(false);
+  window.addEventListener('online',on);window.addEventListener('offline',off);
+  return()=>{active=false;mounted.current=false;++loadEpoch.current;api.onUnauthorized=undefined;window.removeEventListener('online',on);window.removeEventListener('offline',off)};
  },[]);
  useEffect(()=>{localStorage.setItem('asboljam-language',lang);document.documentElement.lang=lang},[lang]);
  useEffect(()=>{if(user)void refreshWorkspace(false)},[user?.id,user?.organization_id]);
@@ -123,9 +125,10 @@ export default function App() {
  const globalContext=workspace?workspaceData(workspace,null):undefined;
  const currentContext=dataContext?.branch_id===(branch||null)?dataContext:globalContext;
  const operations=globalContext?.operations_enabled===true;
- const ctx:Context={t,lang,user,branch,branchName:branches.find(item=>String(item.branch_id)===branch)?.branch_name,go,revision,refresh:()=>setRevision(value=>value+1),online,
-  setBranch:value=>{if(branches.some(item=>String(item.branch_id)===value))setBranch(value)},
-  organization,workspace:workspace??undefined,refreshWorkspace:()=>refreshWorkspace(),dataContext:currentContext,
+ const changeBranch=(value:string,leaveDetail=false)=>{if(value!==branch&&branches.some(item=>String(item.branch_id)===value))navigation.request(()=>{setBranch(value);if(leaveDetail&&id)go('/'+section)})};
+ const ctx:Context={route,t,lang,user,branch,branchName:branches.find(item=>String(item.branch_id)===branch)?.branch_name,go,revision,refresh:()=>navigation.request(()=>setRevision(value=>value+1)),online,
+  setBranch:value=>changeBranch(value),registerNavigationBlocker:navigation.register,
+  organization,workspace:workspace??undefined,refreshWorkspace:async()=>{await navigation.request(()=>refreshWorkspace())},dataContext:currentContext,
   inventoryDate,forecastOrigin,setInventoryDate:value=>{if(currentContext?.inventory_dates.includes(value)){chosenDates.current={...chosenDates.current,inventory:value,inventoryExplicit:true};setInventoryDate(value)}},
   setForecastOrigin:value=>{chosenDates.current={...chosenDates.current,origin:value,originExplicit:true};setForecastOrigin(value)}};
  if(authLoading)return <div className="full-loading"><Leaf size={36}/><div className="spinner"/><span>AsBoljam</span></div>;
@@ -152,14 +155,14 @@ export default function App() {
    <div className="sidebar-bottom">
     <div className="sidebar-note"><strong>{organization?.name??'—'}</strong><span>{workspace?t('availableBranches')+': '+branches.length:t('workspaceLoading')}</span></div>
     <div className="user"><span className="avatar">{user.email[0].toUpperCase()}</span><span className="user-info"><strong>{user.email.split('@')[0]}</strong><small>{t('role_'+user.role)}</small></span>
-     <button className="icon-button" title={t('logout')} onClick={async()=>{const csrf=api.csrf;try{await api.post('/session/logout',{});if(api.csrf===csrf)resetSession()}catch(error){if(api.csrf===csrf)setAuthError(error)}}}><LogOut size={17}/></button>
+     <button className="icon-button" title={t('logout')} onClick={()=>navigation.request(async()=>{const csrf=api.csrf;try{await api.post('/session/logout',{});if(api.csrf===csrf)resetSession()}catch(error){if(api.csrf===csrf)setAuthError(error)}})}><LogOut size={17}/></button>
     </div>
    </div>
   </aside>
   <div className="main-shell" inert={drawer?true:undefined}>
    <header className="topbar">
     <div className="top-left"><button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button><div className="breadcrumb">AsBoljam<ChevronRight size={13}/><strong>{sectionLabel(section,lang)||t(section)}</strong></div></div>
-    <div className="top-right"><label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>{setBranch(event.target.value);if(id)go('/'+section)}}>
+    <div className="top-right"><label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>changeBranch(event.target.value,true)}>
      {!branches.length&&<option value="">{t('noBranches')}</option>}
      {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
     </select><ChevronDown size={14}/></label><span className="top-divider"/><button className="language" onClick={()=>setLang(lang==='kk'?'ru':'kk')}>{lang==='kk'?'ҚАЗ':'РУС'}<ChevronDown size={12}/></button><span className="avatar small">{user.email[0].toUpperCase()}</span></div>
@@ -175,7 +178,8 @@ export default function App() {
    </main>
    <nav className="bottom-nav" aria-label={lang==='kk'?'Жылдам навигация':'Быстрая навигация'}>{workdaySections.filter(({key})=>key!=='data').map(({key,label,icon:Icon})=><button aria-current={sectionGroup(section)?.key===key?'page':undefined} className={sectionGroup(section)?.key===key?'active':''} key={key} onClick={()=>go('/'+key)}><Icon size={20}/><span>{label[lang==='kk'?0:1]}</span></button>)}<button onClick={()=>setDrawer(true)}><Menu size={20}/><span>{lang==='kk'?'Тағы':'Ещё'}</span></button></nav>
   </div>
- </div>;
+  {navigation.prompt&&<NavigationGuardDialog prompt={navigation.prompt} lang={lang} close={navigation.close} discard={navigation.discard}/>}
+  </div>;
 }
 function Login({t,lang,setLang,error,onLogin}:any){
  const[email,setEmail]=useState(''),[password,setPassword]=useState(''),[show,setShow]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState<any>(error);

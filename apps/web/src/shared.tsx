@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, Database, Leaf, RefreshCw } from 'lucide-react';
 import { ApiClient,type WorkspaceDataContext } from '../../../packages/api-client';
+import type {RegisterNavigationBlocker} from './navigationGuard';
 export type {WorkspaceDataContext} from '../../../packages/api-client';
 export const api = new ApiClient();
 export type Row=Record<string,any>;
@@ -169,7 +170,7 @@ export const items=(v:any):Row[]=>Array.isArray(v)?v:v?.items||[];
 export const name=(v:any)=>String(v||'').replaceAll('_',' ');
 export type OrganizationMetadata={id:string;name:string|null;timezone:string|null;currency:string;status:'active'|'suspended';data_policy:'synthetic_only'|'real_only'|'unconfigured';provenance:string};
 export type WorkspaceSettings={organization:OrganizationMetadata;timezone?:string|null;currency?:string;scenario_date?:string|null;data_origin?:string|null;data_context?:WorkspaceDataContext;onboarding:{branch_count:number;can_import_branches:boolean;data_policy:'synthetic_only'|'real_only'|'unconfigured'}};
-export type Context={t:(k:string)=>string;lang:Lang;branch:string;branchName?:string;go:(p:string)=>void;revision:number;refresh:()=>void;user:any;online:boolean;setBranch:(branch:string)=>void;organization?:OrganizationMetadata;workspace?:WorkspaceSettings;refreshWorkspace:()=>Promise<void>;dataContext?:WorkspaceDataContext;inventoryDate:string;setInventoryDate:(value:string)=>void;forecastOrigin:string;setForecastOrigin:(value:string)=>void};
+export type Context={route:string;t:(k:string)=>string;lang:Lang;branch:string;branchName?:string;go:(p:string)=>void;revision:number;refresh:()=>void;user:any;online:boolean;setBranch:(branch:string)=>void;registerNavigationBlocker?:RegisterNavigationBlocker;organization?:OrganizationMetadata;workspace?:WorkspaceSettings;refreshWorkspace:()=>Promise<void>;dataContext?:WorkspaceDataContext;inventoryDate:string;setInventoryDate:(value:string)=>void;forecastOrigin:string;setForecastOrigin:(value:string)=>void};
 export function shiftDate(value:string|null|undefined,days:number){if(!value||!/^\d{4}-\d{2}-\d{2}$/.test(value))return '';const time=Date.parse(value+'T00:00:00Z');return Number.isFinite(time)?new Date(time+days*86400000).toISOString().slice(0,10):''}
 export function workspaceData(settings:WorkspaceSettings,branch:string|null):WorkspaceDataContext|undefined {
  if(settings.data_context)return settings.data_context;

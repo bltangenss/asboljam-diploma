@@ -39,7 +39,7 @@ export function Forecasts(c:Context & {id?:string}) {
  const canPlan=c.dataContext?.operations_enabled===true&&['admin','manager'].includes(user?.role||'');
  const state=useData(id?`/forecasts/${id}`:`/forecasts?branch_id=${branch}&limit=200`,revision),meals=useData('/meals?limit=200');
  const[productionLocked,setProductionLocked]=useState(false);
- const productionId=new URLSearchParams(location.search).get('production_plan_id')||'';
+ const productionId=new URLSearchParams(c.route.split('?')[1]||'').get('production_plan_id')||'';
  const production=useProductionPlan(c,id||'',productionId);
  const productionSuffix=productionQuery(productionId),flowBlocked=productionLocked||!!productionId&&!production.ready;
  const[model,setModel]=useState('seasonal_naive_7'),[runId,setRunId]=useState(''),[err,setErr]=useState<any>(null),[busy,setBusy]=useState(false),[filter,setFilter]=useState(''),[historyOpen,setHistoryOpen]=useState(false);
@@ -139,7 +139,7 @@ export function Procurement(c:Context & {id?:string}) {
  const{t,lang,branch,id,revision,refresh,go,user,online}=c;
  const canPlan=c.dataContext?.operations_enabled===true&&['admin','manager'].includes(user?.role||'');
  const state=useData(id?`/plans/${id}`:`/plans?branch_id=${branch}&limit=200`,revision),forecasts=useScopedPlanningData('/forecasts?branch_id='+encodeURIComponent(branch)+'&limit=200',branch+':'+revision),ingredients=useData('/ingredients?limit=200'),suppliers=useData('/suppliers?limit=200'),branches=useData('/branches?limit=200');
- const requestedForecast=new URLSearchParams(location.search).get('forecast')||'',productionId=new URLSearchParams(location.search).get('production_plan_id')||'',selectionScope=branch+'\0'+requestedForecast;
+ const requestedForecast=new URLSearchParams(c.route.split('?')[1]||'').get('forecast')||'',productionId=new URLSearchParams(c.route.split('?')[1]||'').get('production_plan_id')||'',selectionScope=branch+'\0'+requestedForecast;
  const productionSuffix=productionQuery(productionId);
  const[selection,setSelection]=useState<{scope:string;id:string;issue:'foreign'|'unavailable'|null}>({scope:selectionScope,id:requestedForecast,issue:null});
  const forecastId=selection.scope===selectionScope?selection.id:requestedForecast,selectionIssue=selection.scope===selectionScope?selection.issue:null;

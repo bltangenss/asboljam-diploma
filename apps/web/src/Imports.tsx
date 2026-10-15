@@ -36,7 +36,7 @@ const fieldCopy:Record<string,[string,string]>={
 export default function Imports(c:Context) {
  const {t,lang,branch,user,online}=c;
  const kk=lang==='kk',copy=(kkText:string,ruText:string)=>kk?kkText:ruText;
- const returnQuery=new URLSearchParams(location.search),returnSection=returnQuery.get('return');
+ const returnQuery=new URLSearchParams(c.route.split('?')[1]||''),returnSection=returnQuery.get('return');
  const returnAllowed=returnQuery.get('return_branch')===branch&&['inventory','forecasts'].includes(returnSection||'');
  const returnForecast=returnQuery.get('forecast')||'';
  const returnProduction=returnQuery.get('production_plan_id')||'';
@@ -49,8 +49,8 @@ export default function Imports(c:Context) {
  const canImport=c.dataContext?.operations_enabled===true&&['admin','manager','warehouse'].includes(user?.role||'');
  const types=user?.role==='admin'?['daily_sales','inventory_lots','branches','meals','ingredients','recipes','suppliers','supplier_offers','calendar']
   :user?.role==='warehouse'?['inventory_lots']:['manager','analyst'].includes(user?.role||'')?correctionKinds:[];
- const [kind,setKind]=useState(()=>{const requested=new URLSearchParams(location.search).get('kind');return requested&&types.includes(requested)?requested:user?.role==='admin'&&!branch?'branches':user?.role==='warehouse'?'inventory_lots':'daily_sales'});
- const [mode,setMode]=useState<'append'|'correction'>(()=>new URLSearchParams(location.search).get('mode')==='correction'&&correctionKinds.includes(kind)?'correction':'append'),[reason,setReason]=useState(''),[correctsBatch,setCorrectsBatch]=useState('');
+ const [kind,setKind]=useState(()=>{const requested=new URLSearchParams(c.route.split('?')[1]||'').get('kind');return requested&&types.includes(requested)?requested:user?.role==='admin'&&!branch?'branches':user?.role==='warehouse'?'inventory_lots':'daily_sales'});
+ const [mode,setMode]=useState<'append'|'correction'>(()=>new URLSearchParams(c.route.split('?')[1]||'').get('mode')==='correction'&&correctionKinds.includes(kind)?'correction':'append'),[reason,setReason]=useState(''),[correctsBatch,setCorrectsBatch]=useState('');
  const [sourceId,setSourceId]=useState('manual_csv'),[mappingVersion,setMappingVersion]=useState('canonical-v1'),[declaredHash,setDeclaredHash]=useState('');
  const [filename,setFilename]=useState(''),[fileSize,setFileSize]=useState<number|null>(null),[dragging,setDragging]=useState(false),[text,setText]=useState(''),[preview,setPreview]=useState<ImportBatchView|null>(null);
  const [error,setError]=useState(''),[action,setAction]=useState(''),[done,setDone]=useState(false),[reviewed,setReviewed]=useState(false),[uncertain,setUncertain]=useState(false);
@@ -60,7 +60,7 @@ export default function Imports(c:Context) {
  const version=useRef(0),pending=useRef(false),mounted=useRef(true);
  const commitKeys=useRef(new Map<string,string>());
  const busy=Boolean(action),locked=action==='commit'||action==='recover';
- const requestedBatch=new URLSearchParams(location.search).get('batch')||'';
+ const requestedBatch=new URLSearchParams(c.route.split('?')[1]||'').get('batch')||'';
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++version.current}},[]);
  useEffect(()=>{if(!done)resetPreview()},[branch]);
  useEffect(()=>{resetPreview()},[user?.role]);

@@ -78,11 +78,9 @@ export function usePlanningScrollRestoration(path:string,scope:string,enabled:bo
   return stop;
  },[path,scope,enabled,reset]);
 
- useEffect(()=>{
-  const pop=()=>beforeNavigate(location.pathname);
-  window.addEventListener('popstate',pop);
-  return()=>{window.removeEventListener('popstate',pop);reset()};
- },[beforeNavigate,reset]);
+ // App calls beforeNavigate only when its guarded router accepts a transition.
+ // A rejected Back/Forward and its restitution must never change saved positions.
+ useEffect(()=>()=>reset(),[reset]);
 
  return {beforeNavigate,reset};
 }

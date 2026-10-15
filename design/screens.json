@@ -77,6 +77,19 @@
     ],
     "daily_flow": "Today -> forecast -> optional explicit saved cooking variant -> same-branch stock review -> procurement -> explicit human decision",
     "forecast_limit": "Observed-sales estimate stays unchanged; user saves immutable named cooking variants with integer portions and reason, without posting stock",
+    "production_editor_guard": {
+      "voluntary_transitions": [
+        "menu",
+        "branch",
+        "logout",
+        "back_forward"
+      ],
+      "dirty": "explicit discard or stay",
+      "pending_or_uncertain": "stay and resolve original command",
+      "security": "forced session revocation clears editor regardless of guard",
+      "lifetime": "memory only; beforeunload warns but cannot guarantee recovery after forced close",
+      "history_fallback": "without an exact index for an old unmanaged entry, restore URL consistency by disclosed replacement; managed entries retain forward history"
+    },
     "mobile_primary_routes": [
       "/dashboard",
       "/forecasts",
@@ -379,7 +392,9 @@
         "empty_draft_is_not_zero",
         "save_pending",
         "uncertain_save_retry_same_key",
-        "stale_source_blocks_new_variant"
+        "stale_source_blocks_new_variant",
+        "dirty_navigation_requires_explicit_discard",
+        "pending_or_uncertain_navigation_blocked"
       ]
     },
     {

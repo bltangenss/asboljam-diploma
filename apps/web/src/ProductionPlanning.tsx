@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {ArrowRight,Save} from 'lucide-react';
 import {ApiError} from '../../../packages/api-client';
 import {api,type Context,type Row,Button,ErrorBox,Table,Badge,date,fmt,items,name} from './shared';
@@ -61,16 +61,25 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
  currentScope.current=scope;
  const locked=busy||uncertain,editing=!selectedId||draft;
  const dirty=editing&&(draft||Object.values(values).some(value=>value!=='')||title!==''||reason!=='');
+ const protection=useRef({dirty,uncertain});
+ useLayoutEffect(()=>{protection.current={dirty,uncertain}},[dirty,uncertain]);
+ function discardDraft(){
+  if(pending.current||protection.current.uncertain)return false;
+  protection.current.dirty=false;command.current=null;setDraft(false);setValues({});setTitle('');setReason('');setError(null);return true;
+ }
+ useLayoutEffect(()=>c.registerNavigationBlocker?.({
+  read:()=>pending.current?'pending':protection.current.uncertain?'uncertain':protection.current.dirty?'dirty':'clean',
+  discard:discardDraft,
+ }),[c.registerNavigationBlocker]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[]);
  useEffect(()=>{onLocked?.(locked||dirty);return()=>onLocked?.(false)},[locked,dirty,onLocked]);
  useEffect(()=>{if(!locked){setDraft(false);setValues({});setTitle('');setReason('');setError(null);command.current=null}},[selectedId]);
- useEffect(()=>{if(!locked)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[locked]);
  const complete=predictions.length>0&&predictions.every(row=>integer(values[String(row.meal_id)]??''));
  const valid=complete&&title.trim().length>=1&&title.trim().length<=120&&reason.trim().length>=3&&reason.trim().length<=1000;
  const canSuggest=predictions.length>0&&predictions.every(row=>row.point_forecast!==null&&row.point_forecast!==undefined&&Number.isFinite(Number(row.point_forecast))&&Number(row.point_forecast)>=0&&Math.ceil(Number(row.point_forecast))<=1e9);
  const variants=items(list.data).filter(row=>String(row.branch_id)===c.branch&&String(row.forecast_id)===forecastId);
  if(selected.data&&!variants.some(row=>row.id===selectedId))variants.unshift(selected.data);
- function edit(action:()=>void){if(locked)return;command.current=null;setError(null);action()}
+ function edit(action:()=>void){if(pending.current||protection.current.uncertain)return;protection.current.dirty=true;command.current=null;setError(null);action()}
  async function save(){
   if(pending.current||!canWrite||!c.online||(!command.current&&(!valid||!sourceReady)))return;
   if(!command.current)command.current={key:crypto.randomUUID(),body:{branch_id:c.branch,forecast_id:forecastId,name:title.trim(),reason:reason.trim(),portions:predictions.map(row=>({meal_id:String(row.meal_id),portions:Number(values[String(row.meal_id)])}))}};
@@ -78,11 +87,11 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
   const current=()=>mounted.current&&requestScope===currentScope.current&&csrf===api.csrf;
   try{const saved=await api.post('/production-plans',attempt.body,{'Idempotency-Key':attempt.key});if(!current())return;
    if(!saved?.id||String(saved.branch_id)!==c.branch||String(saved.forecast_id)!==forecastId)throw new Error('Invalid production plan receipt');
-   command.current=null;setUncertain(false);setDraft(false);setValues({});setTitle('');setReason('');c.refresh();onSelect(String(saved.id));
+   command.current=null;pending.current=false;protection.current={dirty:false,uncertain:false};setUncertain(false);setDraft(false);setValues({});setTitle('');setReason('');c.refresh();onSelect(String(saved.id));
   }catch(error){if(current()){
    const known=error instanceof ApiError&&c.t('error_'+error.code)!=='error_'+error.code;
    setError(known?error:{message:w('Сақтау нәтижесі расталмады. Деректерді және сервермен байланысты тексеріңіз.','Результат сохранения не подтверждён. Проверьте данные и соединение с сервером.')});
-   const unknown=!(error instanceof ApiError)||error.status===0||error.status>=500||error.code==='PRODUCTION_CONCURRENT_RETRY';setUncertain(unknown);if(!unknown)command.current=null;
+   const unknown=!(error instanceof ApiError)||error.status===0||error.status>=500||error.code==='PRODUCTION_CONCURRENT_RETRY';protection.current.uncertain=unknown;setUncertain(unknown);if(!unknown)command.current=null;
   }}
   finally{if(current()){pending.current=false;setBusy(false)}}
  }
@@ -93,7 +102,7 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
   {selectedId&&(selected.loading?<p role="status">{c.t('loading')}</p>:selected.invalid?<p className="alert warning" role="alert">{w('Бұл нұсқа осы болжам мен бөлімше үшін расталмады.','Этот вариант не подтверждён для данного прогноза и филиала.')} <button className="text-button" disabled={locked} onClick={c.refresh}>{c.t('retry')}</button></p>:selected.data?<ProductionEvidence plan={selected.data} context={c} compact/>:null)}
   {selectedId&&selected.data&&!selected.ready&&<p className="alert warning" role="alert">{w('Нұсқаның өзектілігі расталмаған. Жаңа болжам мен дайындау нұсқасын жасаңыз.','Актуальность варианта не подтверждена. Создайте новый прогноз и вариант приготовления.')}</p>}
   <Table t={c.t} rows={displayRows} columns={[{key:'meal_id',label:c.t('meal'),render:row=>mealTitle(row,meals)},{key:'point_forecast',label:w('Нүктелік болжам · порция','Точечный прогноз · порции'),numeric:true,render:row=>fmt(row.point_forecast,1)},{key:'portions',label:w('Дайындау · порция','Приготовить · порции'),numeric:true,render:row=>canWrite&&editing?<input className="production-portions" type="number" min="0" max="1000000000" step="1" inputMode="numeric" aria-label={w('Дайындау','Приготовить')+' · '+mealTitle(row,meals)} disabled={locked||!sourceReady} value={values[String(row.meal_id)]??''} onChange={event=>edit(()=>setValues(previous=>({...previous,[String(row.meal_id)]:event.target.value})))} placeholder="—"/>:selected.data?fmt(row.saved_portions):'—'},...(predictions.some(row=>row.p10!=null)?['p10','p50','p90'].map(key=>({key,label:key,numeric:true,render:(row:Row)=>fmt(row[key],1)})):[])]}/>
-  {canWrite&&editing?<div data-testid="production-editor" className="production-editor"><div className="production-draft-actions"><Button secondary disabled={locked||!sourceReady||!canSuggest} onClick={()=>edit(()=>setValues(Object.fromEntries(predictions.map(row=>[String(row.meal_id),String(Math.ceil(Number(row.point_forecast)))]))))}>{w('Болжамды жоғарыға дөңгелектеп толтыру','Заполнить прогнозом с округлением вверх')}</Button>{dirty&&<button className="text-button" disabled={locked} onClick={()=>edit(()=>{setDraft(false);setValues({});setTitle('');setReason('')})}>{w('Сақталмаған өзгерістерді болдырмау','Отменить несохранённые изменения')}</button>}</div><p className="production-help">{w('Толтыру батырмасы әр болжамды келесі бүтін санға дейін арттырады. Сақтауға дейін порцияларды тексеріп өзгертіңіз.','Кнопка заполнения округляет каждый прогноз вверх до целого. Проверьте и измените порции перед сохранением.')}</p>
+  {canWrite&&editing?<div data-testid="production-editor" className="production-editor"><div className="production-draft-actions"><Button secondary disabled={locked||!sourceReady||!canSuggest} onClick={()=>edit(()=>setValues(Object.fromEntries(predictions.map(row=>[String(row.meal_id),String(Math.ceil(Number(row.point_forecast)))]))))}>{w('Болжамды жоғарыға дөңгелектеп толтыру','Заполнить прогнозом с округлением вверх')}</Button>{dirty&&<button className="text-button" disabled={locked} onClick={discardDraft}>{w('Сақталмаған өзгерістерді болдырмау','Отменить несохранённые изменения')}</button>}</div><p className="production-help">{w('Толтыру батырмасы әр болжамды келесі бүтін санға дейін арттырады. Сақтауға дейін порцияларды тексеріп өзгертіңіз.','Кнопка заполнения округляет каждый прогноз вверх до целого. Проверьте и измените порции перед сохранением.')}</p>
    {dirty&&!locked&&<p className="alert warning" role="status">{w('Қалдыққа не сатып алуға өту алдында жаңа нұсқаны сақтаңыз немесе сақталмаған өзгерістерді болдырмаңыз.','Перед переходом к остаткам или закупке сохраните новый вариант либо отмените несохранённые изменения.')}</p>}
    <div className="production-form"><label>{w('Нұсқа атауы','Название варианта')}<input maxLength={120} disabled={locked||!sourceReady} value={title} onChange={event=>edit(()=>setTitle(event.target.value))}/></label><label>{w('Неліктен осы порциялар таңдалды','Почему выбраны эти порции')}<textarea minLength={3} maxLength={1000} rows={3} disabled={locked||!sourceReady} value={reason} onChange={event=>edit(()=>setReason(event.target.value))}/></label></div>
    {!sourceReady&&<p className="alert warning">{w('Бастапқы деректердің өзектілігі расталмаған. Алдымен болжамды қайта есептеңіз.','Актуальность исходных данных не подтверждена. Сначала пересчитайте прогноз.')}</p>}
