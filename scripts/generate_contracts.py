@@ -205,7 +205,8 @@ def demo_datasets(constants: dict) -> list:
 
 def design_tokens() -> dict:
     path = ROOT / "apps/web/src/style.css"
-    css = path.read_text(encoding="utf-8")
+    # theme.css is loaded last (apps/web/src/main.tsx) and completes the base tokens and components.
+    css = path.read_text(encoding="utf-8") + "\n" + (ROOT / "apps/web/src/theme.css").read_text(encoding="utf-8")
     # Merge repeated top-level selectors in cascade order. Media rules are
     # inventoried separately; they must not overwrite the desktop base tokens.
     cleaned = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
