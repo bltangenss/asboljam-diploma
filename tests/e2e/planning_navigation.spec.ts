@@ -33,6 +33,8 @@ async function selectFilter(page:Page,section:'forecasts'|'procurement'){
  return filter;
 }
 
+const sheetScroll=(page:Page)=>page.locator('.planning-history-disclosure>.sheet').evaluate(element=>element.scrollTop);
+
 async function openScrolledDetail(page:Page,section:'forecasts'|'procurement'){
  await page.goto('/'+section);
  await page.locator('.planning-history-disclosure>summary').click();
@@ -40,7 +42,8 @@ async function openScrolledDetail(page:Page,section:'forecasts'|'procurement'){
  await selectFilter(page,section);
  const link=page.locator('.planning-history tbody .row-link').nth(20);
  await link.scrollIntoViewIfNeeded();
- const y=await page.evaluate(()=>window.scrollY);expect(y).toBeGreaterThan(300);
+ // The history opens as a sheet, so the list position is the sheet's own scroll offset.
+ const y=await sheetScroll(page);expect(y).toBeGreaterThan(300);
  await link.click();await expect(page).toHaveURL(new RegExp('/'+section+'/'+section+'-1-20$'));
  await expect(page.getByTestId('input-provenance')).toBeVisible();
  return y;
@@ -54,8 +57,8 @@ for(const section of ['forecasts','procurement'] as const){
   await expect(page.locator('.planning-history tbody .row-link')).toHaveCount(40);
   const filter=section==='forecasts'?page.getByLabel('По дате прогноза',{exact:true}):page.locator('.planning-history').getByRole('combobox',{name:'Статус',exact:true});
   await expect(filter).toHaveValue(section==='forecasts'?'2026-01-01':'ready');
-  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(y-3);
-  expect(await page.evaluate(()=>window.scrollY)).toBeLessThan(y+3);
+  await expect.poll(()=>sheetScroll(page)).toBeGreaterThan(y-3);
+  expect(await sheetScroll(page)).toBeLessThan(y+3);
   expect(await page.evaluate(()=>history.scrollRestoration)).toBe(initialMode);
   expect(state.requests.filter(request=>request.method!=='GET')).toEqual([]);
  });
@@ -81,6 +84,6 @@ for(const interaction of ['wheel','key'] as const)test(`pending restoration stop
  state.releaseList.resolve();
  await expect(page.locator('.planning-history tbody .row-link')).toHaveCount(40);
  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
- expect(await page.evaluate(()=>window.scrollY)).toBeLessThan(y-100);
+ expect(await sheetScroll(page)).toBeLessThan(y-100);
  expect(await page.evaluate(()=>history.scrollRestoration)).toBe('auto');
 });

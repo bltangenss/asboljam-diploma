@@ -69,6 +69,8 @@ test('shortage and human decision stay visible while derivation is optional; app
  await expect(evidence.getByRole('cell',{name:'Мука',exact:true})).toBeHidden();
  await evidence.locator('summary').click();await expect(evidence.getByRole('cell',{name:'Мука',exact:true})).toBeVisible();
  await expect(evidence).toContainText('fixture-v1');
+ // The derivation opens as a sheet over the plan; close it before deciding.
+ await page.keyboard.press('Escape');await expect(evidence).not.toHaveAttribute('open','');
  await page.locator('.approval-panel').getByRole('button',{name:'Утвердить план',exact:true}).click();
  const dialog=page.getByRole('dialog');const confirm=dialog.getByRole('button',{name:'Утвердить план',exact:true});
  await expect(confirm).toBeDisabled();

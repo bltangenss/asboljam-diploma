@@ -128,7 +128,7 @@ test('a late opening-date reply cannot replace the newer selected balance',async
 
 test('Russian stock forms stay within narrow viewport and preserve decimal strings',async({page})=>{
  const state=fixture();await install(page,state);await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>localStorage.setItem('asboljam-language','ru'));await page.goto('/inventory');await expect(page.getByRole('heading',{name:'Движения склада',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'Посчитанный срез остатков',exact:true})).toBeVisible();
- await expect(page.getByText('10.000000001',{exact:true}).first()).toBeVisible();expect(await page.locator('.stock-counted-task table th').first().evaluate(element=>element.getBoundingClientRect().height)).toBeLessThan(100);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:'.cache/stock-ledger-ru-mobile.png',fullPage:true});
+ await expect(page.getByText('10.000000001',{exact:true}).first()).toBeVisible();await page.getByRole('button',{name:'Таблица',exact:true}).click();expect(await page.locator('.stock-counted-task table th').first().evaluate(element=>element.getBoundingClientRect().height)).toBeLessThan(100);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:'.cache/stock-ledger-ru-mobile.png',fullPage:true});
 });
 
 for(const language of ['kk','ru'])for(const code of ['STOCK_RECONCILIATION_REQUIRED','STOCK_RECIPE_NOT_ACTIVE'])test(`${language} procurement explains ${code} with the next stock action`,async({page})=>{

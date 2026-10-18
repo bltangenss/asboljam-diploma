@@ -18,7 +18,9 @@ async function install(page:Page,role='manager',lang='ru'){
 test('five daily sections group existing routes and preserve branch',async({page})=>{
  await install(page);await page.goto('/data');
  const nav=page.getByRole('navigation',{name:'Рабочий день',exact:true});
- await expect(nav.getByRole('button')).toHaveText(['Сегодня','План дня','Остатки','Закупки','Данные и анализ']);
+ // The four steps of the day are the header navigation; data and analysis is the tool beside them.
+ await expect(nav.getByRole('button')).toHaveText(['Сегодня','План дня','Остатки','Закупки']);
+ await expect(page.locator('.app-header').getByRole('button',{name:'Данные и анализ',exact:true})).toHaveAttribute('aria-current','page');
  await page.getByLabel('Филиал',{exact:true}).selectOption('two');
  await expect(page.locator('.data-workspace-context')).toContainText('Второй филиал');
  await nav.getByRole('button',{name:'План дня',exact:true}).click();
@@ -71,7 +73,7 @@ test('warehouse gets stock tasks while analyst gets reading routes',async({page}
 
 test('nested deep links keep correct group after browser back and narrow screens',async({page})=>{
  await install(page,'admin');await page.goto('/reports');
- await expect(page.getByRole('navigation',{name:'Рабочий день',exact:true}).getByRole('button',{name:'Данные и анализ'})).toHaveAttribute('aria-current','page');
+ await expect(page.locator('.app-header').getByRole('button',{name:'Данные и анализ'})).toHaveAttribute('aria-current','page');
  await page.getByRole('link',{name:'Подготовка данных'}).click();
  await page.getByRole('link',{name:/Добавить продажи/}).click();await page.goBack();await expect(page.locator('main h1')).toHaveText('Данные и анализ');
  for(const width of [1440,768,390,360]){

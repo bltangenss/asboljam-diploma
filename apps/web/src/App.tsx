@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {ChevronDown,ChevronRight,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X} from 'lucide-react';
+import {ChartNoAxesCombined,ChevronDown,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Search,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X} from 'lucide-react';
+import {CommandPalette} from './CommandPalette';
 import {api,words,items,date,shiftDate,workspaceData,ErrorBox,type Lang,type Row,type Context,type WorkspaceSettings,type WorkspaceDataContext} from './shared';
 import Dashboard from './Dashboard';
 import DataWorkspace from './DataWorkspace';
@@ -22,6 +23,9 @@ export default function App() {
  const [inventoryDate,setInventoryDate]=useState(''),[forecastOrigin,setForecastOrigin]=useState('');
  const contextEpoch=useRef(0),chosenDates=useRef({branch:'',inventory:'',origin:'',inventoryExplicit:false,originExplicit:false});
  const [drawer,setDrawer]=useState(false),[online,setOnline]=useState(navigator.onLine),[revision,setRevision]=useState(0);
+ const [palette,setPalette]=useState(false),[userMenu,setUserMenu]=useState(false);
+ useEffect(()=>{const key=(event:KeyboardEvent)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();setPalette(open=>!open)}};document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key)},[]);
+ useEffect(()=>{if(!userMenu)return;const close=(event:MouseEvent|KeyboardEvent)=>{if(event instanceof KeyboardEvent?event.key==='Escape':!(event.target as HTMLElement).closest('.user-menu'))setUserMenu(false)};document.addEventListener('mousedown',close);document.addEventListener('keydown',close);return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',close)}},[userMenu]);
  const [compact,setCompact]=useState(()=>window.matchMedia('(max-width: 1023px)').matches);
  useEffect(()=>{const media=window.matchMedia('(max-width: 1023px)');const changed=()=>{setCompact(media.matches);if(!media.matches)setDrawer(false)};media.addEventListener('change',changed);return()=>media.removeEventListener('change',changed)},[]);
  const drawerRef=useRef<HTMLElement>(null);
@@ -43,6 +47,8 @@ export default function App() {
  const planningScroll=usePlanningScrollRestoration(path,JSON.stringify([user?.organization_id,user?.id,user?.role,branch]),Boolean(user&&branch));
  const navigation=useGuardedNavigation((destination,traversal)=>{const accepted=destination==='/'||destination.startsWith('/?')?'/dashboard'+destination.slice(1):destination;planningScroll.beforeNavigate(accepted.split('?')[0]);setRoute(accepted);setDrawer(false);if(!traversal)window.scrollTo(0,0)},()=>setDrawer(false));
  const go=navigation.go;
+ // Choosing the page that is already open from the drawer only closes the drawer.
+ const drawerGo=(url:string)=>{if(url===location.pathname+location.search)setDrawer(false);else go(url)};
  function clearWorkspace() {
   planningScroll.reset();
   ++loadEpoch.current;setWorkspace(null);setBranches([]);setBranch('');setWorkspaceError(null);setWorkspaceLoading(false);
@@ -125,6 +131,7 @@ export default function App() {
  const globalContext=workspace?workspaceData(workspace,null):undefined;
  const currentContext=dataContext?.branch_id===(branch||null)?dataContext:globalContext;
  const operations=globalContext?.operations_enabled===true;
+ const logout=()=>navigation.request(async()=>{const csrf=api.csrf;try{await api.post('/session/logout',{});if(api.csrf===csrf)resetSession()}catch(error){if(api.csrf===csrf)setAuthError(error)}});
  const changeBranch=(value:string,leaveDetail=false)=>{if(value!==branch&&branches.some(item=>String(item.branch_id)===value))navigation.request(()=>{setBranch(value);if(leaveDetail&&id)go('/'+section)})};
  const ctx:Context={route,t,lang,user,branch,branchName:branches.find(item=>String(item.branch_id)===branch)?.branch_name,go,revision,refresh:()=>navigation.request(()=>setRevision(value=>value+1)),online,
   setBranch:value=>changeBranch(value),registerNavigationBlocker:navigation.register,
@@ -149,23 +156,34 @@ export default function App() {
   <aside ref={drawerRef} id="workspace-navigation" inert={compact&&!drawer?true:undefined} aria-hidden={compact&&!drawer?true:undefined} role={drawer?'dialog':undefined} aria-modal={drawer?true:undefined} aria-label={lang==='kk'?'Жұмыс мәзірі':'Рабочее меню'} className={'sidebar '+(drawer?'open':'')}>
    {drawer&&<button className="icon-button drawer-close" aria-label={lang==='kk'?'Мәзірді жабу':'Закрыть меню'} onClick={()=>setDrawer(false)}><X/></button>}
    <a className="brand" href="/dashboard" onClick={event=>{event.preventDefault();go('/dashboard')}}><span className="brand-symbol"><Leaf size={24}/></span><span>AsBoljam<span className="brand-dot">.</span></span></a>
-   <div className="nav-group"><div className="workspace-label">{lang==='kk'?'ЖҰМЫС КҮНІ':'РАБОЧИЙ ДЕНЬ'}</div><nav aria-label={lang==='kk'?'Жұмыс күні':'Рабочий день'}>{workdaySections.map(({key,label,icon:Icon})=><button key={key} aria-current={sectionGroup(section)?.key===key?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key===key?'active':'')} onClick={()=>go('/'+key)}><Icon size={19}/><span>{label[lang==='kk'?0:1]}</span>{sectionGroup(section)?.key===key&&<span className="nav-marker"/>}</button>)}</nav></div>
+   <div className="nav-group"><div className="workspace-label">{lang==='kk'?'ЖҰМЫС КҮНІ':'РАБОЧИЙ ДЕНЬ'}</div><nav aria-label={lang==='kk'?'Жұмыс күні':'Рабочий день'}>{workdaySections.map(({key,label,icon:Icon})=><button key={key} aria-current={sectionGroup(section)?.key===key?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key===key?'active':'')} onClick={()=>drawerGo('/'+key)}><Icon size={19}/><span>{label[lang==='kk'?0:1]}</span>{sectionGroup(section)?.key===key&&<span className="nav-marker"/>}</button>)}</nav></div>
    <div className="workspace-label manage-label">{t('management')}</div>
-   <nav aria-label={t('management')}><button aria-current={sectionGroup(section)?.key==='settings'?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key==='settings'?'active':'')} onClick={()=>go('/settings')}><Settings size={19}/><span>{managementSection.label[lang==='kk'?0:1]}</span></button></nav>
+   <nav aria-label={t('management')}><button aria-current={sectionGroup(section)?.key==='settings'?'page':undefined} className={'nav-item '+(sectionGroup(section)?.key==='settings'?'active':'')} onClick={()=>drawerGo('/settings')}><Settings size={19}/><span>{managementSection.label[lang==='kk'?0:1]}</span></button></nav>
    <div className="sidebar-bottom">
     <div className="sidebar-note"><strong>{organization?.name??'—'}</strong><span>{workspace?t('availableBranches')+': '+branches.length:t('workspaceLoading')}</span></div>
     <div className="user"><span className="avatar">{user.email[0].toUpperCase()}</span><span className="user-info"><strong>{user.email.split('@')[0]}</strong><small>{t('role_'+user.role)}</small></span>
-     <button className="icon-button" title={t('logout')} onClick={()=>navigation.request(async()=>{const csrf=api.csrf;try{await api.post('/session/logout',{});if(api.csrf===csrf)resetSession()}catch(error){if(api.csrf===csrf)setAuthError(error)}})}><LogOut size={17}/></button>
+     <button className="icon-button" title={t('logout')} onClick={logout}><LogOut size={17}/></button>
     </div>
    </div>
   </aside>
   <div className="main-shell" inert={drawer?true:undefined}>
-   <header className="topbar">
-    <div className="top-left"><button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button><div className="breadcrumb">AsBoljam<ChevronRight size={13}/><strong>{sectionLabel(section,lang)||t(section)}</strong></div></div>
-    <div className="top-right"><label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>changeBranch(event.target.value,true)}>
-     {!branches.length&&<option value="">{t('noBranches')}</option>}
-     {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
-    </select><ChevronDown size={14}/></label><span className="top-divider"/><button className="language" onClick={()=>setLang(lang==='kk'?'ru':'kk')}>{lang==='kk'?'ҚАЗ':'РУС'}<ChevronDown size={12}/></button><span className="avatar small">{user.email[0].toUpperCase()}</span></div>
+   <header className="app-header">
+    <button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button>
+    <a className="brand header-brand" href="/dashboard" aria-label="AsBoljam" onClick={event=>{event.preventDefault();go('/dashboard')}}><span className="brand-symbol"><Leaf size={17}/></span><span>AsBoljam<span className="brand-dot">.</span></span></a>
+    {/* The working day is the navigation: four steps in the order a manager does them. */}
+    <nav className="app-nav" aria-label={lang==='kk'?'Жұмыс күні':'Рабочий день'}>{workdaySections.filter(({key})=>key!=='data').map(({key,label},index)=>{const active=sectionGroup(section)?.key===key;return <button key={key} aria-current={active?'page':undefined} className={'app-nav-item'+(active?' active':'')} onClick={()=>go('/'+key)}><span className="app-nav-step" data-step={index+1} aria-hidden="true"/><span>{label[lang==='kk'?0:1]}</span></button>})}</nav>
+    <div className="app-tools">
+     <button className="command-trigger" aria-label={lang==='kk'?'Іздеу және командалар':'Поиск и команды'} onClick={()=>setPalette(true)}><Search size={16}/><span>{lang==='kk'?'Іздеу':'Поиск'}</span><kbd>Ctrl K</kbd></button>
+     {[{key:'data',url:'/data',Icon:ChartNoAxesCombined,label:workdaySections.find(item=>item.key==='data')!.label,short:['Деректер','Данные']},{key:'settings',url:'/settings',Icon:Settings,label:managementSection.label,short:null}].map(({key,url,Icon,label,short})=>{const active=sectionGroup(section)?.key===key;return <button key={key} aria-current={active?'page':undefined} aria-label={label[lang==='kk'?0:1]} title={label[lang==='kk'?0:1]} className={'tool-button'+(active?' active':'')} onClick={()=>go(url)}><Icon size={18}/>{short&&<span className="tool-label">{short[lang==='kk'?0:1]}</span>}</button>})}
+     <label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>changeBranch(event.target.value,true)}>
+      {!branches.length&&<option value="">{t('noBranches')}</option>}
+      {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
+     </select><ChevronDown size={14}/></label>
+     <button className="language" onClick={()=>setLang(lang==='kk'?'ru':'kk')}>{lang==='kk'?'ҚАЗ':'РУС'}<ChevronDown size={12}/></button>
+     <div className="user-menu"><button className="avatar small user-menu-trigger" aria-haspopup="menu" aria-expanded={userMenu} aria-label={user.email} onClick={()=>setUserMenu(open=>!open)}>{user.email[0].toUpperCase()}</button>
+      {userMenu&&<div className="user-menu-panel" role="menu"><div className="user-menu-identity"><strong>{user.email}</strong><small>{t('role_'+user.role)}</small></div><div className="user-menu-org"><strong>{organization?.name??'—'}</strong><span>{workspace?t('availableBranches')+': '+branches.length:t('workspaceLoading')}</span></div><button role="menuitem" className="user-menu-item" title={t('logout')} onClick={()=>{setUserMenu(false);logout()}}><LogOut size={16}/>{t('logout')}</button></div>}
+     </div>
+    </div>
    </header>
    <div className="scenario-banner"><div><FlaskConical size={15}/><strong>{workspace?t(globalContext?.usage_mode==='TEST'?'testDataContext':globalContext?.usage_mode==='PILOT'?'pilotDataContext':synthetic?'syntheticOnly':globalContext?.data_origin==='REAL'?'realOnly':'dataSetupPending'):t('workspaceLoading')}</strong>{globalContext?.data_origin==='REAL'&&<span> · REAL</span>}{synthetic&&organization?.provenance==='demo_seed'&&currentContext?.target_date&&<><span className="banner-divider">/</span><span>{t('scenario')}: <b>{date(currentContext.target_date)}</b></span></>}</div></div>
    <main className="content" id="main" tabIndex={-1}>
@@ -178,6 +196,7 @@ export default function App() {
    </main>
    <nav className="bottom-nav" aria-label={lang==='kk'?'Жылдам навигация':'Быстрая навигация'}>{workdaySections.filter(({key})=>key!=='data').map(({key,label,icon:Icon})=><button aria-current={sectionGroup(section)?.key===key?'page':undefined} className={sectionGroup(section)?.key===key?'active':''} key={key} onClick={()=>go('/'+key)}><Icon size={20}/><span>{label[lang==='kk'?0:1]}</span></button>)}<button onClick={()=>setDrawer(true)}><Menu size={20}/><span>{lang==='kk'?'Тағы':'Ещё'}</span></button></nav>
   </div>
+  <CommandPalette open={palette} close={()=>setPalette(false)} go={go} lang={lang} setLang={setLang}/>
   {navigation.prompt&&<NavigationGuardDialog prompt={navigation.prompt} lang={lang} close={navigation.close} discard={navigation.discard}/>}
   </div>;
 }

@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {logout} from './navigation';
 
 const forecastId='guard-forecast',detail='/forecasts/'+forecastId;
 const forecast={id:forecastId,branch_id:'1',model:'rolling_mean_28',target_date:'2026-01-01',forecast_origin:'2025-12-31',input_freshness:'unchanged',data_origin:'SYNTHETIC',predictions:[{meal_id:'one',meal_name:'Сорпа',point_forecast:10.2,p10:null,p50:null,p90:null}]};
@@ -49,7 +50,7 @@ const editor=(page:Page)=>page.getByTestId('production-editor');
 const guard=(page:Page)=>page.getByRole('dialog',{name:/Несохранённые изменения|Проверьте результат сохранения|Сақталмаған өзгерістер/});
 const stay=(page:Page)=>guard(page).getByRole('button',{name:'Остаться в плане',exact:true});
 const discard=(page:Page)=>guard(page).getByRole('button',{name:'Отменить изменения и перейти',exact:true});
-const today=(page:Page)=>page.locator('.sidebar .nav-item').first();
+const today=(page:Page)=>page.locator('.app-nav .app-nav-item:visible, .sidebar.open .nav-item').first();
 const branch=(page:Page)=>page.getByLabel('Филиал',{exact:true});
 const save=(page:Page)=>editor(page).getByRole('button',{name:'Сохранить новый вариант',exact:true});
 const retry=(page:Page)=>editor(page).getByRole('button',{name:'Повторить и проверить сохранение',exact:true});
@@ -69,8 +70,8 @@ test('dirty branch change is atomic and applies only after discard',async({page}
 });
 
 test('dirty logout does not send a mutation before explicit discard',async({page})=>{
- const state=await install(page);await page.goto(detail);await fill(page);await page.getByTitle('Выйти',{exact:true}).click();await expect(guard(page)).toBeVisible();expect(state.posts).toEqual([]);await stay(page).click();
- await page.getByTitle('Выйти',{exact:true}).click();await discard(page).click();await expect(page).toHaveURL(/\/login$/);expect(state.posts.filter(row=>row.path==='/session/logout')).toHaveLength(1);
+ const state=await install(page);await page.goto(detail);await fill(page);await logout(page,'Выйти');await expect(guard(page)).toBeVisible();expect(state.posts).toEqual([]);await stay(page).click();
+ await logout(page,'Выйти');await discard(page).click();await expect(page).toHaveURL(/\/login$/);expect(state.posts.filter(row=>row.path==='/session/logout')).toHaveLength(1);
 });
 
 test('lost reply survives menu, branch, Back and logout attempts; retry uses exact original key/body',async({page})=>{
@@ -78,14 +79,14 @@ test('lost reply survives menu, branch, Back and logout attempts; retry uses exa
  await today(page).click();await expect(guard(page)).toBeVisible();await page.screenshot({path:'.cache/navigation-guard-visual/desktop-uncertain.png'});await hardGuard(page);
  await branch(page).selectOption('2');await hardGuard(page);await expect(branch(page)).toHaveValue('1');
  await page.goBack();await hardGuard(page);
- await page.getByTitle('Выйти',{exact:true}).click();await hardGuard(page);
+ await logout(page,'Выйти');await hardGuard(page);
  expect(state.posts).toHaveLength(1);await retry(page).click();await expect(page.getByTestId('production-saved')).toBeVisible();expect(state.posts).toHaveLength(2);expect(state.posts[1]).toEqual(state.posts[0]);expect(state.docs).toHaveLength(1);
  await page.getByRole('button',{name:'Проверить остатки',exact:true}).click();await expect(page).toHaveURL(/\/inventory\?forecast=guard-forecast&production_plan_id=saved-guard$/);await expect(guard(page)).toHaveCount(0);
 });
 
 test('pending save cannot unmount through any global path; receipt clears guard synchronously',async({page})=>{
  const state=await install(page,'pending');await enterFromList(page);await fill(page);await save(page).click();await state.started.promise;
- await today(page).click();await hardGuard(page);await branch(page).selectOption('2');await hardGuard(page);await page.goBack();await hardGuard(page);await page.getByTitle('Выйти',{exact:true}).click();await hardGuard(page);expect(state.posts).toHaveLength(1);
+ await today(page).click();await hardGuard(page);await branch(page).selectOption('2');await hardGuard(page);await page.goBack();await hardGuard(page);await logout(page,'Выйти');await hardGuard(page);expect(state.posts).toHaveLength(1);
  state.release.resolve();await expect(page.getByTestId('production-saved')).toBeVisible();await expect(page).toHaveURL(/production_plan_id=saved-guard$/);await today(page).click();await expect(page).toHaveURL(/\/dashboard$/);await expect(guard(page)).toHaveCount(0);
 });
 
@@ -143,7 +144,7 @@ test('legacy entry without native indexes restores a consistent URL and retains 
 test('transient Back query cannot replace a copied draft during an unrelated rerender',async({page})=>{
  await install(page);await enterFromList(page);await fill(page);await save(page).click();await expect(page.getByTestId('production-saved')).toBeVisible();await page.getByRole('button',{name:'Изменить и сохранить новым вариантом',exact:true}).click();await fill(page);
  await page.evaluate(()=>{const original=history.go.bind(history);(window as any).__releaseBounce=null;history.go=(delta?:number)=>{if(delta&&delta>0)(window as any).__releaseBounce=()=>original(delta);else original(delta)}});
- await page.goBack();await expect.poll(()=>page.evaluate(()=>typeof (window as any).__releaseBounce)).toBe('function');await expect(page).toHaveURL(new RegExp(detail+'$'));await page.locator('.topbar .language').click();
+ await page.goBack();await expect.poll(()=>page.evaluate(()=>typeof (window as any).__releaseBounce)).toBe('function');await expect(page).toHaveURL(new RegExp(detail+'$'));await page.locator('.app-header .language').click();
  await expect(page.getByLabel('Сақталған нұсқа',{exact:true})).toHaveValue('saved-guard');await expect(editor(page).getByLabel('Нұсқа атауы',{exact:true})).toHaveValue('Сохранить этот черновик');await expect(page.getByTestId('production-planning').getByRole('spinbutton')).toHaveValue('25');
  await page.evaluate(()=>(window as any).__releaseBounce());await expect(page).toHaveURL(/production_plan_id=saved-guard$/);await expect(page.getByRole('dialog',{name:'Сақталмаған өзгерістер',exact:true})).toBeVisible();await page.getByRole('button',{name:'Жоспарда қалу',exact:true}).click();await expect(editor(page).getByLabel('Нұсқа атауы',{exact:true})).toHaveValue('Сохранить этот черновик');
 });
@@ -156,5 +157,5 @@ test('forced session cleanup during Back restitution clears the editor before re
 });
 
 test('Back to the root address still opens Today and Forward keeps the accepted section',async({page})=>{
- await install(page);await page.goto('/');await expect(today(page)).toHaveAttribute('aria-current','page');await page.locator('.sidebar .nav-item').nth(1).click();await expect(page).toHaveURL(/\/forecasts$/);await page.goBack();await expect(page).toHaveURL(/\/$/);await expect(today(page)).toHaveAttribute('aria-current','page');await expect(page.locator('.breadcrumb strong')).toHaveText('Сегодня');await page.goForward();await expect(page).toHaveURL(/\/forecasts$/);
+ await install(page);await page.goto('/');await expect(today(page)).toHaveAttribute('aria-current','page');await page.locator('.app-nav .app-nav-item').nth(1).click();await expect(page).toHaveURL(/\/forecasts$/);await page.goBack();await expect(page).toHaveURL(/\/$/);await expect(today(page)).toHaveAttribute('aria-current','page');await expect(page.locator('.today-page h1')).toHaveText('Сегодня');await page.goForward();await expect(page).toHaveURL(/\/forecasts$/);
 });

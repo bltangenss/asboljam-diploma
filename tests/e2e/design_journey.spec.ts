@@ -44,7 +44,7 @@ test('responsive dashboard keeps text action and context; mobile navigation trap
  for(const width of [1440,1024,768,390,360]){
   await page.setViewportSize({width,height:900});
   await expect(page.locator('.next-action').getByRole('button')).toBeVisible();
-  await expect(page.locator('.context-tag')).toContainText('Бауырдақ · Алматы');
+  await expect(page.locator('.day-context')).toContainText('Бауырдақ · Алматы');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
   await page.screenshot({path:`${screenshots}/dashboard-${width}.png`,fullPage:true,animations:'disabled'});
  }

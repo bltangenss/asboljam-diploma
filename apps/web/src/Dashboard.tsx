@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
-import {AlertTriangle,ArrowRight,ArrowUpRight,BookOpen,CalendarDays,ClipboardCheck,Database,Package,ShoppingBasket,TrendingUp} from 'lucide-react';
-import {type Context,type Row,useData,fmt,money,date,name,shiftDate,Heading,Button,Badge,Metric,Empty,DataState,Table} from './shared';
+import {AlertTriangle,ArrowRight,ArrowUpRight,CalendarDays,Check,ClipboardCheck,Database,Package,ShoppingBasket,TrendingUp} from 'lucide-react';
+import {type Context,type Row,useData,fmt,money,date,name,shiftDate,Badge,Button,DataState,Empty} from './shared';
 import './dashboard-today.css';
 
 export default function Dashboard(c:Context){
@@ -49,60 +49,66 @@ export default function Dashboard(c:Context){
  if(forecastCurrent&&invalidProduction)tasks.push({key:'production-basis',title:copy('Дайындау негізі расталмады','Основание приготовления не подтверждено'),body:copy('Сақталған нұсқа жоқ немесе бөлімше, болжам не күн сәйкес емес. Болжам бойынша есептеуге үнсіз ауыспаймыз.','Сохранённый вариант отсутствует либо не совпадают филиал, прогноз или дата. Расчёт не будет незаметно переключён на прогноз.'),label:copy('Бастапқы сатып алуды ашу','Открыть исходную закупку'),url:procurementUrl,warning:true});
  if(planCurrent&&Number(plan.shortage_count)>0)tasks.push({key:'shortage',title:copy(`Тапшылық бар: ${fmt(plan.shortage_count)} позиция`,`Есть дефицит: ${fmt(plan.shortage_count)} позиций`),body:copy('Есептеу барлық қажеттілікті жаппайды. Себептерін қарап, шешім қабылдаңыз.','Расчёт не покрывает всю потребность. Проверьте причины перед решением.'),label:copy('Тапшылықты қарау','Посмотреть дефицит'),url:'/procurement/'+plan.id,warning:true});
  if(planCurrent&&plan.status==='ready')tasks.push({key:'decision',title:copy('Сатып алу шешімді күтеді','Закупка ждёт решения'),body:copy('Құны, жеткізушілер мен тапшылықты тексеріңіз. Жоспар автоматты түрде бекітілмейді.','Проверьте стоимость, поставщиков и дефицит. План не утверждается автоматически.'),label:copy('Жоспарды тексеру','Проверить план'),url:'/procurement/'+plan.id});
+ // Order of the page: what needs attention now (one focus step plus the remaining tasks),
+ // then the day as four steps with their state, then the last known day.
+ const steps=[
+  {key:'forecast',title:copy('Қанша дайындау керек','Сколько готовить'),value:forecastCurrent?portionTotal===null?copy('Болжам есептелген','Прогноз рассчитан'):fmt(portionTotal,1)+' '+copy('порция күтіледі','порций ожидается'):copy('Болжам қажет','Нужен прогноз'),note:copy('Болжам — өндіріс тапсырмасы емес.','Прогноз не является производственным заданием.'),action:forecastCurrent?copy('Тағамдар бойынша қарау','Посмотреть по блюдам'):copy('Болжамды дайындау','Подготовить прогноз'),url:forecastCurrent?'/forecasts/'+forecast.id:'/forecasts',done:forecastCurrent,warning:false},
+  {key:'stock',title:copy('Қоймада не бар','Что есть в запасе'),value:stockMatches?copy('Күнге арналған кесінді бар','Срез на нужную дату есть'):copy('Күнге арналған кесінді жоқ','Нет среза на нужную дату'),note:copy('Кесіндінің болуы барлық ингредиенттің толық екенін білдірмейді.','Наличие среза ещё не означает, что в нём есть все ингредиенты.'),action:copy('Қалдықтарды тексеру','Проверить остатки'),url:stockUrl,done:stockMatches,warning:false},
+  {key:'purchase',title:copy('Не сатып алу керек','Что нужно закупить'),value:planCurrent?money(plan!.total_cost):copy('Өзекті есептеу қажет','Нужен актуальный расчёт'),note:planCurrent?t('budget')+' '+money(plan!.budget)+' · '+t('shortages')+': '+fmt(plan!.shortage_count):copy('Осы күнге өзекті сатып алу жоспары жоқ.','Актуального плана закупки на этот день нет.'),action:planCurrent?copy('Сатып алуды қарау','Посмотреть закупку'):copy('Сатып алуға өту','Перейти к закупке'),url:planCurrent?'/procurement/'+plan!.id:forecastCurrent?procurementUrl:'/procurement',done:Boolean(planCurrent&&plan!.status!=='rejected'&&!invalidProduction),warning:Boolean(planCurrent&&Number(plan!.shortage_count)>0)},
+  {key:'decision',title:copy('Шешім','Решение'),value:planCurrent?t(plan!.status):'—',note:t('internalOnly'),action:'',url:'',done:Boolean(planCurrent&&plan!.status==='approved'),warning:false},
+ ];
+ const current=!canOperate?0:!forecastCurrent?1:!stockMatches?2:(!planCurrent||plan!.status==='rejected'||invalidProduction)?3:plan!.status==='approved'?5:4;
+ // The focus block already carries its own action; the list holds everything else.
+ const listed=tasks.filter(task=>!(task.url===next.url&&task.label===next.label));
+ const recap=(d.top_meals||[]).slice(0,4) as Row[];
  return <div className="today-page">
-  <Heading title={copy('Бүгін','Сегодня')} sub={copy('Бір бөлімше. Бір жұмыс күні. Келесі нақты қадам.','Один филиал. Один рабочий день. Следующий конкретный шаг.')} action={c.dataContext?.dates_editable&&<label className="dashboard-date">{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}<select value={c.inventoryDate} onChange={event=>c.setInventoryDate(event.target.value)}>{!c.inventoryDate&&<option value="">{t('snapshotMissing')}</option>}{c.dataContext.inventory_dates.map(value=><option key={value} value={value}>{date(value)}</option>)}</select></label>}/>
-  <div className="context-line today-context"><span><CalendarDays size={15}/><strong>{synthetic?copy('Оқу күні','Учебный день'):copy('Есептеу күні','День расчёта')} · {date(target)}</strong></span><span className="context-tag">{branchName||t('branch')+' '+branch} · {source??copy('Дерек көзі белгісіз','Источник неизвестен')}{usage?' · '+usage:''}</span></div>
-  {synthetic&&<p className="today-source-note" role="note"><Database size={17}/>{copy('Бұл — жасанды деректердегі оқу сценарийі. Күндер нақты күнтізбелік бүгінге ауыстырылмайды.','Это учебный сценарий на синтетических данных. Даты не переносятся на сегодняшнее число.')}</p>}
-  {!synthetic&&usage==='TEST'&&<p className="today-source-note" role="note"><Database size={17}/>{copy('TEST — сынақ режимі. Нәтижелер нақты бизнестің тиімділігін дәлелдемейді.','TEST — тестовый режим. Результаты не подтверждают эффективность в реальном бизнесе.')}</p>}
+  <header className="day-header">
+   <div><h1>{copy('Бүгін','Сегодня')}</h1><p className="day-context"><CalendarDays size={15}/><strong>{synthetic?copy('Оқу күні','Учебный день'):copy('Есептеу күні','День расчёта')} · {date(target)}</strong><span>{branchName||t('branch')+' '+branch}</span><span>{source??copy('Дерек көзі белгісіз','Источник неизвестен')}{usage?' · '+usage:''}</span></p></div>
+   {c.dataContext?.dates_editable&&<label className="dashboard-date">{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}<select value={c.inventoryDate} onChange={event=>c.setInventoryDate(event.target.value)}>{!c.inventoryDate&&<option value="">{t('snapshotMissing')}</option>}{c.dataContext.inventory_dates.map(value=><option key={value} value={value}>{date(value)}</option>)}</select></label>}
+  </header>
+  {synthetic&&<p className="today-source-note" role="note"><Database size={15}/>{copy('Бұл — жасанды деректердегі оқу сценарийі. Күндер нақты күнтізбелік бүгінге ауыстырылмайды.','Это учебный сценарий на синтетических данных. Даты не переносятся на сегодняшнее число.')}</p>}
+  {!synthetic&&usage==='TEST'&&<p className="today-source-note" role="note"><Database size={15}/>{copy('TEST — сынақ режимі. Нәтижелер нақты бизнестің тиімділігін дәлелдемейді.','TEST — тестовый режим. Результаты не подтверждают эффективность в реальном бизнесе.')}</p>}
   <DataState state={state} t={t} retry={refresh}>
-   <dl className="today-data-dates"><div><dt>{copy('Соңғы сатылым','Последние продажи')}</dt><dd>{hasSales?date(d.as_of):t('noSalesHistory')}</dd></div><div><dt>{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}</dt><dd>{d.inventory_known?date(d.inventory_date):t('snapshotMissing')}</dd></div></dl>
-   <section className="today-tasks" aria-labelledby="today-tasks-title">
-    <div className="today-section-heading"><div><span className="eyebrow">01 / {copy('АЛДЫМЕН','СНАЧАЛА')}</span><h2 id="today-tasks-title">{copy('Назар аударуды қажет етеді','Требует внимания')}</h2></div><span className="today-task-count">{tasks.length?copy(`${tasks.length} мәселе`,`${tasks.length} задач`):copy('Белгілі ескертулер жоқ','Известных предупреждений нет')}</span></div>
-    {tasks.length?<ul className="today-task-list">{tasks.map(task=><li key={task.key} className={task.warning?'today-task is-warning':'today-task'}><span className="today-task-icon">{task.warning?<AlertTriangle size={20}/>:<ClipboardCheck size={20}/>}</span><div><h3>{task.title}</h3><p>{task.body}</p></div><button className="text-button" onClick={()=>go(task.url)}>{task.label}<ArrowRight size={16}/></button></li>)}</ul>:<p className="today-clear-note">{copy('Деректердің толықтығы есептеу кезінде бөлек тексеріледі. Ескертулердің болмауы барлық деректің толық екенін білдірмейді.','Полнота данных проверяется отдельно при расчёте. Отсутствие предупреждений не означает, что все данные полны.')}</p>}
+   <section className="day-attention" aria-labelledby="day-attention-title">
+    <h2 id="day-attention-title" className="day-section-title">{copy('Назар аударуды қажет етеді','Требует внимания')}<span>{tasks.length?copy(tasks.length+' мәселе',tasks.length+' задач'):copy('Белгілі ескертулер жоқ','Известных предупреждений нет')}</span></h2>
+    <section className="next-action day-focus" aria-labelledby="next-action-title">
+     <div className="day-focus-copy"><span className="eyebrow">{current===5?copy('КҮН ДАЙЫН','ДЕНЬ ГОТОВ'):copy('КЕЛЕСІ ҚАДАМ','СЛЕДУЮЩИЙ ШАГ')} · {next.step}</span><h2 id="next-action-title">{next.title}</h2><p>{next.body}</p>
+      {planCurrent&&production&&<p className="day-basis" data-testid="today-production-basis">{copy('Дайындау жоспары бойынша','По плану приготовления')}: <strong>{production.name||'—'}</strong>. {copy('Мөлшерді басқарушы таңдаған.','Объёмы выбраны управляющим.')} <button className="text-button" onClick={()=>go('/forecasts/'+encodeURIComponent(production.forecast_id)+'?production_plan_id='+encodeURIComponent(production.id))}>{copy('Порцияларды қарау','Посмотреть порции')}<ArrowRight size={15}/></button></p>}
+     </div>
+     <div className="day-focus-action"><Button onClick={()=>go(next.url)}><NextIcon size={18}/>{next.label}<ArrowRight size={17}/></Button><span className="next-action-foot">{copy('Соңғы шешімді адам қабылдайды.','Последнее решение принимает человек.')}</span></div>
+    </section>
+    {listed.length>0&&<ul className="day-task-list">{listed.map(task=><li key={task.key} className={task.warning?'day-task is-warning':'day-task'}><span className="day-task-icon" aria-hidden="true">{task.warning?<AlertTriangle size={16}/>:<ClipboardCheck size={16}/>}</span><div><h3>{task.title}</h3><p>{task.body}</p></div><button className="text-button" onClick={()=>go(task.url)}>{task.label}<ArrowRight size={15}/></button></li>)}</ul>}
+    {!tasks.length&&<p className="day-clear-note">{copy('Деректердің толықтығы есептеу кезінде бөлек тексеріледі. Ескертулердің болмауы барлық деректің толық екенін білдірмейді.','Полнота данных проверяется отдельно при расчёте. Отсутствие предупреждений не означает, что все данные полны.')}</p>}
    </section>
-   <section className="today-work" aria-labelledby="today-work-title">
-    <div className="today-section-heading"><div><span className="eyebrow">02 / {copy('КҮН ЖОСПАРЫ','ПЛАН НА ДЕНЬ')}</span><h2 id="today-work-title">{copy('Дайындаудан сатып алуға дейін','От приготовления к закупке')}</h2><p>{copy('Порция болжамы — дайындауға арналған бағдар. Соңғы көлемді өзіңіз анықтайсыз.','Прогноз порций — ориентир для приготовления. Окончательный объём определяете вы.')}</p></div><span className="today-work-date">{date(target)}</span></div>
-    <ol className="today-stages">
-     <li><span className="today-stage-number">1</span><div><h3>{copy('Қанша дайындау керек','Сколько готовить')}</h3><strong>{forecastCurrent?portionTotal===null?copy('Болжам есептелген','Прогноз рассчитан'):fmt(portionTotal,1)+' '+copy('порция күтіледі','порций ожидается'):copy('Болжам қажет','Нужен прогноз')}</strong><p>{copy('Болжам — өндіріс тапсырмасы емес.','Прогноз не является производственным заданием.')}</p><button className="text-button" onClick={()=>go(forecastCurrent?'/forecasts/'+forecast.id:'/forecasts')}>{forecastCurrent?copy('Тағамдар бойынша қарау','Посмотреть по блюдам'):copy('Болжамды дайындау','Подготовить прогноз')}<ArrowRight size={15}/></button></div></li>
-     <li><span className="today-stage-number">2</span><div><h3>{copy('Қоймада не бар','Что есть в запасе')}</h3><strong>{stockMatches?copy('Күнге арналған кесінді бар','Срез на нужную дату есть'):copy('Күнге арналған кесінді жоқ','Нет среза на нужную дату')}</strong><p>{copy('Кесіндінің болуы барлық ингредиенттің толық екенін білдірмейді.','Наличие среза ещё не означает, что в нём есть все ингредиенты.')}</p><button className="text-button" onClick={()=>go(stockUrl)}>{copy('Қалдықтарды тексеру','Проверить остатки')}<ArrowRight size={15}/></button></div></li>
-     <li><span className="today-stage-number">3</span><div><h3>{copy('Не сатып алу керек','Что нужно закупить')}</h3><strong>{planCurrent?t(plan.status):copy('Өзекті есептеу қажет','Нужен актуальный расчёт')}</strong><p>{copy('Бюджет, тапшылық және сіздің шешіміңіз.','Бюджет, дефицит и ваше решение.')}</p><button className="text-button" onClick={()=>go(planCurrent?'/procurement/'+plan.id:forecastCurrent?procurementUrl:'/procurement')}>{planCurrent?copy('Сатып алуды қарау','Посмотреть закупку'):copy('Сатып алуға өту','Перейти к закупке')}<ArrowRight size={15}/></button></div></li>
+   <section className="day-work" aria-labelledby="day-work-title">
+    <h2 id="day-work-title" className="day-section-title">{copy('Дайындаудан сатып алуға дейін','От приготовления к закупке')}<span>{date(target)}</span></h2>
+    <ol className="day-pipeline">
+     {steps.map((step,index)=>{const number=index+1,state=step.done?'done':number===current?'current':'waiting';return <li key={step.key} className={'day-step day-step-'+step.key+' is-'+state+(step.warning?' has-warning':'')} aria-current={number===current?'step':undefined}>
+      <span className="day-step-mark" aria-hidden="true">{step.done?<Check size={14}/>:number}</span><span className="day-step-title">{step.title}</span>
+      <strong>{step.key==='decision'&&planCurrent?<Badge tone={plan!.status==='approved'?'green':plan!.status==='rejected'?'red':'amber'}>{step.value}</Badge>:step.value}</strong>
+      <small className={step.key==='purchase'&&!planCurrent?'day-purchase-empty':undefined}>{step.note}</small>
+      {step.action&&<button className="text-button" onClick={()=>go(step.url)}>{step.action}<ArrowRight size={14}/></button>}
+     </li>})}
     </ol>
-   <div className="today-action-grid">
-    <section className="next-action" aria-labelledby="next-action-title">
-     <div className="next-action-top"><span className="eyebrow">{copy('КЕЛЕСІ ҚАДАМ','СЛЕДУЮЩИЙ ШАГ')}</span><span className="step-number">{next.step}</span></div>
-     <h2 id="next-action-title">{next.title}</h2><p>{next.body}</p>
-     <Button onClick={()=>go(next.url)}><NextIcon size={19}/>{next.label}<ArrowRight size={18}/></Button>
-     <div className="next-action-foot">{copy('Соңғы шешімді адам қабылдайды.','Последнее решение принимает человек.')}</div>
-    </section>
-    <section className="today-purchase" aria-labelledby="today-purchase-title">
-     <div className="today-purchase-heading"><ShoppingBasket size={23}/><h2 id="today-purchase-title">{copy('Осы күнге сатып алу','Закупка на этот день')}</h2>{planCurrent&&<Badge tone={plan.status==='approved'?'green':plan.status==='rejected'?'red':'amber'}>{t(plan.status)}</Badge>}</div>
-     {planCurrent&&production&&<p data-testid="today-production-basis">{copy('Дайындау жоспары бойынша','По плану приготовления')}: <strong>{production.name||'—'}</strong>. {copy('Мөлшерді басқарушы таңдаған.','Объёмы выбраны управляющим.')} <button className="text-button" onClick={()=>go('/forecasts/'+encodeURIComponent(production.forecast_id)+'?production_plan_id='+encodeURIComponent(production.id))}>{copy('Порцияларды қарау','Посмотреть порции')}<ArrowRight size={15}/></button></p>}
-     {planCurrent?<><dl><div><dt>{t('purchaseCost')}</dt><dd>{money(plan.total_cost)}</dd></div><div><dt>{t('budget')}</dt><dd>{money(plan.budget)}</dd></div><div className={Number(plan.shortage_count)>0?'today-deficit':''}><dt>{t('shortages')}</dt><dd>{fmt(plan.shortage_count)}</dd></div></dl><button className="text-button" onClick={()=>go('/procurement/'+plan.id)}>{copy('Позициялар мен шешімді қарау','Посмотреть позиции и решение')}<ArrowRight size={16}/></button><p>{t('internalOnly')}</p></>:<p className="today-purchase-empty">{copy('Осы күнге өзекті сатып алу жоспары жоқ. Болжам мен қорды тексеріп, есептеуді жалғастырыңыз.','Актуального плана закупки на этот день нет. Проверьте прогноз и остатки, затем продолжите расчёт.')}</p>}
-     <details className="today-evidence"><summary>{copy('Қандай деректер бар','Какие данные доступны')}</summary><dl><div><dt>{copy('Соңғы сатылым','Последние продажи')}</dt><dd>{hasSales?date(d.as_of):t('noSalesHistory')}</dd></div><div><dt>{copy('Соңғы болжам күні','Дата последнего прогноза')}</dt><dd>{date(forecast?.target_date)}</dd></div><div><dt>{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}</dt><dd>{d.inventory_known?date(d.inventory_date):t('snapshotMissing')}</dd></div></dl><button className="text-button" onClick={()=>go('/imports')}>{copy('Деректерді толықтыру','Дополнить данные')}<ArrowRight size={15}/></button></details>
-    </section>
-   </div>
+    <dl className="day-data-dates"><div><dt>{copy('Соңғы сатылым','Последние продажи')}</dt><dd>{hasSales?date(d.as_of):t('noSalesHistory')}</dd></div><div><dt>{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}</dt><dd>{d.inventory_known?date(d.inventory_date):t('snapshotMissing')}</dd></div><div><dt>{copy('Соңғы болжам күні','Дата последнего прогноза')}</dt><dd>{date(forecast?.target_date)}</dd></div></dl>
    </section>
-   <section className="today-analytics" aria-labelledby="today-analytics-title">
-   <div className="today-section-heading"><div><span className="eyebrow">03 / {copy('ҚОСЫМША','ДОПОЛНИТЕЛЬНО')}</span><h2 id="today-analytics-title">{copy('Өткен күндердің нәтижелері','Результаты прошлых дней')}</h2><p>{copy('Соңғы белгілі деректер. Бұл көрсеткіштер бүгінгі нәтижелер деп көрсетілмейді.','Последние известные данные. Эти показатели не выдаются за результаты сегодняшнего дня.')}</p></div><button className="text-button" onClick={()=>go('/data')}>{copy('Деректер және талдау','Данные и анализ')}<ArrowUpRight size={16}/></button></div>
-   <div className="metrics metric-strip" aria-label={copy('Соңғы белгілі көрсеткіштер','Последние известные показатели')}>
-    <Metric label={t('portions')} value={fmt(hasSales?d.sold_portions:null)} caption={salesCaption} icon={ShoppingBasket}/>
-    <Metric label={t('revenue')} value={money(hasSales?d.revenue:null)} caption={salesCaption} icon={TrendingUp}/>
-    <Metric label={t('shortages')} value={fmt(d.total_shortages)} caption={d.total_shortages==null?t('planAbsent'):date(plans[0]?.target_date)+' · '+t('requirements')} icon={AlertTriangle} tone="amber"/>
-    <Metric label={t('purchaseCost')} value={money(d.procurement_cost)} caption={d.procurement_cost==null?t('planAbsent'):copy('Соңғы жоспар','Последний план')+' · '+date(plans[0]?.target_date)} icon={Package}/>
-   </div>
-   <div className="today-analytics-grid">
-    <section className="panel chart-panel"><div className="panel-heading"><div><h2>{t('salesDynamics')}</h2><p>{copy('Деректері бар соңғы 28 күн · порция','Последние 28 дней с данными · порции')}</p></div><button className="text-button" onClick={()=>go('/sales')}>{t('sales')}<ArrowUpRight size={16}/></button></div>{history.length?<SalesChart history={history} t={t}/>:<Empty t={t}/>}</section>
-    <section className="panel"><div className="panel-heading"><div><h2>{t('topMeals')}</h2><p>{salesCaption}</p></div><button className="text-button" onClick={()=>go('/sales')}>{t('viewAll')}<ArrowUpRight size={16}/></button></div><Table t={t} rows={(d.top_meals||[]).slice(0,5)} columns={[{key:'meal_name',label:t('meal'),render:r=><span className="meal-cell"><BookOpen size={16}/><strong>{name(r.meal_name||r.meal_id)}</strong></span>},{key:'units_sold',label:t('sold'),numeric:true,render:r=><strong>{fmt(r.units_sold)}</strong>},{key:'revenue',label:t('revenue'),numeric:true,render:r=>money(r.revenue)}]}/></section>
-   </div>
-   <details className="today-history"><summary>{t('recentPlans')}</summary>{plans.length?<Table t={t} rows={plans.slice(0,3)} rowClick={p=>go('/procurement/'+p.id)} columns={[{key:'target_date',label:t('targetDate'),render:p=>date(p.target_date)},{key:'total_cost',label:t('purchaseCost'),numeric:true,render:p=>money(p.total_cost)},{key:'status',label:t('status'),render:p=><Badge tone={p.status==='approved'?'green':p.status==='rejected'?'red':'amber'}>{t(p.status)}</Badge>}]} />:<p>{t('planAbsent')}</p>}<button className="text-button" onClick={()=>go('/procurement')}>{t('viewAll')}<ArrowRight size={16}/></button></details>
+   <section className="day-recap" aria-labelledby="today-analytics-title">
+    <div className="day-recap-head"><h2 id="today-analytics-title">{copy('Соңғы белгілі күн','Последний известный день')}</h2><span>{salesCaption}</span><button className="text-button" onClick={()=>go('/sales')}>{copy('Талдау','Анализ')}<ArrowUpRight size={15}/></button></div>
+    <div className="day-recap-body">
+     <dl className="day-recap-figures"><div><dt>{t('portions')}</dt><dd className="metric-value">{fmt(hasSales?d.sold_portions:null)}</dd></div><div><dt>{t('revenue')}</dt><dd className="metric-value">{money(hasSales?d.revenue:null)}</dd></div></dl>
+     <div className="day-recap-chart">{history.length?<SalesChart history={history} t={t} compact/>:<Empty t={t}/>}</div>
+     {recap.length>0&&<ol className="day-recap-meals" aria-label={t('topMeals')}>{recap.map(r=><li key={String(r.meal_id)}><span>{name(r.meal_name||r.meal_id)}</span><strong>{fmt(r.units_sold)}</strong></li>)}</ol>}
+    </div>
+    <button className="text-button day-recap-plans" onClick={()=>go('/procurement')}>{t('recentPlans')}: {plans.length?plans.length:t('planAbsent')}<ArrowRight size={15}/></button>
    </section>
   </DataState>
  </div>;
 }
 
-export function SalesChart({history,t}:any){
+export function SalesChart({history,t,compact=false}:any){
  const chartRef=useRef<HTMLDivElement>(null),[width,setWidth]=useState(780);
- useEffect(()=>{const el=chartRef.current;if(!el)return;const resize=()=>setWidth(Math.max(280,el.clientWidth));const observer=new ResizeObserver(resize);observer.observe(el);resize();return()=>observer.disconnect()},[]);
+ useEffect(()=>{const el=chartRef.current;if(!el)return;const resize=()=>setWidth(Math.max(compact?160:280,el.clientWidth));const observer=new ResizeObserver(resize);observer.observe(el);resize();return()=>observer.disconnect()},[]);
+ if(compact)return <SalesSparkline history={history} t={t} chartRef={chartRef} width={width}/>;
  const height=240,pad=55;
  const points:(number|null)[]=history.map((r:Row)=>{const v=r.units_sold??r.portions??r.total_units;return v===null||v===undefined||!Number.isFinite(Number(v))?null:Number(v)});
  const max=Math.max(...points.filter((v):v is number=>v!==null),1)*1.15;
@@ -118,4 +124,16 @@ export function SalesChart({history,t}:any){
    {history.filter((_:Row,i:number)=>i%Math.max(1,Math.ceil(history.length/(width<500?3:6)))===0).map((r:Row)=>{const i=history.indexOf(r);return <text key={i} x={x(i)} y={height+4} textAnchor="middle">{date(r.date).slice(0,5)}</text>})}
   </svg>
  </div></div>;
+}
+
+// A small line for the Today recap: the trend at a glance, the full chart lives in Sales.
+function SalesSparkline({history,t,chartRef,width}:any){
+ const height=64,values:(number|null)[]=history.map((r:Row)=>{const v=r.units_sold??r.portions??r.total_units;return v===null||v===undefined||!Number.isFinite(Number(v))?null:Number(v)});
+ const known=values.filter((v):v is number=>v!==null),max=Math.max(...known,1),min=Math.min(...known,0);
+ const x=(i:number)=>4+i*(width-8)/Math.max(values.length-1,1),y=(v:number)=>height-6-(v-min)*(height-12)/Math.max(max-min,1);
+ // Same honesty rule as the full chart: a missing day or value breaks the line, never bridges it.
+ const joined=(i:number)=>i>0&&values[i-1]!==null&&shiftDate(String(history[i-1].date).slice(0,10),1)===String(history[i].date).slice(0,10);
+ const line=values.map((v,i)=>v===null?'':`${joined(i)?'L':'M'} ${x(i)} ${y(v)}`).join(' ');
+ const lonely=values.map((v,i)=>v!==null&&!joined(i)&&!(i+1<values.length&&joined(i+1))?i:-1).filter(i=>i>=0);
+ return <div ref={chartRef} className="sales-sparkline"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('salesDynamics')}><title>{t('salesDynamics')}: {date(history[0]?.date)} — {date(history[history.length-1]?.date)}</title><path d={line} fill="none" stroke="var(--action)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>{lonely.map(i=><circle key={i} cx={x(i)} cy={y(values[i]!)} r="2.5" fill="var(--action)"/>)}</svg><small>{date(history[0]?.date)} — {date(history[history.length-1]?.date)}</small></div>;
 }

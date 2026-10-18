@@ -89,7 +89,7 @@ test('planning list filters survive list detail back and reset when the branch c
  await page.getByLabel('Филиал',{exact:true}).selectOption('2');
  await expect(page.getByLabel('По дате прогноза',{exact:true})).toHaveValue('');
  await page.getByLabel('Филиал',{exact:true}).selectOption('1');
- await page.locator('.sidebar').getByRole('button',{name:'Закупки',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Закупки',exact:true}).click();
  await page.locator('.planning-history-disclosure>summary').click();
  await page.getByRole('combobox',{name:'Статус',exact:true}).selectOption('approved');
  await page.getByRole('button',{name:'Закупка на 01.01.2026',exact:true}).click();

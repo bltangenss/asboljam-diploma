@@ -43,18 +43,18 @@ async function install(page:Page,scenario:Scenario={}){
 test('Today prioritizes actionable risks before daily work and analytics without approving a purchase',async({page})=>{
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url())});
  await install(page,{forecast:true,plan:true,deficit:2});
- const tasks=page.locator('.today-tasks');
+ const tasks=page.locator('.day-attention');
  await expect(tasks).toContainText('Есть дефицит: 2 позиций');
  await expect(tasks).toContainText('Закупка ждёт решения');
  await expect(tasks).toContainText('По срезу на 30.12.2025');
  const order=await page.locator('.today-page').evaluate(element=>{
-  const tasks=element.querySelector('.today-tasks')!,work=element.querySelector('.today-work')!,analytics=element.querySelector('.today-analytics')!;
+  const tasks=element.querySelector('.day-attention')!,work=element.querySelector('.day-work')!,analytics=element.querySelector('.day-recap')!;
   return Boolean(tasks.compareDocumentPosition(work)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(work.compareDocumentPosition(analytics)&Node.DOCUMENT_POSITION_FOLLOWING);
  });
  expect(order).toBeTruthy();
- await expect(page.locator('.today-stages')).toContainText('123 порций ожидается');
- await expect(page.locator('.today-stages')).toContainText('Наличие среза ещё не означает');
- await expect(page.locator('.today-purchase')).toContainText('45');
+ await expect(page.locator('.day-pipeline')).toContainText('123 порций ожидается');
+ await expect(page.locator('.day-pipeline')).toContainText('Наличие среза ещё не означает');
+ await expect(page.locator('.day-step-purchase')).toContainText('45');
  await page.locator('.next-action').getByRole('button',{name:'Открыть план'}).click();
  await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
  expect(mutations).toEqual([]);
@@ -62,25 +62,25 @@ test('Today prioritizes actionable risks before daily work and analytics without
 
 test('missing target stock blocks purchase preparation but keeps forecast separate and unknown sales visible',async({page})=>{
  await install(page,{sales:false,stock:false});
- await expect(page.locator('.today-tasks')).toContainText('Нет остатков на день расчёта');
- await expect(page.locator('.today-tasks')).toContainText('прогноз можно подготовить отдельно');
+ await expect(page.locator('.day-attention')).toContainText('Нет остатков на день расчёта');
+ await expect(page.locator('.day-attention')).toContainText('прогноз можно подготовить отдельно');
  await expect(page.locator('.metric-value').first()).toHaveText('—');
- await expect(page.locator('.today-stages')).toContainText('Нет среза на нужную дату');
- await expect(page.locator('.today-purchase')).toContainText('Актуального плана закупки на этот день нет');
- await page.locator('.today-tasks').getByRole('button',{name:'Добавить остатки'}).click();
+ await expect(page.locator('.day-pipeline')).toContainText('Нет среза на нужную дату');
+ await expect(page.locator('.day-step-purchase')).toContainText('Актуального плана закупки на этот день нет');
+ await page.locator('.day-attention').getByRole('button',{name:'Добавить остатки'}).click();
  await expect(page).toHaveURL(/\/imports\?kind=inventory_lots$/);
 });
 
 test('current forecast carries its identity into the stock check',async({page})=>{
  await install(page,{forecast:true});
- await page.locator('.today-stages').getByRole('button',{name:'Проверить остатки'}).click();
+ await page.locator('.day-pipeline').getByRole('button',{name:'Проверить остатки'}).click();
  await expect(page).toHaveURL(/\/inventory\?forecast=day-forecast$/);
 });
 
 test('missing stock import retains the branch and forecast for the return to stock',async({page})=>{
  await install(page,{forecast:true,stock:false});
- await expect(page.locator('.today-data-dates')).toContainText('Последние продажи31.12.2025');
- await expect(page.locator('.today-data-dates')).toContainText('Просматриваемый срез остатков30.12.2025');
+ await expect(page.locator('.day-data-dates')).toContainText('Последние продажи31.12.2025');
+ await expect(page.locator('.day-data-dates')).toContainText('Просматриваемый срез остатков30.12.2025');
  await page.locator('.next-action').getByRole('button',{name:'Добавить остатки'}).click();
  const url=new URL(page.url());
  expect(url.pathname).toBe('/imports');
@@ -92,27 +92,27 @@ test('missing stock import retains the branch and forecast for the return to sto
 
 test('changed or other-date forecasts never present saved purchases as the current day plan',async({page})=>{
  await install(page,{forecast:true,plan:true,stale:true});
- await expect(page.locator('.today-tasks')).toContainText('Проверьте актуальность прогноза');
- await expect(page.locator('.today-stages')).toContainText('Нужен прогноз');
- await expect(page.locator('.today-purchase')).toContainText('Актуального плана закупки на этот день нет');
- await expect(page.locator('.today-purchase')).not.toContainText('Утверждён');
+ await expect(page.locator('.day-attention')).toContainText('Проверьте актуальность прогноза');
+ await expect(page.locator('.day-pipeline')).toContainText('Нужен прогноз');
+ await expect(page.locator('.day-step-purchase')).toContainText('Актуального плана закупки на этот день нет');
+ await expect(page.locator('.day-step-purchase')).not.toContainText('Утверждён');
  await page.unrouteAll({behavior:'wait'});
  await install(page,{forecast:true,plan:true,forecastDate:'2025-12-31'});
- await expect(page.locator('.today-tasks')).toContainText('Нужен прогноз на этот день');
- await expect(page.locator('.today-stages')).not.toContainText('123');
- await expect(page.locator('.today-purchase')).toContainText('Актуального плана закупки на этот день нет');
+ await expect(page.locator('.day-attention')).toContainText('Нужен прогноз на этот день');
+ await expect(page.locator('.day-pipeline')).not.toContainText('123');
+ await expect(page.locator('.day-step-purchase')).toContainText('Актуального плана закупки на этот день нет');
 });
 
 test('synthetic and real historical day labels remain honest on a narrow screen',async({page})=>{
  await page.setViewportSize({width:360,height:850});
  await install(page,{forecast:true,plan:true});
- await expect(page.locator('.today-context')).toContainText('Учебный день · 01.01.2026');
+ await expect(page.locator('.day-context')).toContainText('Учебный день · 01.01.2026');
  await expect(page.locator('.today-source-note')).toContainText('синтетических данных');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
  await page.unrouteAll({behavior:'wait'});
  await install(page,{source:'REAL',forecast:true});
- await expect(page.locator('.today-context')).toContainText('День расчёта · 01.01.2026');
- await expect(page.locator('.today-context')).not.toContainText('Учебный день');
+ await expect(page.locator('.day-context')).toContainText('День расчёта · 01.01.2026');
+ await expect(page.locator('.day-context')).not.toContainText('Учебный день');
  await expect(page.locator('.today-source-note')).toContainText('TEST — тестовый режим');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
 });
@@ -135,9 +135,9 @@ test('rejected manual purchase keeps the saved cooking variant when calculating 
 
 test('inventory-staled manual purchase preserves its cooking basis on task and next-step recalculation',async({page})=>{
  await install(page,{forecast:true,plan:true,manual:true,planStale:true});
- await expect(page.locator('.today-tasks')).toContainText('Расчёт закупки нужно обновить');
- await expect(page.locator('.today-stages')).toContainText('123 порций ожидается');
- await page.locator('.today-tasks').getByRole('button',{name:'Пересчитать закупку',exact:true}).click();
+ await expect(page.locator('.day-attention')).toContainText('Расчёт закупки нужно обновить');
+ await expect(page.locator('.day-pipeline')).toContainText('123 порций ожидается');
+ await page.locator('.day-attention').getByRole('button',{name:'Пересчитать закупку',exact:true}).click();
  await expect(page).toHaveURL(/\/procurement\?forecast=day-forecast&production_plan_id=saved-cooking$/);
  await expect(page.getByLabel('Основание потребности',{exact:true})).toHaveValue('saved-cooking');
  await page.goto('/');await page.locator('.next-action').getByRole('button',{name:'Перейти к закупке',exact:true}).click();
@@ -146,7 +146,7 @@ test('inventory-staled manual purchase preserves its cooking basis on task and n
 
 for(const invalidManual of ['missing','foreign'] as const)test('manual basis '+invalidManual+' fails visibly instead of falling back to forecast',async({page})=>{
  await install(page,{forecast:true,plan:true,manual:true,planStatus:'rejected',invalidManual});
- await expect(page.locator('.today-tasks')).toContainText('Основание приготовления не подтверждено');
+ await expect(page.locator('.day-attention')).toContainText('Основание приготовления не подтверждено');
  await page.locator('.next-action').getByRole('button',{name:'Проверить исходную закупку',exact:true}).click();
  await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
 });
@@ -161,7 +161,7 @@ test('rejected forecast-based purchase still opens normal forecast procurement',
 
 test('Today stock check and procurement preserve the verified manual cooking basis',async({page})=>{
  const state=await install(page,{forecast:true,plan:true,manual:true});
- await page.locator('.today-stages').getByRole('button',{name:'Проверить остатки',exact:true}).click();
+ await page.locator('.day-pipeline').getByRole('button',{name:'Проверить остатки',exact:true}).click();
  await expect(page).toHaveURL(/\/inventory\?forecast=day-forecast&production_plan_id=saved-cooking$/);
  const flow=page.getByRole('region',{name:'Продолжение планирования',exact:true});
  await expect(flow.getByTestId('production-saved')).toContainText('Ручной обед');
@@ -173,7 +173,7 @@ test('Today stock check and procurement preserve the verified manual cooking bas
 
 test('Today missing-stock CSV and confirmed return keep the manual cooking basis',async({page})=>{
  const state=await install(page,{forecast:true,plan:true,manual:true,stock:false,planStale:true});
- await page.locator('.today-tasks').getByRole('button',{name:'Добавить остатки',exact:true}).click();
+ await page.locator('.day-attention').getByRole('button',{name:'Добавить остатки',exact:true}).click();
  const url=new URL(page.url());expect(url.pathname).toBe('/imports');expect(url.searchParams.get('kind')).toBe('inventory_lots');expect(url.searchParams.get('return')).toBe('inventory');expect(url.searchParams.get('return_branch')).toBe('test');expect(url.searchParams.get('forecast')).toBe('day-forecast');expect(url.searchParams.get('production_plan_id')).toBe('saved-cooking');
  const done=page.getByRole('button',{name:'Вернуться к работе над планом',exact:true});await expect(done).toHaveCount(0);
  const csv=Object.keys(state.stockRow).join(',')+'\n'+Object.values(state.stockRow).join(',')+'\n';
@@ -188,8 +188,8 @@ test('Today missing-stock CSV and confirmed return keep the manual cooking basis
 
 for(const invalidManual of ['missing','foreign'] as const)test('Today stock and CSV paths do not discard '+invalidManual+' manual basis',async({page})=>{
  const state=await install(page,{forecast:true,plan:true,manual:true,stock:false,invalidManual});
- await expect(page.locator('.today-tasks')).toContainText('Основание приготовления не подтверждено');
- await page.locator('.today-stages').getByRole('button',{name:'Проверить остатки',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
- await page.goto('/');await page.locator('.today-tasks').getByRole('button',{name:'Добавить остатки',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
+ await expect(page.locator('.day-attention')).toContainText('Основание приготовления не подтверждено');
+ await page.locator('.day-pipeline').getByRole('button',{name:'Проверить остатки',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
+ await page.goto('/');await page.locator('.day-attention').getByRole('button',{name:'Добавить остатки',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
  expect(state.requests.some(request=>['/imports/preview','/procurement'].includes(request.path)&&request.method==='POST')).toBe(false);
 });

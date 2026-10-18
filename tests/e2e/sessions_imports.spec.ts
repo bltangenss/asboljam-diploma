@@ -1,4 +1,4 @@
-import {navigateTo} from './navigation';
+import {navigateTo,logout} from './navigation';
 import {test, expect, type Page, type Route} from '@playwright/test';
 
 // Deterministic browser race tests. No real credentials, worker jobs or database mutations.
@@ -76,6 +76,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await page.goto('/forecasts');
   await expect(page.getByRole('status').filter({hasText:'Сіз дайын болжамдар мен сатып алу жоспарларын қарай аласыз.'})).toBeVisible();
   await page.locator('.planning-history-disclosure>summary').click();await expect(page.getByRole('button',{name:'01.01.2026 күніне болжам',exact:true})).toBeVisible();
+  await page.keyboard.press('Escape');await expect(page.locator('.planning-history-disclosure')).not.toHaveAttribute('open','');
   await page.locator('.planning-options>summary').click();await expect(page.getByLabel('Модель',{exact:true})).toBeDisabled();
   const forecastButton=page.getByRole('button',{name:'Есептеу',exact:true});
   await expect(forecastButton).toBeDisabled();
@@ -136,7 +137,7 @@ for (const trigger of ['protected read','logout'] as const) {
     const auth=await installApi(page);
     await page.goto('/'); await expectDashboard(page);
     auth.authenticated=false;
-    if (trigger==='logout') await page.getByTitle('Шығу',{exact:true}).click();
+    if (trigger==='logout') await logout(page,'Шығу');
     else await navigateTo(page,'sales');
     await expect(page).toHaveURL(/\/login$/);
     await signInAgain(page);
@@ -155,7 +156,7 @@ test('a delayed 401 from an old session cannot sign out the new login',async({pa
   await page.goto('/'); await expectDashboard(page);
   await navigateTo(page,'sales');
   await started.promise; auth.authenticated=false;
-  await page.locator('.sidebar').getByRole('button',{name:'Қалдықтар',exact:true}).click();
+  await page.locator('.app-header').getByRole('button',{name:'Қалдықтар',exact:true}).click();
   await signInAgain(page);
   const completed=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/sales');
   release.resolve(); await completed; await settleBrowser(page);
@@ -179,7 +180,7 @@ test('a delayed branch lookup cannot replace branches after signing in again',as
   await page.goto('/');await started.promise;
   auth.authenticated=false;
   // Branch views now wait for an actual branch; settings still verifies the session.
-  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
+  await page.locator('.app-header').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
   await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
   auth.user={...user,branch_ids:['2']};newSession=true;
   await signInAgain(page);

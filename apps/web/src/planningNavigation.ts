@@ -3,7 +3,10 @@ import {useCallback,useEffect,useRef} from 'react';
 const isList=(path:string)=>path==='/forecasts'||path==='/procurement';
 const noOp=()=>{};
 type NavigationContext={path:string;scope:string;enabled:boolean};
-type PendingPosition={path:string;scope:string;y:number};
+type Position={y:number;sheet?:number};
+type PendingPosition={path:string;scope:string}&Position;
+// The list history lives in a sheet with its own scroll; its offset is kept next to the page's.
+const listSheet=()=>document.querySelector<HTMLElement>('#main .planning-history-disclosure[open]>.sheet');
 
 /** Restore only a same-session, same-branch planning list after viewing its detail.
  * Positions never leave memory. Slow responses cannot pull the user back after
@@ -11,7 +14,7 @@ type PendingPosition={path:string;scope:string;y:number};
  */
 export function usePlanningScrollRestoration(path:string,scope:string,enabled:boolean) {
  const current=useRef<NavigationContext>({path,scope,enabled});
- const positions=useRef(new Map<string,number>());
+ const positions=useRef(new Map<string,Position>());
  const pending=useRef<PendingPosition|null>(null);
  const cancel=useRef<()=>void>(noOp);
 
@@ -24,11 +27,11 @@ export function usePlanningScrollRestoration(path:string,scope:string,enabled:bo
   cancel.current();cancel.current=noOp;pending.current=null;
   const previous=current.current;
   if(!previous.enabled)return;
-  if(isList(previous.path))positions.current.set(previous.path,Math.max(0,window.scrollY));
+  if(isList(previous.path)){const sheet=listSheet();positions.current.set(previous.path,{y:Math.max(0,window.scrollY),sheet:sheet?Math.max(0,sheet.scrollTop):undefined})}
   if(!isList(destination)||!previous.path.startsWith(destination+'/'))return;
-  const y=positions.current.get(destination);
-  if(y===undefined)return;
-  pending.current={path:destination,scope:previous.scope,y};
+  const saved=positions.current.get(destination);
+  if(saved===undefined)return;
+  pending.current={path:destination,scope:previous.scope,...saved};
   // Browser Back also restores scroll. Temporarily own this one restoration so
   // the browser cannot race the asynchronous list load. Other routes stay native.
   const previousMode=history.scrollRestoration;
@@ -65,6 +68,11 @@ export function usePlanningScrollRestoration(path:string,scope:string,enabled:bo
    if(!document.querySelector('#main .planning-history'))return;
    const maxY=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
    if(maxY+1<target.y)return;
+   if(target.sheet!==undefined){
+    const sheet=listSheet();
+    if(!sheet||sheet.scrollHeight-sheet.clientHeight+1<target.sheet)return;
+    sheet.scrollTop=target.sheet;
+   }
    window.scrollTo(0,target.y);stop();
   };
   const queue=()=>{if(active&&settled&&!frame)frame=requestAnimationFrame(attempt)};

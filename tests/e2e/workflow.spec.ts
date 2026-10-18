@@ -1,4 +1,4 @@
-import {navigateTo} from './navigation';
+import {navigateTo,logout} from './navigation';
 import {test,expect,type Page} from '@playwright/test';
 import fs from 'node:fs';
 const login=JSON.parse(fs.readFileSync('.cache/e2e-login.json','utf8'));
@@ -65,7 +65,7 @@ test('login → CSV validation/commit → sales → forecast → procurement →
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Импорттау',exact:true}).click();await expect(page.getByText('Деректер транзакциямен импортталды')).toBeVisible();
  await navigateTo(page,'sales');await expect(page.locator('tbody tr')).toHaveCount(50);
  await page.getByLabel('Тағам',{exact:true}).selectOption('1');await expect(page.locator('tbody tr')).toHaveCount(28);
- await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();await page.getByRole('button',{name:'Есептеу',exact:true}).click();await expect(page).toHaveURL(/\/forecasts\/[a-f0-9]+$/,{timeout:120000});await expect(page.locator('.alert.info')).toContainText('Аралық есептелмеген');await expect(page.getByTestId('forecast-interval')).toHaveCount(0);
+ await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();await page.getByRole('button',{name:'Есептеу',exact:true}).click();await expect(page).toHaveURL(/\/forecasts\/[a-f0-9]+$/,{timeout:120000});await expect(page.locator('.alert.info')).toContainText('Аралық есептелмеген');await expect(page.getByTestId('forecast-interval')).toHaveCount(0);
  await page.getByRole('button',{name:'Қалдықтарды тексеру',exact:true}).click();await page.getByRole('button',{name:'Сатып алуды есептеуге',exact:true}).click();await page.getByLabel('Бюджет, ₸').fill('150000');await page.getByRole('button',{name:'Есептеу',exact:true}).click();await expect(page).toHaveURL(/\/procurement\/[a-f0-9]+$/,{timeout:120000});
  const planResponse=await page.request.get('/api/v1/plans/'+new URL(page.url()).pathname.split('/').pop());expect(planResponse.status()).toBe(200);
  const calculatedPlan=await planResponse.json(),result=page.locator('.procurement-result');
@@ -83,21 +83,21 @@ test('login → CSV validation/commit → sales → forecast → procurement →
  await expect(result.locator('.supplier-order-group tbody tr')).toHaveCount(calculatedPlan.lines.length);
  await page.getByRole('button',{name:'Жоспарды бекіту',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByLabel('Шешімнің себебі').fill('E2E: reviewed synthetic daily plan');const ack=page.getByLabel('Тапшылықты қарап, растаймын');if(await ack.count())await ack.check();await page.getByRole('dialog').getByRole('button',{name:'Жоспарды бекіту',exact:true}).click();await expect(page.locator('.context-line').getByText('Бекітілді',{exact:true})).toBeVisible();
  const downloadPromise=page.waitForEvent('download');await page.getByRole('link',{name:'CSV жүктеу'}).click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/\.csv$/);await download.saveAs(artifactDirectory+'/approved-plan.csv');
- await page.screenshot({path:artifactDirectory+'/procurement-desktop.png',fullPage:true,animations:'disabled'});await page.locator('.sidebar').getByRole('button',{name:'Бүгін',exact:true}).click();await expect(page.locator('.metric-value').first()).not.toHaveText('—');await page.screenshot({path:artifactDirectory+'/dashboard-desktop.png',fullPage:true,animations:'disabled'});
+ await page.screenshot({path:artifactDirectory+'/procurement-desktop.png',fullPage:true,animations:'disabled'});await page.locator('.app-header').getByRole('button',{name:'Бүгін',exact:true}).click();await expect(page.locator('.metric-value').first()).not.toHaveText('—');await page.screenshot({path:artifactDirectory+'/dashboard-desktop.png',fullPage:true,animations:'disabled'});
  await page.setViewportSize({width:390,height:844});await checkMobileDrawer(page,390);await page.screenshot({path:artifactDirectory+'/dashboard-mobile.png',fullPage:true,animations:'disabled'});
  await page.setViewportSize({width:360,height:800});await checkMobileDrawer(page,360);await page.screenshot({path:artifactDirectory+'/dashboard-mobile-360.png',fullPage:true,animations:'disabled'});
- await page.locator('.bottom-nav').getByRole('button',{name:'Қалдықтар',exact:true}).click();await expect(page.locator('tbody tr')).toHaveCount(20);
+ await page.locator('.bottom-nav').getByRole('button',{name:'Қалдықтар',exact:true}).click();await expect(page.locator('.stock-shelf-lots>li')).toHaveCount(20);
  await page.context().setOffline(true);await expect(page.getByText('Байланыс жоқ. Өзгерістерді сақтау мүмкін емес.',{exact:true}).first()).toBeVisible();await page.context().setOffline(false);
- await page.setViewportSize({width:1440,height:1100});await page.getByTitle('Шығу',{exact:true}).click();await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();expect(errors).toEqual([]);
+ await page.setViewportSize({width:1440,height:1100});await logout(page,'Шығу');await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();expect(errors).toEqual([]);
 });
 
 test('branch context, Russian labels, empty result and recoverable network failure',async({page})=>{
  await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
  await expect(page.locator('.metric-value').first()).not.toHaveText('—');const first=await page.locator('.metric-value').first().innerText();
- await page.getByLabel('Бөлімше',{exact:true}).selectOption('2');await expect(page.locator('.context-line')).toContainText(await page.getByLabel('Бөлімше',{exact:true}).locator('option:checked').innerText());await expect(page.locator('.metric-value').first()).not.toHaveText('—');await expect(page.locator('.metric-value').first()).not.toHaveText(first);await expect(page.locator('.today-purchase-empty')).toBeVisible();
+ await page.getByLabel('Бөлімше',{exact:true}).selectOption('2');await expect(page.locator('.day-context')).toContainText(await page.getByLabel('Бөлімше',{exact:true}).locator('option:checked').innerText());await expect(page.locator('.metric-value').first()).not.toHaveText('—');await expect(page.locator('.metric-value').first()).not.toHaveText(first);await expect(page.locator('.day-purchase-empty')).toBeVisible();
  await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();await expect(page.getByRole('heading',{name:'Сегодня'})).toBeVisible();await page.getByRole('button',{name:'РУС',exact:true}).click();
  await navigateTo(page,'sales');await page.getByLabel('Бастап',{exact:true}).fill('2020-01-01');await page.getByLabel('Дейін',{exact:true}).fill('2020-01-02');await expect(page.getByRole('heading',{name:'Бұл жерде әзірше дерек жоқ'})).toBeVisible();
- await page.route('**/api/v1/dashboard*',route=>route.abort('failed'));await page.locator('.sidebar').getByRole('button',{name:'Бүгін',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Сервермен байланыс жоқ');await page.unroute('**/api/v1/dashboard*');await page.getByRole('button',{name:'Қайта жүктеу',exact:true}).click();await expect(page.locator('.metric-value').first()).not.toHaveText('—');
+ await page.route('**/api/v1/dashboard*',route=>route.abort('failed'));await page.locator('.app-header').getByRole('button',{name:'Бүгін',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Сервермен байланыс жоқ');await page.unroute('**/api/v1/dashboard*');await page.getByRole('button',{name:'Қайта жүктеу',exact:true}).click();await expect(page.locator('.metric-value').first()).not.toHaveText('—');
  for(const width of [1280,768,390,360]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();}
 });
 
@@ -115,11 +115,12 @@ test('stale plan approval forces review and audit records the winning decision',
 });
 
 test('quantile chart uses observed history and exposes the measured model card',async({page})=>{
- await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();
+ await page.goto('/');await page.getByLabel('Электрондық пошта').fill(login.email);await page.getByLabel('Құпиясөз').fill(login.password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();
  await page.locator('.planning-options>summary').click();await page.getByLabel('Модель',{exact:true}).selectOption('hist_gradient_boosting');await page.getByRole('button',{name:'Есептеу',exact:true}).click();await expect(page).toHaveURL(/\/forecasts\/[a-f0-9]+$/,{timeout:120000});
  await page.locator('.planning-chart-disclosure>summary').click();await expect(page.getByTestId('forecast-time-chart')).toBeVisible();await expect(page.locator('[data-series="observed"]')).toHaveCount(28);await expect(page.getByTestId('forecast-interval')).toBeVisible();await expect(page.getByTestId('forecast-target-point')).toHaveAttribute('data-date','2026-01-01');
  await page.locator('.metrics-panel summary').click();await expect(page.locator('.metrics-panel tbody')).toBeVisible();await expect(page.locator('.metrics-panel tbody tr')).toHaveCount(3);await expect(page.locator('.metrics-panel tbody')).toContainText('336');
- await page.getByLabel('Графиктегі тағам',{exact:true}).selectOption('2');await expect(page.locator('[data-series="observed"]')).toHaveCount(28);await page.screenshot({path:artifactDirectory+'/forecast-quantiles.png',fullPage:true,animations:'disabled'});
+ // Chips switch sheets like tabs: return to the chart before choosing its meal.
+ await page.locator('.planning-chart-disclosure>summary').click();await page.getByLabel('Графиктегі тағам',{exact:true}).selectOption('2');await expect(page.locator('[data-series="observed"]')).toHaveCount(28);await page.screenshot({path:artifactDirectory+'/forecast-quantiles.png',fullPage:true,animations:'disabled'});
  await page.setViewportSize({width:360,height:800});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
 });
 
@@ -138,14 +139,14 @@ test('admin manages access and analyst reads saved results without write permiss
   const response=await page.request.get('/api/v1/runs/'+run.run_id);expect(response.status()).toBe(200);
   const result=await response.json();planId=result.result_id;return result.status;
  },{timeout:120000}).toBe('succeeded');
- await page.locator('.sidebar').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
  const userAdmin=page.locator('.user-admin').filter({has:page.getByRole('heading',{name:'Пайдаланушылар мен рұқсаттар',exact:true})});
  await userAdmin.getByRole('button',{name:'Пайдаланушы қосу',exact:true}).click();
  await userAdmin.getByLabel('Электрондық пошта',{exact:true}).fill(email);await userAdmin.getByLabel('Құпиясөз',{exact:true}).fill(password);await userAdmin.getByLabel('Рөл',{exact:true}).selectOption('analyst');await userAdmin.getByLabel('Demo_Canteen_A',{exact:true}).check();await userAdmin.getByRole('button',{name:'Сақтау',exact:true}).click();await expect(userAdmin).toContainText('Өзгеріс сақталды және аудитке жазылды.');await expect(userAdmin.locator('tbody')).toContainText(email);
- await page.getByTitle('Шығу',{exact:true}).click();await page.getByLabel('Электрондық пошта').fill(email);await page.getByLabel('Құпиясөз').fill(password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByLabel('Бөлімше').locator('option')).toHaveCount(1);expect((await page.request.get('/api/v1/dashboard?branch_id=2')).status()).toBe(403);
- await page.locator('.sidebar').getByRole('button',{name:'Күн жоспары',exact:true}).click();await expect(page.getByRole('button',{name:'Есептеу',exact:true})).toBeDisabled();
+ await logout(page,'Шығу');await page.getByLabel('Электрондық пошта').fill(email);await page.getByLabel('Құпиясөз').fill(password);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByLabel('Бөлімше').locator('option')).toHaveCount(1);expect((await page.request.get('/api/v1/dashboard?branch_id=2')).status()).toBe(403);
+ await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();await expect(page.getByRole('button',{name:'Есептеу',exact:true})).toBeDisabled();
  expect((await page.request.get('/api/v1/forecasts/'+forecast.id)).status()).toBe(200);
- await page.locator('.sidebar').getByRole('button',{name:'Сатып алу',exact:true}).click();await expect(page.getByRole('button',{name:'Есептеу',exact:true})).toBeDisabled();
+ await page.locator('.app-header').getByRole('button',{name:'Сатып алу',exact:true}).click();await expect(page.getByRole('button',{name:'Есептеу',exact:true})).toBeDisabled();
  await page.goto('/procurement/'+planId);await expect(page.getByRole('button',{name:'Жоспарды бекіту',exact:true})).toBeDisabled();await expect(page.getByText('Бұл әрекетке рұқсатыңыз жоқ.',{exact:true})).toBeVisible();
  const stored=await page.request.get('/api/v1/plans/'+planId);expect(stored.status()).toBe(200);const plan=await stored.json();
  const session=await(await page.request.get('/api/v1/session/me')).json(),headers={Origin:origin,'X-CSRF-Token':session.csrf_token};
@@ -169,8 +170,8 @@ test('real password change revokes existing sessions and requires the new passwo
   const existingLogin=await existing.post('/api/v1/session/login',{headers:{Origin:origin},data:{email,password:original}});expect(existingLogin.status()).toBe(200);
   expect((await existing.get('/api/v1/session/me')).status()).toBe(200);
   const nativeLogin=await existing.post('/api/v1/auth/token',{data:{email,password:original}});expect(nativeLogin.status()).toBe(200);const native=await nativeLogin.json();
-  await page.getByTitle('Шығу',{exact:true}).click();await page.getByLabel('Электрондық пошта').fill(email);await page.getByLabel('Құпиясөз').fill(original);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
-  await page.locator('.sidebar').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
+  await logout(page,'Шығу');await page.getByLabel('Электрондық пошта').fill(email);await page.getByLabel('Құпиясөз').fill(original);await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
+  await page.locator('.app-header').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
   await page.getByLabel('Қазіргі құпиясөз',{exact:true}).fill(original);await page.getByLabel('Жаңа құпиясөз',{exact:true}).fill(replacement);await page.getByLabel('Жаңа құпиясөзді қайталаңыз',{exact:true}).fill(replacement);
   await page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true}).click();
   await expect(page).toHaveURL(/\/login$/);await expect(page.getByRole('status')).toHaveText('Құпиясөз өзгертілді. Қайта кіріңіз.');
