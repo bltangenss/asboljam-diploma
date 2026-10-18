@@ -184,11 +184,11 @@ test('a delayed branch lookup cannot replace branches after signing in again',as
   await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
   auth.user={...user,branch_ids:['2']};newSession=true;
   await signInAgain(page);
-  const branch=page.getByLabel('Бөлімше',{exact:true});
-  await expect(branch).toHaveValue('2');
+  const branch=page.locator('.cabinet-name');
+  await expect(branch).toHaveText('NEW_BRANCH');
   release.resolve();await expect.poll(()=>oldCompleted).toBeGreaterThan(0);await settleBrowser(page);
-  await expect(branch).toHaveValue('2');
-  await expect(branch.locator('option')).toHaveText(['NEW_BRANCH']);
+  await expect(branch).toHaveText('NEW_BRANCH');
+  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);
 });
 
 for (const change of ['file','schema'] as const) {

@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
-import {ChartNoAxesCombined,ChevronDown,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Search,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X} from 'lucide-react';
+import {ChartNoAxesCombined,ChevronDown,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Search,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X,Store} from 'lucide-react';
 import {CommandPalette} from './CommandPalette';
 import {api,words,items,date,shiftDate,workspaceData,ErrorBox,type Lang,type Row,type Context,type WorkspaceSettings,type WorkspaceDataContext} from './shared';
 import Dashboard from './Dashboard';
@@ -133,6 +133,7 @@ export default function App() {
  const operations=globalContext?.operations_enabled===true;
  const logout=()=>navigation.request(async()=>{const csrf=api.csrf;try{await api.post('/session/logout',{});if(api.csrf===csrf)resetSession()}catch(error){if(api.csrf===csrf)setAuthError(error)}});
  const changeBranch=(value:string,leaveDetail=false)=>{if(value!==branch&&branches.some(item=>String(item.branch_id)===value))navigation.request(()=>{setBranch(value);if(leaveDetail&&id)go('/'+section)})};
+ const branchName=branches.find(item=>String(item.branch_id)===branch)?.branch_name;
  const ctx:Context={route,t,lang,user,branch,branchName:branches.find(item=>String(item.branch_id)===branch)?.branch_name,go,revision,refresh:()=>navigation.request(()=>setRevision(value=>value+1)),online,
   setBranch:value=>changeBranch(value),registerNavigationBlocker:navigation.register,
   organization,workspace:workspace??undefined,refreshWorkspace:async()=>{await navigation.request(()=>refreshWorkspace())},dataContext:currentContext,
@@ -170,18 +171,22 @@ export default function App() {
    <header className="app-header">
     <button className="icon-button mobile-menu" aria-label={lang==='kk'?'Мәзірді ашу':'Открыть меню'} aria-expanded={drawer} aria-controls="workspace-navigation" onClick={()=>setDrawer(true)}><Menu/></button>
     <a className="brand header-brand" href="/dashboard" aria-label="AsBoljam" onClick={event=>{event.preventDefault();go('/dashboard')}}><span className="brand-symbol"><Leaf size={17}/></span><span>AsBoljam<span className="brand-dot">.</span></span></a>
+    {/* Each establishment works in its own cabinet. Its account sees only its name here;
+        only an organization account with several branches can switch between cabinets. */}
+    <div className="cabinet">{branches.length>1
+     ?<label className="cabinet-switch" title={lang==='kk'?'Кабинетті ауыстыру':'Сменить кабинет'}><Store size={16} aria-hidden="true"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading} onChange={event=>changeBranch(event.target.value,true)}>
+      {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
+     </select><ChevronDown size={14} aria-hidden="true"/></label>
+     :<span className="cabinet-name"><Store size={16} aria-hidden="true"/><strong>{branches.length?String(branches[0].branch_name):workspaceLoading?t('workspaceLoading'):t('noBranches')}</strong></span>}
+    </div>
     {/* The working day is the navigation: four steps in the order a manager does them. */}
     <nav className="app-nav" aria-label={lang==='kk'?'Жұмыс күні':'Рабочий день'}>{workdaySections.filter(({key})=>key!=='data').map(({key,label},index)=>{const active=sectionGroup(section)?.key===key;return <button key={key} aria-current={active?'page':undefined} className={'app-nav-item'+(active?' active':'')} onClick={()=>go('/'+key)}><span className="app-nav-step" data-step={index+1} aria-hidden="true"/><span>{label[lang==='kk'?0:1]}</span></button>})}</nav>
     <div className="app-tools">
      <button className="command-trigger" aria-label={lang==='kk'?'Іздеу және командалар':'Поиск и команды'} onClick={()=>setPalette(true)}><Search size={16}/><span>{lang==='kk'?'Іздеу':'Поиск'}</span><kbd>Ctrl K</kbd></button>
      {[{key:'data',url:'/data',Icon:ChartNoAxesCombined,label:workdaySections.find(item=>item.key==='data')!.label,short:['Деректер','Данные']},{key:'settings',url:'/settings',Icon:Settings,label:managementSection.label,short:null}].map(({key,url,Icon,label,short})=>{const active=sectionGroup(section)?.key===key;return <button key={key} aria-current={active?'page':undefined} aria-label={label[lang==='kk'?0:1]} title={label[lang==='kk'?0:1]} className={'tool-button'+(active?' active':'')} onClick={()=>go(url)}><Icon size={18}/>{short&&<span className="tool-label">{short[lang==='kk'?0:1]}</span>}</button>})}
-     <label className="branch-select"><span className="branch-dot"/><select aria-label={t('branch')} value={branch} disabled={workspaceLoading||!branches.length} onChange={event=>changeBranch(event.target.value,true)}>
-      {!branches.length&&<option value="">{t('noBranches')}</option>}
-      {branches.map(item=><option key={item.branch_id} value={item.branch_id}>{String(item.branch_name)}</option>)}
-     </select><ChevronDown size={14}/></label>
      <button className="language" onClick={()=>setLang(lang==='kk'?'ru':'kk')}>{lang==='kk'?'ҚАЗ':'РУС'}<ChevronDown size={12}/></button>
      <div className="user-menu"><button className="avatar small user-menu-trigger" aria-haspopup="menu" aria-expanded={userMenu} aria-label={user.email} onClick={()=>setUserMenu(open=>!open)}>{user.email[0].toUpperCase()}</button>
-      {userMenu&&<div className="user-menu-panel" role="menu"><div className="user-menu-identity"><strong>{user.email}</strong><small>{t('role_'+user.role)}</small></div><div className="user-menu-org"><strong>{organization?.name??'—'}</strong><span>{workspace?t('availableBranches')+': '+branches.length:t('workspaceLoading')}</span></div><button role="menuitem" className="user-menu-item" title={t('logout')} onClick={()=>{setUserMenu(false);logout()}}><LogOut size={16}/>{t('logout')}</button></div>}
+      {userMenu&&<div className="user-menu-panel" role="menu"><div className="user-menu-identity"><strong>{user.email}</strong><small>{t('role_'+user.role)}</small></div><div className="user-menu-org"><span>Кабинет</span><strong>{branchName||'—'}</strong><span>{organization?.name??'—'}{branches.length>1?' · '+t('availableBranches')+': '+branches.length:''}</span></div><button role="menuitem" className="user-menu-item" title={t('logout')} onClick={()=>{setUserMenu(false);logout()}}><LogOut size={16}/>{t('logout')}</button></div>}
      </div>
     </div>
    </header>

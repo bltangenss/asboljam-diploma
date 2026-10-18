@@ -12,7 +12,8 @@ from unittest.mock import patch
 from sqlalchemy import func, select
 
 from apps.api import engine
-from apps.api.db import Record, make_engine, migrate, sessions
+from apps.api.db import Record, User, make_engine, migrate, sessions
+from apps.api.security import verify_password
 from scripts import generate_kz_demo, seed_demo
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,6 +140,38 @@ class KazakhstanDemoDataTests(unittest.TestCase):
         self.assertEqual((plan['solver_status'], plan['shortage_count']), ('optimal', 0))
         self.assertEqual(plan['expired_lot_ids'], ['B1-I13-X1'])
         self.assertIn('lead_time', {item['reason'] for item in plan['excluded_offers']})
+
+    def test_each_branch_gets_its_own_manager_cabinet_once(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'ASBOLJAM_ENV': 'local'}):
+            database = make_engine('sqlite:///' + (Path(directory) / 'kz.sqlite').as_posix())
+            try:
+                migrate(database)
+                factory = sessions(database)
+                seed_demo.seed(factory, PASSWORD, dataset='kz')
+                created = seed_demo.seed_branch_accounts(factory, PASSWORD)
+                again = seed_demo.seed_branch_accounts(factory, 'Another-password-2026!')
+                with factory() as db:
+                    managers = {user.email: (user.role, user.branch_ids, user.organization_id, user.password_hash)
+                                for user in db.scalars(select(User).where(User.role == 'manager'))}
+                    admin = db.scalar(select(User).where(User.email == 'admin@asboljam.local'))
+                    admin_branches = sorted(admin.branch_ids)
+            finally:
+                database.dispose()
+        branches = {row['branch_id']: row['branch_name'] for row in rows('branches.csv')}
+        self.assertEqual(created, [(seed_demo.branch_account_email(key), branches[key]) for key in sorted(branches)])
+        self.assertEqual(again, [])
+        self.assertEqual(sorted(managers), sorted(seed_demo.branch_account_email(key) for key in branches))
+        for key in branches:
+            role, scope, organization, digest = managers[seed_demo.branch_account_email(key)]
+            self.assertEqual((role, scope, organization), ('manager', [key], 'demo'))
+            self.assertTrue(verify_password(PASSWORD, digest))
+        # The organization administrator keeps every branch; establishment accounts see one each.
+        self.assertEqual(admin_branches, sorted(branches))
+
+    def test_branch_account_email_is_a_safe_local_address(self):
+        self.assertEqual(seed_demo.branch_account_email('1'), 'branch-1@asboljam.local')
+        self.assertEqual(seed_demo.branch_account_email('Kafe 2/A'), 'branch-kafe-2-a@asboljam.local')
+        self.assertEqual(seed_demo.branch_account_email('***'), 'branch-unnamed@asboljam.local')
 
     def test_seed_cli_rejects_an_unknown_dataset_before_opening_a_database(self):
         with patch.dict(os.environ, {'DEMO_DATASET': 'unknown'}), patch('sys.argv', ['seed_demo.py']), \

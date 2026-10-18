@@ -19,7 +19,7 @@ test('real empty workspace imports its first branch and refreshes session access
  await page.getByLabel('Құпиясөз',{exact:true}).fill(login.password);
  await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Алғашқы бөлімшені қосыңыз',exact:true})).toBeVisible();
- await expect(page.getByLabel('Бөлімше',{exact:true})).toBeDisabled();
+ await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);await expect(page.locator('.cabinet-name')).toHaveText('Бөлімшелер жоқ');
  await expect(page.locator('.metric')).toHaveCount(0);
  expect(scopedReads).toEqual([]);
  const initial=await page.request.get('/api/v1/session/me');expect(initial.status()).toBe(200);
@@ -41,9 +41,9 @@ test('real empty workspace imports its first branch and refreshes session access
  await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();
  await page.getByRole('button',{name:'Импорттау',exact:true}).click();
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();
- await expect(page.getByLabel('Бөлімше',{exact:true})).toBeEnabled();
- await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue('001');
- await expect(page.getByLabel('Бөлімше',{exact:true}).locator('option')).toHaveText(['Browser Synthetic Branch']);
+ await expect(page.locator('.cabinet-name')).toBeVisible();
+ await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);
+ await expect(page.locator('.cabinet-name')).toHaveText('Browser Synthetic Branch');
  const refreshed=await page.request.get('/api/v1/session/me');expect(refreshed.status()).toBe(200);
  const after=await refreshed.json();expect(after.user.id).toBe(before.user.id);expect(after.user.branch_ids).toEqual(['001']);
  const imported=await page.request.get('/api/v1/branches');expect(imported.status()).toBe(200);

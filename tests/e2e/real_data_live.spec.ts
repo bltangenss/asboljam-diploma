@@ -49,7 +49,7 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
  await expect(page.locator('.scenario-banner')).toContainText('REAL');
  await expect(page.locator('body')).not.toContainText('SYNTHETIC');
  await expect(page.locator('body')).not.toContainText('01.01.2026');
- await expect(page.getByLabel('Бөлімше',{exact:true})).toBeDisabled();
+ await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);await expect(page.locator('.cabinet-name')).toHaveText('Бөлімшелер жоқ');
  const initial=await getJson(page,'/settings');expect(initial.organization.id).toBe(fixture.organization_id);
  expect(initial.organization.data_policy).toBe('real_only');expect(initial.onboarding.branch_count).toBe(0);
  expect(initial.data_context).toMatchObject({mode:'real_business',data_origin:'REAL',usage_mode:'TEST',branch_id:null,forecast_origin:null,target_date:null,inventory_date:null});
@@ -83,7 +83,7 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
    batches.push(preview.id);
   });
  }
- await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue(fixture.branch_id);
+ await expect(page.locator('.cabinet-name')).toHaveText('Artificial contract fixture');await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);
  const context=(await getJson(page,'/settings?branch_id='+fixture.branch_id)).data_context;
  expect(context).toMatchObject({mode:'real_business',data_origin:'REAL',usage_mode:'TEST',branch_id:fixture.branch_id,forecast_origin:fixture.origin,target_date:fixture.target_date,inventory_date:fixture.target_date,inventory_dates:[fixture.target_date],dates_editable:true});
  expect(context.source).toMatchObject({...fixture.source,branch_id:fixture.branch_id,purpose:'test_fixture'});

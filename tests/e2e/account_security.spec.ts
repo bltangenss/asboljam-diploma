@@ -133,11 +133,12 @@ test('finishing workspace initialization preserves a password form already being
   });
   await page.goto('/settings');await branchesStarted.promise;
   await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Ұйым',exact:true})})).toContainText('Fixture organization');
-  await expect(page.getByLabel('Бөлімше',{exact:true})).toBeDisabled();
+  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);await expect(page.locator('.cabinet-name')).toHaveText('Жұмыс кеңістігі жүктелуде…');
   await fillPasswords(page);
   const refreshed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/settings');
   releaseBranches.resolve();await refreshed;
-  await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveValue('1');
+  // A single-branch account sees its cabinet name; the form keeps its typed values.
+  await expect(page.locator('.cabinet-name')).toHaveText('Fixture branch');await expect(page.getByLabel('Бөлімше',{exact:true})).toHaveCount(0);
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect(page.getByLabel('Қазіргі құпиясөз',{exact:true})).toHaveValue(current);
   await expect(page.getByLabel('Жаңа құпиясөз',{exact:true})).toHaveValue(replacement);

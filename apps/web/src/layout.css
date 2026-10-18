@@ -22,8 +22,6 @@
 .tool-button{display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border-radius:8px;color:var(--ink-2);font-size:13px;font-weight:550}
 .tool-button:hover{background:#f4f4f2;color:var(--ink)}
 .tool-button.active{background:#f1f1ef;color:var(--ink)}
-.app-header .branch-select{height:36px;padding:0 8px 0 10px;border:1px solid var(--border);border-radius:8px;gap:6px}
-.app-header .branch-select select{max-width:210px;font-size:13px;padding:0;min-height:0}
 .app-header .language{min-height:36px}
 .user-menu{position:relative}
 .user-menu-trigger{border:0;cursor:pointer}
@@ -58,8 +56,6 @@
   .app-header{padding:0 12px;gap:8px;min-height:56px}
   .header-brand{display:none}
   .app-tools{margin-left:auto;min-width:0}
-  .app-header .branch-select{max-width:calc(100vw - 160px)}
-  .app-header .branch-select select{max-width:100%}
 }
 @media(min-width:1024px){.mobile-menu{display:none}}
 
@@ -366,3 +362,22 @@ details>.sheet{position:fixed;top:0;right:0;bottom:0;z-index:50;width:min(860px,
 .planning-composer .planning-preview input.planning-date{width:7.5em;min-height:0;padding:0;border:0;background:transparent;box-shadow:none;font:inherit;font-size:16px;font-weight:620;color:var(--ink);font-variant-numeric:tabular-nums}
 .planning-composer .planning-preview input.planning-date:focus{outline:none}
 .planning-composer label.planning-preview{margin:0;font-weight:400;gap:2px}
+
+/* Cabinet: the establishment this account works in, next to the brand. A single-branch
+   account sees a name, not a control; an organization account switches cabinets here. */
+.cabinet{display:flex;align-items:center;min-width:0;padding-left:16px;border-left:1px solid var(--border);height:28px}
+.cabinet-name,.cabinet-switch{display:flex;align-items:center;gap:7px;min-width:0;color:var(--ink)}
+.cabinet-name svg,.cabinet-switch>svg:first-child{flex-shrink:0;color:var(--muted)}
+.cabinet-name strong{font-size:14px;font-weight:600;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cabinet-switch{position:relative;flex-direction:row;margin:0;height:34px;padding:0 8px 0 10px;border-radius:8px;cursor:pointer;font-weight:400}
+.cabinet-switch:hover{background:#f4f4f2}
+.cabinet-switch select{appearance:none;-webkit-appearance:none;width:auto;min-height:0;height:auto;max-width:240px;padding:0 18px 0 0;margin-right:-16px;border:0;background:transparent;box-shadow:none;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;text-overflow:ellipsis}
+.cabinet-switch select:focus-visible{outline:2px solid var(--action);outline-offset:4px;border-radius:4px}
+.cabinet-switch>svg:last-child{pointer-events:none;color:var(--muted)}
+.user-menu-org>span:first-child{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+@media(max-width:1240px){.cabinet-name strong,.cabinet-switch select{max-width:170px}}
+@media(max-width:1023px){
+  .cabinet{padding-left:0;border-left:0;margin-right:auto;min-width:0;flex:1}
+  .cabinet-name strong,.cabinet-switch select{max-width:calc(100vw - 190px)}
+}
+
