@@ -381,3 +381,15 @@ details>.sheet{position:fixed;top:0;right:0;bottom:0;z-index:50;width:min(860px,
   .cabinet-name strong,.cabinet-switch select{max-width:calc(100vw - 190px)}
 }
 
+/* Recipes: a board of dishes with their per-portion ingredients; full rows open as a sheet. */
+.recipe-journal{background:transparent;border:0;box-shadow:none}
+.recipe-journal>.reference-journal-heading{padding:0 0 4px;background:transparent;border:0}
+.recipe-journal>.reference-journal-heading h2{font-size:15px}
+.recipe-journal>.reference-footnote{padding:0 0 12px}
+.recipe-board{list-style:none;margin:0 0 12px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.recipe-card{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);min-width:0}
+.recipe-card h3{font-size:15px;line-height:1.35;margin:0;overflow-wrap:anywhere}
+.recipe-meta{margin:0;font-size:12px;color:var(--muted)}
+.recipe-ingredients{list-style:none;margin:4px 0 0;padding:8px 0 0;border-top:1px dashed var(--border);display:grid;align-content:start;gap:4px;flex:1}
+.recipe-ingredients li{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-2)}
+.recipe-ingredients strong{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
