@@ -10,7 +10,7 @@
     ],
     "generator": "scripts/generate_contracts.py",
     "dictionary_sha256": "fad1e65911e44a69d4c16b75e6a3a5598f9b8beb9ad432b32256e647d6e99df3",
-    "importer_sha256": "aecdcc2644f01cf193e476c7c4c1132fb738327d9c2e4231b8f298511fe81d8e",
+    "importer_sha256": "90950f8a29c0e2dfb10ad36ec59341758b0e95a5b6af9ecfca4ea4b0e595673f",
     "notice": "This file was reconstructed explicitly; no original contracts/data_manifest.json was included in the supplied materials."
   },
   "encoding": [
@@ -48,7 +48,8 @@
     "correction_kinds": [
       "daily_sales",
       "calendar",
-      "inventory_lots"
+      "inventory_lots",
+      "day_factors"
     ],
     "correction_requires": [
       "reason",
@@ -77,6 +78,7 @@
     "supplier_offers.min_packs <= max_packs",
     "inventory_lots.unit == ingredients.unit",
     "calendar.weekday matches the ISO date (Monday=0)",
+    "day_factors.factor is a registered code and value lies in its bounds; flags take 0 or 1",
     "Canonical CSV retains one recipe_version per organization; dated branch/meal recipe activations are separate explicit audited commands",
     "When any selected meal has a dated recipe, every forecast meal needs an effective complete activation; captured per-row yield applies once",
     "An opened stock journal must reconcile with the exact target-date count before procurement; movements on the target day are excluded from its opening",
@@ -104,12 +106,14 @@
     "supplier_offers",
     "calendar",
     "daily_sales",
-    "inventory_lots"
+    "inventory_lots",
+    "day_factors"
   ],
   "files": {
     "branches.csv": {
       "kind": "branches",
       "source_path": "data/raw/branches.csv",
+      "optional": false,
       "sha256": "e897461ce87365ab6d4bff85d9502bcac05b6821c194d7c3550f43e28d77bd3f",
       "source_rows": 3,
       "required_columns": [
@@ -188,6 +192,7 @@
     "meals.csv": {
       "kind": "meals",
       "source_path": "data/raw/meals.csv",
+      "optional": false,
       "sha256": "62c1cfce98659b71336fc61502d3994527e55ab21a7c419f4a91c60f6737d21e",
       "source_rows": 12,
       "required_columns": [
@@ -280,6 +285,7 @@
     "ingredients.csv": {
       "kind": "ingredients",
       "source_path": "data/raw/ingredients.csv",
+      "optional": false,
       "sha256": "e23b30ae373818d2940409b45d8c3e505714436b1f1a6d00111ca3627be42207",
       "source_rows": 10,
       "required_columns": [
@@ -419,6 +425,7 @@
     "recipes.csv": {
       "kind": "recipes",
       "source_path": "data/raw/recipes.csv",
+      "optional": false,
       "sha256": "cf44bd505c3b9c7988cde04eaf262d88bc9c05d339d4c2974aede413391b5ab6",
       "source_rows": 48,
       "required_columns": [
@@ -525,6 +532,7 @@
     "suppliers.csv": {
       "kind": "suppliers",
       "source_path": "data/raw/suppliers.csv",
+      "optional": false,
       "sha256": "f189799fe3cdf07cb44238296d32e87ea92db54200ec1c958c1f5ca8f39da9a4",
       "source_rows": 3,
       "required_columns": [
@@ -604,6 +612,7 @@
     "supplier_offers.csv": {
       "kind": "supplier_offers",
       "source_path": "data/raw/supplier_offers.csv",
+      "optional": false,
       "sha256": "e4ff462698c2b85f40c8aecdc9dce100821820d4679a2e30aca23e510b5daa3f",
       "source_rows": 30,
       "required_columns": [
@@ -753,6 +762,7 @@
     "calendar.csv": {
       "kind": "calendar",
       "source_path": "data/raw/calendar.csv",
+      "optional": false,
       "sha256": "dcc553b9a196845341b5e325de9e67abe3638cf9ab9ca3cdb65c2f4c498d5875",
       "source_rows": 2193,
       "required_columns": [
@@ -884,6 +894,7 @@
     "daily_sales.csv": {
       "kind": "daily_sales",
       "source_path": "data/raw/daily_sales.csv",
+      "optional": false,
       "sha256": "88f1264c92ec6789a27831b8eb83af556740e20f384c32e13c8114fe9d19b5b1",
       "source_rows": 26316,
       "required_columns": [
@@ -999,7 +1010,7 @@
           "storage_type": "integer",
           "import_policy": "retained",
           "source_to_storage": "operational_records.data.stockout_flag",
-          "training_use": "not_used_by_current_forecasting_features",
+          "training_use": "factor_model_only: price and promotion as planned that day, stockout share of the 7 past days",
           "enum": [
             0,
             1
@@ -1027,7 +1038,7 @@
           "storage_type": "integer",
           "import_policy": "retained",
           "source_to_storage": "operational_records.data.promo",
-          "training_use": "not_used_by_current_forecasting_features",
+          "training_use": "factor_model_only: price and promotion as planned that day, stockout share of the 7 past days",
           "enum": [
             0,
             1
@@ -1041,7 +1052,7 @@
           "storage_type": "decimal_string",
           "import_policy": "retained",
           "source_to_storage": "operational_records.data.price_kzt",
-          "training_use": "not_used_by_current_forecasting_features",
+          "training_use": "factor_model_only: price and promotion as planned that day, stockout share of the 7 past days",
           "absolute_maximum": "1000000000000",
           "minimum": "0"
         },
@@ -1065,6 +1076,7 @@
     "inventory_lots.csv": {
       "kind": "inventory_lots",
       "source_path": "data/raw/inventory_lots.csv",
+      "optional": false,
       "sha256": "4b807006f7ee4c45d283f403945d88684250291f8e6ed96f8b0812c0d3d5d6be",
       "source_rows": 60,
       "required_columns": [
@@ -1208,6 +1220,106 @@
           "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
         }
       }
+    },
+    "day_factors.csv": {
+      "kind": "day_factors",
+      "source_path": "data/kz/day_factors.csv",
+      "optional": true,
+      "sha256": "0353e5572cd595b7f257abe778cbbe167668b411cd732f429f34226e87de947e",
+      "source_rows": 28725,
+      "required_columns": [
+        "date",
+        "branch_id",
+        "factor",
+        "value",
+        "data_origin"
+      ],
+      "optional_discarded_columns": [],
+      "allowed_columns": [
+        "date",
+        "branch_id",
+        "factor",
+        "value",
+        "data_origin"
+      ],
+      "additional_columns": "reject",
+      "primary_key": [
+        "date",
+        "branch_id",
+        "factor"
+      ],
+      "foreign_keys": [
+        {
+          "field": "branch_id",
+          "target_file": "branches.csv",
+          "target_field": "branch_id"
+        }
+      ],
+      "storage": {
+        "table": "operational_records",
+        "organization_id": "authenticated_user.organization_id",
+        "branch_id": "source branch_id when present; never inferred from UI selection"
+      },
+      "fields": {
+        "date": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Күн, YYYY-MM-DD; болжам күні де бар, өйткені фактор алдын ала белгілі",
+          "required": true,
+          "storage_type": "iso_date_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.date",
+          "training_use": "factor_model_only: value of the same day, known before it; the forecast day itself included"
+        },
+        "branch_id": {
+          "source_dtype": "int64",
+          "source_role": "input",
+          "description_kk": "Шартты бөлімше идентификаторы",
+          "required": true,
+          "storage_type": "string_identifier",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.branch_id",
+          "training_use": "factor_model_only: value of the same day, known before it; the forecast day itself included",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "factor": {
+          "source_dtype": "object",
+          "source_role": "input",
+          "description_kk": "Фактор коды, apps/api/factors.py: мерекелер, ауыстырулар, Наурыз, Ораза, ауызашар, айт, мектеп демалысы, жалақы күндері (демо шарты), температура болжамы, аптап ыстық, күн бату, бөлімшенің жұмысы",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.factor",
+          "training_use": "factor_model_only: value of the same day, known before it; the forecast day itself included",
+          "enum_source": "apps/api/factors.py IMPORTED codes; value bounds are per factor"
+        },
+        "value": {
+          "source_dtype": "float64",
+          "source_role": "input",
+          "description_kk": "Белгі 0/1 немесе сан; ауызашар мен күн бату — жергілікті уақыт бойынша минут; температура — °C",
+          "required": true,
+          "storage_type": "decimal_string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.value",
+          "training_use": "factor_model_only: value of the same day, known before it; the forecast day itself included",
+          "absolute_maximum": "1000000000000"
+        },
+        "data_origin": {
+          "source_dtype": "object",
+          "source_role": "provenance",
+          "description_kk": "Деректің шығу тегі: SYNTHETIC",
+          "required": true,
+          "storage_type": "string",
+          "import_policy": "retained",
+          "source_to_storage": "operational_records.data.data_origin",
+          "training_use": "factor_model_only: value of the same day, known before it; the forecast day itself included",
+          "enum": [
+            "SYNTHETIC",
+            "REAL"
+          ],
+          "origin_policy": "Must match the tenant's exclusive origin; REAL requires an operator-registered source."
+        }
+      }
     }
   },
   "demo_datasets": [
@@ -1292,6 +1404,10 @@
         "inventory_lots.csv": {
           "sha256": "9e2f89ce6cac30137d9f55e65fb56de55522b074da09eda6cba6926aeecb2251",
           "rows": 54
+        },
+        "day_factors.csv": {
+          "sha256": "0353e5572cd595b7f257abe778cbbe167668b411cd732f429f34226e87de947e",
+          "rows": 28725
         }
       }
     }

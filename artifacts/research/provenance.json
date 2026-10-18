@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-09-24T10:05:50.705691+00:00",
+  "created_at": "2026-10-18T05:19:10.983423+00:00",
   "data_origin": "SYNTHETIC",
   "mode": "LIVE_COMPUTE",
   "seed": 42,
@@ -42,8 +42,8 @@
       "rows": 3
     }
   },
-  "engine_sha256": "e3484678ac2584a8888d07c502075b29037b833ec5219e7dfdd59f88b6349754",
-  "script_sha256": "79c9aeccc99a3fe4e38cfe8e7c724582374f9d7b7acf21d22c399f5f63846d21",
+  "engine_sha256": "70fdaee0ab1cd42b941e6f66c821fe5b7159d1cf3e49f2edc02611e197b93c2d",
+  "script_sha256": "3aeed934126353364676cd9e87b9854fae770b84ca0a95776cd5d36e7b40ea79",
   "runtime_versions": {
     "python": "3.13.9",
     "numpy": "2.4.2",
@@ -53,7 +53,7 @@
   },
   "forecast_runs": 9,
   "procurement_runs": 36,
-  "duration_seconds": 35.085184,
+  "duration_seconds": 10.745981,
   "metric_units": {
     "mae": "portions",
     "rmse": "portions",

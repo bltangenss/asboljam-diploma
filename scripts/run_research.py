@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 # Avoid Windows WMIC hardware probing; numerical libraries are also limited by
 # the engine during estimation. This does not change model/data seeds.
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
-from apps.api.engine import MODELS, forecast, procurement
+from apps.api.engine import HISTORY_MODELS as MODELS, forecast, procurement
 
 
 INPUTS = ("daily_sales", "ingredients", "recipes", "inventory_lots", "supplier_offers", "suppliers")

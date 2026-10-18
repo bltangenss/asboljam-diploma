@@ -19,7 +19,7 @@ from scripts import generate_kz_demo, seed_demo
 ROOT = Path(__file__).resolve().parents[1]
 KZ = ROOT / 'data' / 'kz'
 OPERATIONAL = ('branches', 'meals', 'ingredients', 'recipes', 'suppliers', 'supplier_offers',
-               'calendar', 'daily_sales', 'inventory_lots')
+               'calendar', 'daily_sales', 'inventory_lots', 'day_factors')
 PASSWORD = 'Synthetic-kz-fixture-2026!'
 # Official RK days off 2024-2025 (holidays and transferred days off), kept separate from
 # the generator so a change there cannot silently redefine the published calendar.
@@ -90,6 +90,29 @@ class KazakhstanDemoDataTests(unittest.TestCase):
                 self.assertEqual({row['data_origin'] for row in content}, {'SYNTHETIC'})
                 self.assertFalse({'latent_demand_ORACLE_ONLY', 'demand_multiplier', 'base_daily_demand'}
                                  & set(content[0]))
+
+    def test_day_factors_follow_official_calendars_through_the_forecast_day(self):
+        factors = rows('day_factors.csv')
+        by_code = {}
+        for row in factors:
+            if row['branch_id'] == '1':
+                by_code.setdefault(row['factor'], {})[row['date']] = row['value']
+        off = {day for code in ('public_holiday', 'transferred_day_off')
+               for day, value in by_code[code].items() if value == '1'}
+        # The forecast day 2026-01-01 is New Year, known in advance beyond the sales history.
+        self.assertEqual(off - {'2026-01-01'}, OFFICIAL_DAYS_OFF)
+        self.assertEqual(by_code['public_holiday']['2026-01-01'], '1')
+        self.assertEqual(by_code['pre_holiday']['2025-12-31'], '1')
+        ramadan = {day for day, value in by_code['ramadan'].items() if value == '1'}
+        self.assertEqual(set(by_code['iftar_minutes']), ramadan)
+        self.assertEqual(len(ramadan), 30 + 29)
+        self.assertEqual({day for day, value in by_code['ait'].items() if value == '1'},
+                         {'2024-04-10', '2024-06-16', '2025-03-30', '2025-06-06'})
+        self.assertEqual(by_code['school_holiday']['2025-03-25'], '1')
+        self.assertEqual(by_code['school_holiday']['2025-04-15'], '0')
+        self.assertFalse({'precipitation_mm', 'station_trains', 'office_occupancy_pct'} & set(by_code),
+                         'no invented weather or traffic series in the demo')
+        self.assertTrue(all(1000 <= int(value) <= 1300 for value in by_code['sunset_minutes'].values()))
 
     def test_calendar_marks_exactly_the_official_rk_days_off(self):
         calendar = rows('calendar.csv')

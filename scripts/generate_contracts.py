@@ -26,6 +26,10 @@ def write(relative: str, value: dict) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+# Schemas a dataset may omit (scripts/seed_demo.py OPTIONAL_KINDS).
+OPTIONAL_KINDS = {"day_factors"}
+
+
 def importer_constants() -> dict:
     """Read constant declarations without importing/starting the application."""
     source = (ROOT / "apps/api/importing.py").read_text(encoding="utf-8")
@@ -50,11 +54,15 @@ def importer_constants() -> dict:
 def data_manifest() -> dict:
     constants = importer_constants()
     dictionary_path = ROOT / "data/raw/data_dictionary.csv"
-    with dictionary_path.open(encoding="utf-8-sig", newline="") as handle:
-        dictionary = {(row["file"], row["field"]): row for row in csv.DictReader(handle)}
+    dictionary = {}
+    for source in (ROOT / "data/kz/data_dictionary.csv", dictionary_path):
+        with source.open(encoding="utf-8-sig", newline="") as handle:
+            dictionary.update({(row["file"], row["field"]): row for row in csv.DictReader(handle)})
     files = {}
     for kind, columns in constants["SCHEMAS"].items():
         path = ROOT / "data/raw" / (kind + ".csv")
+        if kind in OPTIONAL_KINDS and not path.exists():
+            path = ROOT / "data/kz" / (kind + ".csv")
         with path.open(encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
             source_fields = reader.fieldnames
@@ -83,6 +91,10 @@ def data_manifest() -> dict:
                 training_use = "observed_sales_target_and_strictly_past_lags"
             elif kind == "daily_sales" and field in {"date", "meal_id", "branch_id"}:
                 training_use = "date_or_entity_key"
+            elif kind == "daily_sales" and field in {"price_kzt", "promo", "stockout_flag"}:
+                training_use = "factor_model_only: price and promotion as planned that day, stockout share of the 7 past days"
+            elif kind == "day_factors":
+                training_use = "factor_model_only: value of the same day, known before it; the forecast day itself included"
             else:
                 training_use = "not_used_by_current_forecasting_features"
             field_schema = {
@@ -110,13 +122,15 @@ def data_manifest() -> dict:
                 field_schema.update({"minimum": 0, "maximum": 6 if field == "weekday" else 1000000000})
             if field in constants["DECIMAL_FIELDS"]:
                 field_schema["absolute_maximum"] = "1000000000000"
-                if field != "temperature_forecast_c":
+                if field not in {"temperature_forecast_c", "value"}:
                     field_schema["minimum"] = "0"
+            if kind == "day_factors" and field == "factor":
+                field_schema["enum_source"] = "apps/api/factors.py IMPORTED codes; value bounds are per factor"
             fields[field] = field_schema
         references = [{"field": field, "target_file": target + ".csv", "target_field": field}
                       for field, target in constants["FK"].items() if field in required and kind != target]
         files[path.name] = {
-            "kind": kind, "source_path": "data/raw/" + path.name,
+            "kind": kind, "source_path": path.relative_to(ROOT).as_posix(), "optional": kind in OPTIONAL_KINDS,
             "sha256": sha(path), "source_rows": row_count,
             "required_columns": required, "optional_discarded_columns": discarded,
             "allowed_columns": required + discarded, "additional_columns": "reject",
@@ -145,7 +159,7 @@ def data_manifest() -> dict:
                    "real_inventory_policy": "Exact target-date snapshot; every required recipe ingredient needs an explicit quantity, including factual zero. Same-date expiry is usable; eligible offer lead time is zero.",
                    "same_file_duplicate_keys": "rejected", "existing_identical_rows": "unchanged_no_duplicate_insert",
                    "existing_changed_rows": "explicit_correction_required",
-                   "correction_kinds": ["daily_sales", "calendar", "inventory_lots"],
+                   "correction_kinds": ["daily_sales", "calendar", "inventory_lots", "day_factors"],
                    "correction_requires": ["reason", "existing_keys", "unchanged_preview_hash_and_revision"],
                    "hash_scope": "received UTF-8 CSV text; claimed original hash remains unverified",
                    "canonical_hash_version": "canonical-v1", "commit_replay": "immutable receipt, no duplicate operational writes",
@@ -160,6 +174,7 @@ def data_manifest() -> dict:
             "supplier_offers.min_packs <= max_packs",
             "inventory_lots.unit == ingredients.unit",
             "calendar.weekday matches the ISO date (Monday=0)",
+            "day_factors.factor is a registered code and value lies in its bounds; flags take 0 or 1",
             "Canonical CSV retains one recipe_version per organization; dated branch/meal recipe activations are separate explicit audited commands",
             "When any selected meal has a dated recipe, every forecast meal needs an effective complete activation; captured per-row yield applies once",
             "An opened stock journal must reconcile with the exact target-date count before procurement; movements on the target day are excluded from its opening",
@@ -191,6 +206,8 @@ def demo_datasets(constants: dict) -> list:
         files = {}
         for kind, columns in constants["SCHEMAS"].items():
             path = ROOT / relative / (kind + ".csv")
+            if kind in OPTIONAL_KINDS and not path.exists():
+                continue
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 reader = csv.DictReader(handle)
                 fields = set(reader.fieldnames or [])

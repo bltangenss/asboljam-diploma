@@ -8,6 +8,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from sqlalchemy import select
 from .db import Record
+from .factors import check_value
 
 PLAIN_NEGATIVE_NUMBER = re.compile(r'-\d+(\.\d+)?([eE][-+]?\d+)?')
 SCHEMAS = {
@@ -20,16 +21,21 @@ SCHEMAS = {
     'calendar': 'date branch_id weekday temperature_forecast_c synthetic_event is_open data_origin',
     'daily_sales': 'date branch_id meal_id units_sold available_portions stockout_flag is_open promo price_kzt data_origin',
     'inventory_lots': 'branch_id ingredient_id lot_id snapshot_date expiry_date on_hand_qty unit data_origin',
+    # Optional: one row per date, branch and factor code from apps.api.factors.
+    'day_factors': 'date branch_id factor value data_origin',
 }
 KEYS = {
     'branches': ['branch_id'], 'meals': ['meal_id'], 'ingredients': ['ingredient_id'],
     'recipes': ['meal_id', 'ingredient_id', 'recipe_version'], 'suppliers': ['supplier_id'],
     'supplier_offers': ['supplier_id', 'ingredient_id'], 'calendar': ['date', 'branch_id'],
     'daily_sales': ['date', 'branch_id', 'meal_id'], 'inventory_lots': ['branch_id', 'ingredient_id', 'lot_id', 'snapshot_date'],
+    'day_factors': ['date', 'branch_id', 'factor'],
 }
+# Branch-scoped daily data that managers may import and correct.
+OPERATIONAL_KINDS = frozenset({'daily_sales', 'calendar', 'inventory_lots', 'day_factors'})
 IGNORED = {'branches': {'demand_multiplier'}, 'meals': {'base_daily_demand'}}
 INT_FIELDS = set('shelf_life_days lead_time_days min_packs max_packs weekday synthetic_event is_open units_sold available_portions stockout_flag promo'.split())
-DECIMAL_FIELDS = set('base_price_kzt reference_cost_kzt yield_factor storage_capacity net_qty_per_portion pack_qty unit_cost_kzt temperature_forecast_c price_kzt on_hand_qty'.split())
+DECIMAL_FIELDS = set('base_price_kzt reference_cost_kzt yield_factor storage_capacity net_qty_per_portion pack_qty unit_cost_kzt temperature_forecast_c price_kzt on_hand_qty value'.split())
 FLAGS = {'synthetic_event','is_open','stockout_flag','promo'}
 FK = {'branch_id': 'branches', 'meal_id': 'meals', 'ingredient_id': 'ingredients', 'supplier_id': 'suppliers'}
 MAX_BYTES = int(os.environ.get('IMPORT_MAX_BYTES', 20 * 1024 * 1024))
@@ -138,7 +144,7 @@ def parse_csv(kind, text, report=None, *, expected_origin='SYNTHETIC'):
                             raise ValueError()
                     elif field in DECIMAL_FIELDS:
                         number = Decimal(value)
-                        if not number.is_finite() or (number < 0 and field != 'temperature_forecast_c') or abs(number) > Decimal('1000000000000'):
+                        if not number.is_finite() or (number < 0 and field not in {'temperature_forecast_c', 'value'}) or abs(number) > Decimal('1000000000000'):
                             raise ValueError()
                         # At most nine decimal places, as in stock quantities: an exponent such as
                         # 1E-999999999 would otherwise expand to a billion digits in calculations.
@@ -172,6 +178,12 @@ def parse_csv(kind, text, report=None, *, expected_origin='SYNTHETIC'):
                         err(index, 'is_open', 'CLOSED_WITH_SALES', 'Жабық күнде сатылым бар.')
                 if kind == 'supplier_offers' and row['min_packs'] > row['max_packs']:
                     err(index, 'min_packs', 'MOQ_EXCEEDS_MAX', 'Ең аз қаптама ең көп мәннен артық.')
+                if kind == 'day_factors':
+                    problem = check_value(row['factor'], Decimal(row['value']))
+                    if problem == 'UNKNOWN_FACTOR':
+                        err(index, 'factor', problem, 'Белгісіз фактор коды.')
+                    elif problem:
+                        err(index, 'value', problem, 'Фактор мәні рұқсат етілген ауқымнан тыс.')
                 if kind == 'calendar' and date.fromisoformat(row['date']).weekday() != row['weekday']:
                     err(index, 'weekday', 'WEEKDAY_MISMATCH', 'Апта күні көрсетілген күнге сәйкес емес.')
                 if kind == 'calendar' and expected_origin == 'REAL' and row['synthetic_event'] != 0:

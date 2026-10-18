@@ -56,6 +56,11 @@ suppliers.csv,supplier_id,int64,input,Жеткізуші идентификат�
 suppliers.csv,supplier_name,object,input,Жеткізушінің шартты атауы; нақты компания емес
 suppliers.csv,lead_time_days,int64,input,"Жеткізу мерзімі, күн; 0 — сол күні"
 suppliers.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
+day_factors.csv,date,object,input,"Күн, YYYY-MM-DD; болжам күні де бар, өйткені фактор алдын ала белгілі"
+day_factors.csv,branch_id,int64,input,Шартты бөлімше идентификаторы
+day_factors.csv,factor,object,input,"Фактор коды, apps/api/factors.py: мерекелер, ауыстырулар, Наурыз, Ораза, ауызашар, айт, мектеп демалысы, жалақы күндері (демо шарты), температура болжамы, аптап ыстық, күн бату, бөлімшенің жұмысы"
+day_factors.csv,value,float64,input,Белгі 0/1 немесе сан; ауызашар мен күн бату — жергілікті уақыт бойынша минут; температура — °C
+day_factors.csv,data_origin,object,provenance,Деректің шығу тегі: SYNTHETIC
 reference_rk_days_off.csv,date,object,reference,"Күн, YYYY-MM-DD"
 reference_rk_days_off.csv,kind,object,reference,holiday — мереке; transferred_day_off — ауыстырылған демалыс; working_day — жұмыс күніне айналған демалыс
 reference_rk_days_off.csv,name_kk,object,reference,Атауы қазақша

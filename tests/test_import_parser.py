@@ -12,7 +12,9 @@ RAW = Path(__file__).resolve().parents[1] / 'data' / 'raw'
 
 
 def first_synthetic_row(kind):
-    with (RAW / f'{kind}.csv').open(encoding='utf-8-sig', newline='') as stream:
+    # The research dataset has no optional day factors; the KZ demo provides a sample.
+    path = RAW / f'{kind}.csv' if kind != 'day_factors' else RAW.parent / 'kz' / 'day_factors.csv'
+    with path.open(encoding='utf-8-sig', newline='') as stream:
         return next(csv.DictReader(stream))
 
 
@@ -36,7 +38,9 @@ class ImportParserTests(unittest.TestCase):
                 self.assertNotIn('PRIVATE_HEADER', json.dumps(errors))
 
     def test_all_nine_synthetic_schemas_still_parse(self):
-        self.assertEqual(len(SCHEMAS), 9)
+        # Nine operational schemas plus the optional day factors.
+        self.assertEqual(len(SCHEMAS), 10)
+        self.assertEqual(list(SCHEMAS)[-1], 'day_factors')
         for kind in SCHEMAS:
             with self.subTest(kind=kind):
                 sample = first_synthetic_row(kind)

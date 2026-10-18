@@ -24,8 +24,14 @@ from scipy.optimize import Bounds, LinearConstraint, milp
 from sklearn.ensemble import HistGradientBoostingRegressor
 from threadpoolctl import threadpool_limits
 
+from .factors import DERIVED, IMPORTED, MIN_COVERAGE, ORDER as FACTOR_ORDER, check_value
 
-MODELS = ("seasonal_naive_7", "rolling_mean_28", "hist_gradient_boosting")
+
+# Models that read only the sales history; the research comparison keeps exactly these.
+HISTORY_MODELS = ("seasonal_naive_7", "rolling_mean_28", "hist_gradient_boosting")
+# The same gradient boosting with known-in-advance day factors (apps.api.factors).
+FACTOR_MODEL = "hist_gradient_boosting_factors"
+MODELS = HISTORY_MODELS + (FACTOR_MODEL,)
 SEED = 42
 TEST_DAYS = 28
 FEATURES = [
@@ -333,12 +339,162 @@ def _evaluate(history: tuple, origin_text: str) -> tuple:
     return metrics, metadata
 
 
+def _factor_rows(rows: list | None, branch_id: str, target: date) -> tuple:
+    """Hashable (date, code, value) of one branch up to the target day, checked like sales."""
+    result, seen = [], set()
+    for row in rows or ():
+        if str(row["branch_id"]) != branch_id:
+            continue
+        day = _date(row["date"], "day_factors.date")
+        if day > target:
+            continue  # A later import must never alter this run.
+        code = str(row["factor"])
+        try:
+            number = Decimal(str(row["value"]))
+        except (InvalidOperation, ValueError) as exc:
+            raise ValueError("day_factors.value must be a finite decimal") from exc
+        if not number.is_finite() or check_value(code, number):
+            raise ValueError(f"Invalid day factor {code} on {day}")
+        if (day, code) in seen:
+            raise ValueError(f"Duplicate day factor {code} on {day}")
+        seen.add((day, code))
+        result.append((day.isoformat(), code, float(number)))
+    return tuple(sorted(result))
+
+
+def _sales_extras(sales: list[dict], branch_id: str, origin: date) -> tuple:
+    """Menu price, planned promotion and stockout flag per meal and past day."""
+    result = []
+    for row in sales:
+        if str(row["branch_id"]) != branch_id:
+            continue
+        day = _date(row["date"], "sales.date")
+        if day > origin:
+            continue
+        if any(row.get(field) is None for field in ("price_kzt", "promo", "stockout_flag")):
+            raise ValueError("The factor model needs price_kzt, promo and stockout_flag in every sales row")
+        result.append((str(row["meal_id"]), day.isoformat(), float(_decimal(row["price_kzt"], "price_kzt")),
+                       _integer(row["promo"], "promo"), _integer(row["stockout_flag"], "stockout_flag")))
+    return tuple(sorted(result))
+
+
+def _factor_plan(table: dict, dates: list, target: date) -> tuple:
+    """Which imported factors enter the model, and why the others do not."""
+    used, skipped = [], []
+    for code in FACTOR_ORDER:
+        if code not in IMPORTED:
+            continue
+        present = sum(1 for day in dates if code in table.get(day, {}))
+        coverage = round(present / len(dates), 4) if dates else 0.0
+        value = table.get(target, {}).get(code)
+        if not present and value is None:
+            skipped.append({"code": code, "reason": "no_data", "coverage": 0.0})
+        elif IMPORTED[code]["sparse"]:
+            # Absent days mean "not applicable" (iftar outside Ramadan), not missing data.
+            if present:
+                used.append({"code": code, "coverage": coverage, "target_value": value})
+            else:
+                skipped.append({"code": code, "reason": "no_training_values", "coverage": 0.0})
+        elif value is None:
+            skipped.append({"code": code, "reason": "no_target_value", "coverage": coverage})
+        elif coverage < MIN_COVERAGE:
+            skipped.append({"code": code, "reason": "low_coverage", "coverage": coverage})
+        else:
+            used.append({"code": code, "coverage": coverage, "target_value": value})
+    return used, skipped
+
+
+@lru_cache(maxsize=8)
+def _factor_matrices(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> dict | None:
+    """Feature rows of the factor model on exactly the split used by _evaluate."""
+    origin = _date(origin_text, "origin")
+    target, test_start = origin + timedelta(days=1), origin - timedelta(days=TEST_DAYS - 1)
+    series = _series(history, origin)
+    table = defaultdict(dict)
+    for day, code, value in factor_rows:
+        table[_date(day, "day_factors.date")][code] = value
+    price, promo, stockout = defaultdict(dict), defaultdict(dict), defaultdict(dict)
+    for meal, day, price_value, promo_value, stockout_value in extras:
+        day = _date(day, "sales.date")
+        price[meal][day], promo[meal][day], stockout[meal][day] = price_value, promo_value, stockout_value
+    dates = sorted({days[index] for days, values in series.values() for index in range(28, len(values))})
+    used, skipped = _factor_plan(table, dates, target)
+    if not used:
+        return None
+    codes = [item["code"] for item in used]
+
+    def derived(meal: str, day: date) -> list:
+        # Target day: the last known menu price and no promotion unless a plan is imported.
+        known = price[meal].get(day) if day <= origin else price[meal].get(origin)
+        window = [price[meal][day - timedelta(days=step)] for step in range(1, 29)
+                  if day - timedelta(days=step) in price[meal]]
+        mean = float(np.mean(window)) if window else 0.0
+        ratio = known / mean if known is not None and mean > 0 else math.nan
+        planned = promo[meal].get(day, 0) if day <= origin else 0
+        recent = [stockout[meal][day - timedelta(days=step)] for step in range(1, 8)
+                  if day - timedelta(days=step) in stockout[meal]]
+        return [ratio, float(planned), float(np.mean(recent)) if recent else math.nan]
+
+    def row(category: int, meal: str, past: np.ndarray, day: date) -> list:
+        return (_features(past, day, category) + [table.get(day, {}).get(code, math.nan) for code in codes]
+                + derived(meal, day))
+
+    x_train, y_train, x_test, y_test, x_future, meals = [], [], [], [], [], []
+    for category, (meal, (days, values)) in enumerate(sorted(series.items())):
+        meals.append(meal)
+        for index in range(28, len(values)):
+            features = row(category, meal, values[:index], days[index])
+            if days[index] < test_start:
+                x_train.append(features)
+                y_train.append(values[index])
+            else:
+                x_test.append(features)
+                y_test.append(values[index])
+        x_future.append(row(category, meal, values, target))
+    return {"x_train": np.asarray(x_train), "y_train": np.asarray(y_train), "x_test": np.asarray(x_test),
+            "y_test": np.asarray(y_test), "x_future": np.asarray(x_future), "meals": meals,
+            "used": used, "skipped": skipped, "codes": codes,
+            "bounds": (test_start.isoformat(), origin.isoformat())}
+
+
+@lru_cache(maxsize=8)
+def _evaluate_factors(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> tuple | None:
+    data = _factor_matrices(history, origin_text, factor_rows, extras)
+    if data is None:
+        return None
+    with threadpool_limits(limits=1):
+        boosted = _fit_boosting(data["x_train"], data["y_train"])
+        point, quantiles, crossing = _boost_predictions(boosted, data["x_test"])
+    metrics = _metrics(FACTOR_MODEL, data["y_test"], point, quantiles, crossing, *data["bounds"])
+    meta = {
+        "features": FEATURES + data["codes"] + list(DERIVED), "used": data["used"],
+        "skipped": data["skipped"], "derived": list(DERIVED), "min_coverage": MIN_COVERAGE,
+        "assumptions": ["TARGET_PRICE_LAST_KNOWN", "TARGET_PROMO_ASSUMED_NONE"],
+        "known_in_advance": "Factor values are read for the forecast day itself only because each one is known before that day.",
+        "factors_hash": _hash(factor_rows), "sales_extras_hash": _hash(extras),
+    }
+    return metrics, meta
+
+
+@lru_cache(maxsize=4)
+def _factor_forecast(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> tuple:
+    """Refit through the origin, as the history-only HGB does, and predict the target day."""
+    data = _factor_matrices(history, origin_text, factor_rows, extras)
+    with threadpool_limits(limits=1):
+        estimators = _fit_boosting(np.vstack([data["x_train"], data["x_test"]]),
+                                   np.concatenate([data["y_train"], data["y_test"]]))
+        points, intervals, crossing = _boost_predictions(estimators, data["x_future"])
+    return data["meals"], points, intervals, float(np.mean(crossing))
+
+
 def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
-             model: str = "seasonal_naive_7", *, execution_context: dict | None = None) -> dict:
+             model: str = "seasonal_naive_7", *, execution_context: dict | None = None,
+             factors: list[dict] | None = None) -> dict:
     """Forecast origin+1; all three models share the same real temporal test.
 
-    Only date, branch_id, meal_id and units_sold are read. Baselines deliberately
-    have null quantiles. HGB is refitted through origin for its final prediction.
+    History models read only date, branch_id, meal_id and units_sold. Baselines deliberately
+    have null quantiles. HGB is refitted through origin for its final prediction. When day
+    factors are supplied the factor model is evaluated on the same test as a fourth row.
     """
     started = time.perf_counter()
     if model not in MODELS:
@@ -347,6 +503,8 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     if execution_context is not None:
         validate_calculation_context(execution_context, branch_id, origin=origin)
         _validate_context_rows(execution_context, sales, branch_id=branch_id)
+        if factors is not None:
+            _validate_context_rows(execution_context, factors, branch_id=branch_id)
     origin_day = _date(origin, "origin")
     history = _normalize_sales(sales, branch_id, origin_day)
     metrics, metadata = deepcopy(_evaluate(history, origin))
@@ -354,7 +512,23 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     target = origin_day + timedelta(days=1)
     meals = sorted(series)
     intervals = None
-    if model == MODELS[2]:
+    factor_rows = _factor_rows(factors, branch_id, target)
+    extras = _sales_extras(sales, branch_id, origin_day) if factor_rows else ()
+    evaluated = deepcopy(_evaluate_factors(history, origin, factor_rows, extras)) if factor_rows else None
+    if evaluated is not None:
+        metrics.append(evaluated[0])
+        metadata["factor_model"] = evaluated[1]
+    if model == FACTOR_MODEL and evaluated is None:
+        raise ValueError("The factor model needs at least one usable day factor for this branch")
+    if model == FACTOR_MODEL:
+        factor_meals, points, intervals, raw_crossing = _factor_forecast(history, origin, factor_rows, extras)
+        if factor_meals != meals:
+            raise ValueError("Factor model meals do not match the sales history")
+        intervals = np.asarray(intervals)
+        metadata["final_fit_start"] = metadata["train_start"]
+        metadata["final_fit_end"] = origin
+        metadata["prediction_raw_crossing_rate"] = raw_crossing
+    elif model == MODELS[2]:
         x_train, y_train, x_future, fit_dates = [], [], [], []
         for category, meal in enumerate(meals):
             days, values = series[meal]
@@ -383,6 +557,8 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     metadata["elapsed_seconds"] = round(time.perf_counter() - started, 6)
     metadata["mode"] = "LIVE_COMPUTE"
     metadata["hash_fields"] = ["meal_id", "date", "units_sold"]
+    if model == FACTOR_MODEL:
+        metadata["features"] = metadata["factor_model"]["features"]
     metadata["branch_id"] = branch_id
     return {
         **_context_result(execution_context),

@@ -58,7 +58,9 @@ def calculate_snapshot(payload, snapshot, kind, *, forecast_fn=None, procurement
     context = snapshot.get('execution_context')
     context_argument = {'execution_context': context} if context is not None else {}
     if kind == 'forecast':
-        result = forecast_fn(snapshot['sales'], payload['branch_id'], payload['origin'], payload['model'], **context_argument)
+        factor_argument = {'factors': snapshot['day_factors']} if 'day_factors' in snapshot else {}
+        result = forecast_fn(snapshot['sales'], payload['branch_id'], payload['origin'], payload['model'],
+                             **context_argument, **factor_argument)
         names = {r['meal_id']: r['meal_name'] for r in snapshot.get('meals', [])}
         for item in result['predictions']:
             item['meal_name'] = names.get(str(item['meal_id']), str(item['meal_id']))

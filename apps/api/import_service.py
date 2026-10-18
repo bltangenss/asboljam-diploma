@@ -12,12 +12,12 @@ import uuid
 from sqlalchemy import func, select
 
 from .db import Audit, ImportBatch, ImportEvidence, ImportReceipt, Organization, Record, RecordRevision, now
-from .importing import SCHEMAS, natural_key, parse_csv, validate_rows
+from .importing import OPERATIONAL_KINDS, SCHEMAS, natural_key, parse_csv, validate_rows
 from .lineage import row_digest
 from .data_policy import DataPolicyError, business_clock, ensure_rows, metadata as origin_metadata, policy_context
 
 
-OPERATIONAL = {'daily_sales', 'calendar', 'inventory_lots'}
+OPERATIONAL = OPERATIONAL_KINDS
 
 
 class ImportProblem(ValueError):

@@ -7,7 +7,7 @@ import secrets
 import time
 import uuid
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
@@ -22,7 +22,8 @@ from sqlalchemy.orm import object_session
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
 from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, ProductionPlan, Record, RefreshToken, User, make_engine, migrate, sessions
-from .importing import SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
+from .factors import MIN_COVERAGE as FACTOR_MIN_COVERAGE, catalogue as factor_catalogue_items
+from .importing import OPERATIONAL_KINDS, SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
 from .lineage import capture_lineage, input_freshness, input_provenance
 from .observability import emit_event
@@ -70,7 +71,7 @@ class ImportInput(StrictModel):
 class ForecastInput(StrictModel):
     branch_id: str
     origin: date | None = None
-    model: Literal['seasonal_naive_7','rolling_mean_28','hist_gradient_boosting'] = 'seasonal_naive_7'
+    model: Literal['seasonal_naive_7','rolling_mean_28','hist_gradient_boosting','hist_gradient_boosting_factors'] = 'seasonal_naive_7'
 class ProcurementInput(StrictModel):
     branch_id: str
     forecast_id: str
@@ -392,7 +393,7 @@ def create_app(database_url=None):
     def visible_rows(db,user,kind,branch=None):
         if branch:
             branch_access(db,user,branch)
-        result=rows_for(db,user.organization_id,kind,branch if kind in {'daily_sales','calendar','inventory_lots'} else None)
+        result=rows_for(db,user.organization_id,kind,branch if kind in OPERATIONAL_KINDS else None)
         ensure_rows(policy_context(db,user.organization_id),result)
         return [r for r in result if 'branch_id' not in r or r['branch_id'] in user.branch_ids and (not branch or r['branch_id']==branch)]
     def decorate(db,user,kind,rows):
@@ -470,7 +471,7 @@ def create_app(database_url=None):
         if kind not in SCHEMAS: fail('UNSUPPORTED_KIND','Unsupported CSV kind.',400)
         roles(user,'admin','manager','analyst','warehouse')
         if user.role=='warehouse' and kind!='inventory_lots': roles(user,'admin','manager','analyst')
-        if kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
+        if kind not in OPERATIONAL_KINDS: roles(user,'admin')
         content='\ufeff'+','.join(SCHEMAS[kind].split())+'\r\n'
         return Response(content,media_type='text/csv; charset=utf-8',headers={'Content-Disposition':f'attachment; filename="{kind}-template.csv"'})
 
@@ -479,7 +480,7 @@ def create_app(database_url=None):
         roles(user,'admin','manager','warehouse')
         if user.role=='warehouse' and data.kind!='inventory_lots': roles(user,'admin','manager')
         if data.kind not in SCHEMAS: fail('UNSUPPORTED_KIND','Рұқсат етілмеген файл түрі.')
-        if data.kind not in {'daily_sales','calendar','inventory_lots'}: roles(user,'admin')
+        if data.kind not in OPERATIONAL_KINDS: roles(user,'admin')
         result=preview_import(db,user,**data.model_dump())
         db.commit()
         return result
@@ -521,9 +522,19 @@ def create_app(database_url=None):
                     'message':'Әр тағамға таңдалған күнге дейін кемінде 84 үзіліссіз күн қажет. Жоқ күн нөл емес.'})
         snapshot={'sales':sales,'meals':rows_for(db,user.organization_id,'meals'),'execution_context':context}
         ensure_rows(context,snapshot['meals'])
-        snapshot['input_lineage']=capture_lineage(db,user.organization_id,[
-            {'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':origin},
-            {'kind':'meals','rows':snapshot['meals']}])
+        # Day factors are known before the forecast day, so rows up to the target day count.
+        target=(date.fromisoformat(origin)+timedelta(days=1)).isoformat()
+        factors=[r for r in rows_for(db,user.organization_id,'day_factors',data.branch_id) if r['date']<=target]
+        ensure_rows(context,factors)
+        if data.model=='hist_gradient_boosting_factors' and not factors:
+            fail('DAY_FACTORS_REQUIRED','Факторлы модельге осы бөлімшенің күн факторлары қажет.',422)
+        collections=[{'kind':'daily_sales','rows':sales,'branch_id':data.branch_id,'date_lte':origin},
+            {'kind':'meals','rows':snapshot['meals']}]
+        if factors:
+            # Only a run that read factors depends on them; later first imports leave older runs intact.
+            snapshot['day_factors']=factors
+            collections.append({'kind':'day_factors','rows':factors,'branch_id':data.branch_id,'date_lte':target})
+        snapshot['input_lineage']=capture_lineage(db,user.organization_id,collections)
         job=Job(id=uid(),organization_id=user.organization_id,branch_id=data.branch_id,actor_id=user.id,kind='forecast',payload={**data.model_dump(mode='json'),'origin':origin},snapshot=snapshot)
         db.add(job);audit(db,user,'forecast.queued',job.id,data.branch_id)
         job_id=job.id
@@ -550,6 +561,19 @@ def create_app(database_url=None):
         row=scoped(db,Job,user,run_id)
         response.headers['Cache-Control']='no-store'
         return run_json(row,metadata(db,user.organization_id),time.time())
+    @app.get('/api/v1/factors')
+    def factor_catalogue(branch_id:str,target_date:date|None=None,user=Depends(current),db=Depends(get_db)):
+        # The twenty factors and what this branch has imported; derived ones come from sales.
+        roles(user,'admin','manager','analyst');branch_access(db,user,branch_id)
+        rows=rows_for(db,user.organization_id,'day_factors',branch_id)
+        ensure_rows(policy_context(db,user.organization_id),rows)
+        dates=defaultdict(list)
+        for row in rows: dates[row['factor']].append(row['date'])
+        target=target_date.isoformat() if target_date else None
+        on_target={row['factor']:row['value'] for row in rows if row['date']==target}
+        items=[{**item,'days':len(found),'first_date':min(found) if found else None,'last_date':max(found) if found else None,
+                'target_value':on_target.get(item['code'])} for item in factor_catalogue_items() for found in [dates.get(item['code'],[])]]
+        return {'items':items,'branch_id':branch_id,'target_date':target,'min_coverage':FACTOR_MIN_COVERAGE}
     @app.get('/api/v1/forecasts/{forecast_id}')
     def forecast_detail(forecast_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')

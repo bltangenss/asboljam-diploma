@@ -15,7 +15,8 @@
     "supplier_offers": 35,
     "calendar": 2193,
     "daily_sales": 26316,
-    "inventory_lots": 54
+    "inventory_lots": 54,
+    "day_factors": 28725
   },
   "oracle_rows": 26316,
   "shares": {

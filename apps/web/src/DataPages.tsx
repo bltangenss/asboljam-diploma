@@ -11,7 +11,7 @@ import {type Context,type Row,useData,items,name,fmt,date,shiftDate,Heading,Badg
 import './reference-ui.css';
 
 const roleName=(role:string,kk:boolean)=>(({admin:kk?'Әкімші':'Администратор',manager:kk?'Басқарушы':'Управляющий',warehouse:kk?'Қойма қызметкері':'Сотрудник склада',analyst:kk?'Талдаушы':'Аналитик'} as Record<string,string>)[role]||role);
-const modelName=(model:string,kk:boolean)=>(({seasonal_naive_7:kk?'Өткен аптаның сол күні':'Тот же день прошлой недели',rolling_mean_28:kk?'28 күннің орташа сатылымы':'Средние продажи за 28 дней',hist_gradient_boosting:kk?'Оқытылған модель және аралық':'Обученная модель с интервалом'} as Record<string,string>)[model]||model||'—');
+const modelName=(model:string,kk:boolean)=>(({seasonal_naive_7:kk?'Өткен аптаның сол күні':'Тот же день прошлой недели',rolling_mean_28:kk?'28 күннің орташа сатылымы':'Средние продажи за 28 дней',hist_gradient_boosting:kk?'Оқытылған модель және аралық':'Обученная модель с интервалом',hist_gradient_boosting_factors:kk?'Факторлы модель және аралық':'Модель с факторами и интервалом'} as Record<string,string>)[model]||model||'—');
 const canImport=(c:Context,section:string)=>c.dataContext?.operations_enabled===true&&(c.user.role==='admin'||c.user.role==='manager'&&['sales','inventory'].includes(section)||c.user.role==='warehouse'&&section==='inventory');
 
 export function Sales(c:Context){

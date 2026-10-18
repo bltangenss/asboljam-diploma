@@ -16,10 +16,13 @@ from apps.api.security import password_hash
 # kz: Kazakhstan product demo, the CLI default. raw: supplied diploma research data,
 # the default of seed() so tests and browser fixtures keep their documented rows.
 DATASETS={'kz':ROOT/'data'/'kz','raw':ROOT/'data'/'raw'}
+# Kinds a dataset may omit. They are also added to an existing demo that holds the same dataset.
+OPTIONAL_KINDS=('day_factors',)
 
 def seed(factory,password,email='admin@asboljam.local',organization_id='demo',dataset='raw'):
     if os.environ.get('ASBOLJAM_ENV','local').strip().lower() != 'local':
         raise ValueError('Demo seed is allowed only in local mode.')
+    stored=stored_dataset(factory,organization_id)
     with factory() as db:
         organization=db.get(Organization,organization_id)
         if organization is None:
@@ -29,15 +32,20 @@ def seed(factory,password,email='admin@asboljam.local',organization_id='demo',da
         elif organization.status!='active' or organization.data_policy!='synthetic_only':
             raise ValueError('Demo seed requires an active synthetic-only organization.')
         existing=db.scalar(select(func.count()).select_from(Record).where(Record.organization_id==organization_id))
-        if not existing:
-            for kind in SCHEMAS:
-                source=DATASETS[dataset]/(kind+'.csv')
-                rows,errors=parse_csv(kind,source.read_text(encoding='utf-8-sig'))
-                errors=errors or validate_rows(db,organization_id,kind,rows)
-                if errors:
-                    raise ValueError(f'{kind}: {errors[:3]}')
-                insert_rows(db,organization_id,kind,rows)
-                db.flush()
+        for kind in SCHEMAS:
+            source=DATASETS[dataset]/(kind+'.csv')
+            if kind in OPTIONAL_KINDS:
+                if not source.exists() or (existing and stored!=dataset) or db.scalar(select(func.count()).select_from(Record)
+                        .where(Record.organization_id==organization_id,Record.kind==kind)):
+                    continue
+            elif existing:
+                continue
+            rows,errors=parse_csv(kind,source.read_text(encoding='utf-8-sig'))
+            errors=errors or validate_rows(db,organization_id,kind,rows)
+            if errors:
+                raise ValueError(f'{kind}: {errors[:3]}')
+            insert_rows(db,organization_id,kind,rows)
+            db.flush()
         user=db.scalar(select(User).where(User.email==email.lower()))
         created=False
         if user is None:
@@ -104,7 +112,13 @@ def main():
     stored=stored_dataset(factory)
     provided=os.environ.get('DEMO_PASSWORD')
     password=provided or secrets.token_urlsafe(18)
+    def factor_rows():
+        with factory() as db:
+            return db.scalar(select(func.count()).select_from(Record).where(Record.organization_id=='demo',Record.kind=='day_factors'))
+    factors_before=factor_rows()
     created=seed(factory,password,args.email,dataset=args.dataset)
+    if factor_rows()>factors_before:
+        print(f'Day factors imported: {factor_rows()} rows (known-in-advance calendar, culture, school, weather, opening).')
     if created:
         print(f'Demo admin created: {args.email}')
         if provided: print('Password read from DEMO_PASSWORD (not printed).')

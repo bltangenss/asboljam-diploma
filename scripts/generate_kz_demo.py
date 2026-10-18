@@ -85,6 +85,25 @@ DAYS_OFF = (
 WORKING_WEEKENDS = {date.fromisoformat(text) for text, kind, _, _ in DAYS_OFF if kind == 'working_day'}
 # Ramadan by the Spiritual Administration of Muslims of Kazakhstan (DUMK) calendar.
 RAMADAN = ((date(2024, 3, 11), date(2024, 4, 9)), (date(2025, 3, 1), date(2025, 3, 29)))
+# Oraza ait by the DUMK calendar; Kurban ait is an official day off listed in DAYS_OFF.
+ORAZA_AIT = (date(2024, 4, 10), date(2025, 3, 30))
+# School holidays by the Ministry of Education orders for 2023/24, 2024/25 and 2025/26
+# (autumn, winter, spring, summer); the extra first-grade week is not a whole-school holiday.
+SCHOOL_HOLIDAYS = (
+    (date(2024, 1, 1), date(2024, 1, 7)), (date(2024, 3, 21), date(2024, 3, 31)),
+    (date(2024, 5, 26), date(2024, 8, 31)), (date(2024, 10, 28), date(2024, 11, 3)),
+    (date(2024, 12, 30), date(2025, 1, 8)), (date(2025, 3, 21), date(2025, 3, 31)),
+    (date(2025, 5, 26), date(2025, 9, 1)), (date(2025, 10, 27), date(2025, 11, 2)),
+    (date(2025, 12, 29), date(2026, 1, 7)),
+)
+# Demo convention for salary and advance days; replace with the enterprise's own schedule.
+PAYDAYS = (5, 6, 7, 20, 21, 22)
+# Qyzylorda: latitude, longitude (east positive); local time UTC+5 throughout 2024-2026.
+QYZYLORDA = (44.8488, 65.4823)
+UTC_OFFSET_MINUTES = 300
+HEAT_ALERT_C = 33
+# Days off after the sales history that the forecast day needs (law: 1-2 January, New Year).
+FORECAST_DAYS_OFF = {date(2026, 1, 1): 'holiday', date(2026, 1, 2): 'holiday'}
 # Approximate monthly mean air temperature in Qyzylorda, degrees C, January..December.
 CLIMATE = (-6.5, -4.5, 3.5, 13.0, 20.0, 25.5, 27.5, 25.5, 18.5, 10.0, 2.0, -4.0)
 
@@ -232,6 +251,13 @@ DICTIONARY = (
     ('suppliers.csv', 'supplier_id', 'int64', 'input', 'Жеткізуші идентификаторы'),
     ('suppliers.csv', 'supplier_name', 'object', 'input', 'Жеткізушінің шартты атауы; нақты компания емес'),
     ('suppliers.csv', 'lead_time_days', 'int64', 'input', 'Жеткізу мерзімі, күн; 0 — сол күні'),
+    ('day_factors.csv', 'date', 'object', 'input', 'Күн, YYYY-MM-DD; болжам күні де бар, өйткені фактор алдын ала белгілі'),
+    ('day_factors.csv', 'branch_id', 'int64', 'input', 'Шартты бөлімше идентификаторы'),
+    ('day_factors.csv', 'factor', 'object', 'input',
+     'Фактор коды, apps/api/factors.py: мерекелер, ауыстырулар, Наурыз, Ораза, ауызашар, айт, мектеп демалысы, '
+     'жалақы күндері (демо шарты), температура болжамы, аптап ыстық, күн бату, бөлімшенің жұмысы'),
+    ('day_factors.csv', 'value', 'float64', 'input',
+     'Белгі 0/1 немесе сан; ауызашар мен күн бату — жергілікті уақыт бойынша минут; температура — °C'),
     ('reference_rk_days_off.csv', 'date', 'object', 'reference', 'Күн, YYYY-MM-DD'),
     ('reference_rk_days_off.csv', 'kind', 'object', 'reference',
      'holiday — мереке; transferred_day_off — ауыстырылған демалыс; working_day — жұмыс күніне айналған демалыс'),
@@ -354,6 +380,57 @@ def systematic_demand(branch: dict, meal: tuple, day: date, temperature: float, 
     return round(value, 6)
 
 
+def sunset_minutes(day: date) -> int:
+    """Sunset in Qyzylorda local time, minutes after midnight (NOAA solar approximation)."""
+    latitude, longitude = QYZYLORDA
+    gamma = 2 * math.pi / 365 * (day.timetuple().tm_yday - 1)
+    equation = 229.18 * (0.000075 + 0.001868 * math.cos(gamma) - 0.032077 * math.sin(gamma)
+                         - 0.014615 * math.cos(2 * gamma) - 0.040849 * math.sin(2 * gamma))
+    declination = (0.006918 - 0.399912 * math.cos(gamma) + 0.070257 * math.sin(gamma)
+                   - 0.006758 * math.cos(2 * gamma) + 0.000907 * math.sin(2 * gamma)
+                   - 0.002697 * math.cos(3 * gamma) + 0.00148 * math.sin(3 * gamma))
+    phi = math.radians(latitude)
+    hour_angle = math.degrees(math.acos(math.cos(math.radians(90.833)) / (math.cos(phi) * math.cos(declination))
+                                        - math.tan(phi) * math.tan(declination)))
+    return round(720 - 4 * (longitude - hour_angle) - equation + UTC_OFFSET_MINUTES)
+
+
+def day_factor_rows(days: list, temperatures: dict) -> list:
+    """Known-in-advance day factors for every branch through the forecast day (no random draws)."""
+    kinds = {**{date.fromisoformat(text): kind for text, kind, _, _ in DAYS_OFF}, **FORECAST_DAYS_OFF}
+    day_off = {day for day, kind in kinds.items() if kind in ('holiday', 'transferred_day_off')}
+    types = day_types()
+    kurban = {date.fromisoformat(text) for text, _, names, _ in DAYS_OFF if names == KURBAN}
+    # The forecast day has no observed temperature: persist the last anomaly from the climate normal.
+    temperature = dict(temperatures)
+    temperature[SNAPSHOT] = round(climate(SNAPSHOT) + 0.75 * (temperatures[END] - climate(END)), 1)
+    rows = []
+    for day in days + [SNAPSHOT]:
+        working = (day.weekday() < 5 and day not in day_off) or day in WORKING_WEEKENDS
+        ramadan = any(first <= day <= last for first, last in RAMADAN)
+        common = (
+            ('public_holiday', int(kinds.get(day) == 'holiday')),
+            ('transferred_day_off', int(kinds.get(day) == 'transferred_day_off')),
+            ('working_weekend', int(day in WORKING_WEEKENDS)),
+            ('pre_holiday', int(working and day + timedelta(days=1) in day_off)),
+            ('nauryz', int(types.get(day) == 'nauryz')),
+            ('ramadan', int(ramadan)),
+            ('iftar_minutes', sunset_minutes(day) if ramadan else None),
+            ('ait', int(day in ORAZA_AIT or day in kurban)),
+            ('school_holiday', int(any(first <= day <= last for first, last in SCHOOL_HOLIDAYS))),
+            ('payday', int(day.day in PAYDAYS)),
+            ('temperature_forecast_c', f'{temperature[day] + 0.0:.1f}'),
+            ('heat_alert', int(temperature[day] >= HEAT_ALERT_C)),
+            ('sunset_minutes', sunset_minutes(day)),
+        )
+        for branch in BRANCHES:
+            closed = {date.fromisoformat(text) for text in branch['closed']}
+            for code, value in common + (('is_open', int(day not in closed)),):
+                if value is not None:
+                    rows.append([day.isoformat(), branch['id'], code, value, ORIGIN])
+    return rows
+
+
 def decimal_text(value) -> str:
     text = format(value, 'f') if not isinstance(value, str) else value
     return text.rstrip('0').rstrip('.') if '.' in text else text
@@ -462,6 +539,8 @@ def build() -> dict[str, bytes]:
         'oracle': 'date branch_id meal_id latent_demand_ORACLE_ONLY data_origin',
     }
     output = {name: csv_bytes(headers[name].split(), rows) for name, rows in files.items()}
+    factor_rows = day_factor_rows(days, temperatures)
+    output['day_factors'] = csv_bytes(['date', 'branch_id', 'factor', 'value', 'data_origin'], factor_rows)
     output['reference_rk_days_off'] = csv_bytes(
         ['date', 'kind', 'name_kk', 'name_ru', 'basis'],
         [[text, kind, names[0], names[1], basis] for text, kind, names, basis in DAYS_OFF])
@@ -477,7 +556,8 @@ def build() -> dict[str, bytes]:
         'origin': ORIGIN, 'scenario': 'Қызылорда: 3 бөлімше, 12 тағам, 14 ингредиент',
         'generator': 'scripts/generate_kz_demo.py', 'seed': SEED,
         'date_from': START.isoformat(), 'date_to': END.isoformat(), 'inventory_snapshot': SNAPSHOT.isoformat(),
-        'rows': {name: len(rows) for name, rows in files.items() if name != 'oracle'},
+        'rows': {**{name: len(rows) for name, rows in files.items() if name != 'oracle'},
+                 'day_factors': len(factor_rows)},
         'oracle_rows': len(files['oracle']),
         'shares': {'stockout_rows_of_open': round(sum(row[5] for row in open_rows) / len(open_rows), 4),
                    'promo_rows_of_open': round(sum(row[7] for row in open_rows) / len(open_rows), 4)},

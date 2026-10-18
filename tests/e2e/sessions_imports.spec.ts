@@ -93,7 +93,7 @@ test('analyst can read saved plans and templates but cannot submit writes',async
   await expect(page.getByRole('link',{name:'CSV жүктеу',exact:true})).toHaveAttribute('href','/api/v1/plans/stored-plan/export');
   await page.goto('/imports');
   await expect(page.getByRole('status').filter({hasText:'Сіз CSV үлгілерін жүктей аласыз.'})).toBeVisible();
-  await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі']);
+  await expect(page.getByLabel('Деректер',{exact:true}).locator('option')).toHaveText(['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі','Болжам факторлары']);
   const input=page.getByLabel('CSV файлын таңдаңыз');
   await expect(input).toBeDisabled();
   // Even a programmatic file selection must not enable a forbidden submission.
@@ -124,7 +124,7 @@ test('manager and warehouse import selectors expose only authorized schemas',asy
     auth.user={...user,role};
     await page.goto('/imports');
     const selector=page.getByLabel('Деректер',{exact:true});
-    await expect(selector.locator('option')).toHaveText(role==='manager'?['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі']:['Қойма қалдықтары']);
+    await expect(selector.locator('option')).toHaveText(role==='manager'?['Күнделікті сатылым','Қойма қалдықтары','Жұмыс күнтізбесі','Болжам факторлары']:['Қойма қалдықтары']);
     await page.getByLabel('CSV файлын таңдаңыз').setInputFiles({name:'allowed.csv',mimeType:'text/csv',buffer:Buffer.from('marker\nallowed\n')});
     await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();
     await expect(page.getByRole('button',{name:'Импорттау',exact:true})).toBeEnabled();
@@ -138,7 +138,8 @@ for (const trigger of ['protected read','logout'] as const) {
     await page.goto('/'); await expectDashboard(page);
     auth.authenticated=false;
     if (trigger==='logout') await logout(page,'Шығу');
-    else await navigateTo(page,'sales');
+    // The data page reads the branch's factor catalogue: the first protected read after expiry.
+    else await page.locator('.app-header').getByRole('button',{name:'Деректер және талдау',exact:true}).click();
     await expect(page).toHaveURL(/\/login$/);
     await signInAgain(page);
   });
