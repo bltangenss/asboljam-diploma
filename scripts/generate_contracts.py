@@ -222,8 +222,9 @@ def demo_datasets(constants: dict) -> list:
 
 def design_tokens() -> dict:
     path = ROOT / "apps/web/src/style.css"
-    # theme.css is loaded last (apps/web/src/main.tsx) and completes the base tokens and components.
-    css = path.read_text(encoding="utf-8") + "\n" + (ROOT / "apps/web/src/theme.css").read_text(encoding="utf-8")
+    # Cascade order of the token layers in apps/web/src/main.tsx: style.css, theme.css and,
+    # last, predas.css, which sets the Predas palette, type and components.
+    css = "\n".join((ROOT / "apps/web/src" / name).read_text(encoding="utf-8") for name in ("style.css", "theme.css", "predas.css"))
     # Merge repeated top-level selectors in cascade order. Media rules are
     # inventoried separately; they must not overwrite the desktop base tokens.
     cleaned = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
@@ -250,6 +251,10 @@ def design_tokens() -> dict:
             raise ValueError(f"Missing style selector {selector}")
         return values
     base = declarations(":root")
+    # Custom properties may point at other custom properties; report the resolved values.
+    def resolve(value, depth=0):
+        return re.sub(r"var\((--[\w-]+)\)", lambda match: resolve(base.get(match.group(1), match.group(0)), depth + 1) if depth < 8 else match.group(0), value)
+    base = {key: resolve(value) for key, value in base.items()}
     primary, danger, warning, info = (declarations(selector)
                                       for selector in (".primary", ".alert.danger", ".alert.warning", ".alert.info"))
     spacing = set()
@@ -267,7 +272,7 @@ def design_tokens() -> dict:
             "background": base["background"], "surface": base["--surface"], "text": base["color"],
             "primary": base["--action"], "muted": base["--muted"], "border": base["--border"],
             "shell": base["--shell"], "canvas": base["--canvas"], "accent": base["--accent"],
-            "primary_text": primary["color"], "focus_ring": "#7541df",
+            "primary_text": primary["color"], "focus_ring": base["--p-brand"], "brand": base["--p-brand"],
             "danger": {"background": danger["background"], "text": danger["color"], "border": danger["border-color"]},
             "warning": {"background": warning["background"], "text": warning["color"], "border": warning["border-color"]},
             "information": {"background": info["background"], "text": info["color"], "border": info["border-color"]},
@@ -280,16 +285,16 @@ def design_tokens() -> dict:
                        "observed_sizes_notice": "Literal CSS values include superseded declarations and media queries; they are not effective minimum text sizes.",
                        "extraction_scope": "Top-level selector cascade, with media queries inventoried separately.",
                        "observed_weights": sorted(set(re.findall(r"font-weight:(\d+)", css)), key=int),
-                       "numerals": "tabular-nums", "bundled_font_files": False},
+                       "numerals": "tabular-nums", "bundled_font_files": "@fontsource-variable/onest (imported in apps/web/src/main.tsx)"},
         "spacing": {"observed_values": sorted(spacing, key=lambda value: float(value[:-2])),
                     "desktop_content_padding": declarations(".content")["padding"],
                     "panel_heading_padding": declarations(".panel-heading")["padding"]},
-        "radius": {"button": declarations(".button")["border-radius"],
-                   "metric": declarations(".metric").get("border-radius", "0"),
-                   "next_action": declarations(".next-action")["border-radius"],
-                   "panel": declarations(".panel")["border-radius"],
-                   "dialog": declarations("dialog")["border-radius"]},
-        "layout": {"sidebar_default": declarations(".sidebar")["width"],
+        "radius": {"button": resolve(declarations(".button")["border-radius"]),
+                   "metric": resolve(declarations(".metric").get("border-radius", "0")),
+                   "next_action": resolve(declarations(".next-action")["border-radius"]),
+                   "panel": resolve(declarations(".panel")["border-radius"]),
+                   "dialog": resolve(declarations("dialog")["border-radius"])},
+        "layout": {"sidebar_default": resolve(declarations(".sidebar")["width"]),
                    "topbar_min_height": declarations(".topbar")["min-height"],
                    "content_max_width": declarations(".content")["max-width"],
                    "table_overflow": declarations(".table-scroll")["overflow"]},

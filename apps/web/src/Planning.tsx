@@ -56,7 +56,7 @@ export function Forecasts(c:Context & {id?:string}) {
  const forecastRows=items(state.data).filter(row=>!filter||row.target_date===filter);
  const dayForecast=!id?items(state.data).find(row=>row.target_date===shiftDate(c.forecastOrigin,1)):null;
  return <div className="planning-page">
-  <Heading title={id&&result.target_date?forecastTitle(result.target_date,lang):wording(lang,'Күн жоспары','План дня')} sub={wording(lang,'Порция болжамы — дайындауға арналған бағдар. Бұл бекітілген өндірістік жоспар емес.','Прогноз порций — ориентир для приготовления. Это не утверждённый производственный план.')} action={id?<Button secondary onClick={()=>go('/forecasts')}><ChevronLeft size={16}/>{t('viewAll')}</Button>:undefined}/>
+  <Heading title={id&&result.target_date?forecastTitle(result.target_date,lang):wording(lang,'Болжам','Прогноз')} sub={wording(lang,'Порция болжамы — дайындауға арналған бағдар. Бұл бекітілген өндірістік жоспар емес.','Прогноз порций — ориентир для приготовления. Это не утверждённый производственный план.')} action={id?<Button secondary onClick={()=>go('/forecasts')}><ChevronLeft size={16}/>{t('viewAll')}</Button>:undefined}/>
   {!canPlan&&<div className="alert info" role="status">{t('readOnlyPlanning')}</div>}
   {/* History and past runs are tools, not page sections: chips that open a sheet. */}
   {!id&&<div className="page-tools">

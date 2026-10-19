@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 
 // Synthetic browser contract: registration lists every city and opens a test-mode cabinet;
-// the data page fills day factors for the branch city through a reviewable import and shows
+// the profile fills day factors for the branch city through a reviewable import and shows
 // the week's weather. Backend rules are covered by tests/test_places.py.
 const cities=[{code:'astana',name:{kk:'Астана',ru:'Астана'},region:{kk:'Астана қаласы',ru:'г. Астана'}},
  {code:'shymkent',name:{kk:'Шымкент',ru:'Шымкент'},region:{kk:'Шымкент қаласы',ru:'г. Шымкент'}},
@@ -57,10 +57,11 @@ test('registration lists Kazakhstan cities and opens a test-mode cabinet',async(
  expect(state.posted[0]).toEqual({path:'/register',body:{establishment_name:'Астана кофе',establishment_type:'cafe',city_code:'astana',email:'owner@example.invalid',password:'Synthetic-registration-2026',accept_test_mode:true}});
 });
 
-test('data page fills factors for the branch city through an import preview and shows the weather',async({page})=>{
+test('the profile fills factors for the branch city through an import preview and shows the weather',async({page})=>{
  const state=await install(page);state.registered=true;
  await page.addInitScript(()=>localStorage.setItem('asboljam-language','ru'));
- await page.goto('/data');
+ await page.goto('/profile');
+ await page.locator('.profile-factors>summary').click();
  const autofill=page.locator('.factor-autofill');
  await expect(autofill).toContainText('Астана · г. Астана');
  await expect(page.locator('.city-weather li')).toHaveCount(7);

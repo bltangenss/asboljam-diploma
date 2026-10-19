@@ -1,10 +1,20 @@
 import type {Page} from '@playwright/test';
 
-// Navigate through the task groups instead of depending on the former entity sidebar.
+// Navigate through the header sections; the profile and its audit journal live in the account menu.
 export async function navigateTo(page:Page,section:'sales'|'imports'|'audit'){
- const group=section==='audit'?'Баптаулар және басқару':'Деректер және талдау';
- await page.locator('.app-header').getByRole('button',{name:group,exact:true}).click();
- await page.locator('.section-navigation').getByRole('link',{name:section==='sales'?'Сатылым':section==='imports'?'CSV және түзетулер':'Әрекеттер журналы',exact:true}).click();
+ if(section==='audit'){
+  await openProfile(page);
+  await page.locator('.section-navigation').getByRole('link',{name:'Әрекеттер журналы',exact:true}).click();
+  return;
+ }
+ await page.locator('.app-header').getByRole('button',{name:'Деректер',exact:true}).click();
+ await page.locator('.section-navigation').getByRole('link',{name:section==='sales'?'Сатылым':'CSV және түзетулер',exact:true}).click();
+}
+
+// The establishment profile (formerly settings) opens from the account menu.
+export async function openProfile(page:Page){
+ await page.locator('.user-menu-trigger').click();
+ await page.locator('.user-menu-panel').getByRole('menuitem',{name:'Профиль',exact:true}).click();
 }
 
 // Sign out from the account menu in the header; on compact screens the drawer keeps the button.

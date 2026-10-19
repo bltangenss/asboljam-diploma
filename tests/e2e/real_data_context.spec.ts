@@ -41,7 +41,7 @@ test('REAL TEST workspace uses server dates and explicitly selected forecast ori
  await expect(page.locator('.scenario-banner')).toContainText('REAL');
  await expect(page.locator('body')).not.toContainText('SYNTHETIC');await expect(page.locator('body')).not.toContainText('01.01.2026');
  expect(state.requests.find(item=>item.path==='/dashboard')!.query.get('inventory_date')).toBe('2026-09-21');
- await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Болжам',exact:true}).click();
  await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-21');
  await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
  await expect(page.getByLabel('Болжам күні',{exact:true})).toHaveValue('21.09.2026');
@@ -77,7 +77,7 @@ test('REAL imports use configured source and coverage refresh preserves selected
   return false;
  });
  await page.goto('/inventory');await page.getByLabel('Қор кесіндісінің күні',{exact:true}).selectOption('2026-09-20');
- await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
+ await page.locator('.app-header').getByRole('button',{name:'Болжам',exact:true}).click();await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill('2026-09-20');
  await navigateTo(page,'imports');
  await expect(page.getByText('Тек бапталған дерек көзі мен бөлімшеге тиесілі REAL деректері қабылданады.',{exact:false})).toBeVisible();
  await page.getByText('Дерек көзі туралы мәлімет',{exact:true}).click();
@@ -88,8 +88,8 @@ test('REAL imports use configured source and coverage refresh preserves selected
  await page.getByRole('button',{name:'Алдын ала қарау',exact:true}).click();const readsBeforeCommit=sessionReads;await page.getByRole('button',{name:'Импорттау',exact:true}).click();
  await expect(page.getByText('Деректер транзакциямен импортталды',{exact:true})).toBeVisible();await expect.poll(()=>sessionReads).toBe(readsBeforeCommit+1);
  const preview=state.requests.find(item=>item.path==='/imports/preview')!;expect(preview.body.source).toEqual({source_id:'registered_test_pos',mapping_version:'test-v2'});
- await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-20');
- await page.locator('.app-header').getByRole('button',{name:'Қалдықтар',exact:true}).click();await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue('2026-09-20');
+ await page.locator('.app-header').getByRole('button',{name:'Болжам',exact:true}).click();await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-20');
+ await page.locator('.app-header').getByRole('button',{name:'Қойма',exact:true}).click();await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue('2026-09-20');
 });
 
 test('missing REAL context cannot fall back to synthetic branch requests',async({page})=>{
@@ -116,7 +116,7 @@ test('late branch data context cannot override the dates of a newer login',async
  await page.getByLabel('Электрондық пошта',{exact:true}).fill('fixture@example.invalid');await page.getByLabel('Құпиясөз',{exact:true}).fill('Fixture-only-passphrase');
  await page.getByRole('button',{name:'Жүйеге кіру',exact:true}).click();await expect(page.getByRole('heading',{name:'Бүгін',exact:true})).toBeVisible();
  release.resolve();await expect.poll(()=>completed).toBe(true);
- await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Болжам',exact:true}).click();
  await expect(page.getByLabel('Тарихтың шекті күні',{exact:true})).toHaveValue('2026-09-18');
  expect(state.requests.some(item=>item.path==='/dashboard'&&item.query.get('branch_id')==='old-001')).toBe(false);
 });
@@ -181,7 +181,7 @@ test('API refusals and dashboard warnings follow the selected language instead o
  await expect(page.locator('.day-task-list')).toContainText('Таңдалған күнге қор кесіндісі жоқ.');
  await page.getByRole('button',{name:'ҚАЗ',exact:true}).click();
  await expect(page.locator('.day-task-list')).toContainText('На выбранную дату нет среза остатков.');
- await page.locator('.app-header').getByRole('button',{name:'План дня',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Прогноз',exact:true}).click();
  await page.getByRole('button',{name:'Рассчитать',exact:true}).click();
  await expect(page.getByRole('alert').filter({hasText:'часовому поясу'})).toContainText('Выберите только завершённый день по часовому поясу организации.');
  await expect(page.locator('body')).not.toContainText('API-ONLY-ORIGIN-TEXT');

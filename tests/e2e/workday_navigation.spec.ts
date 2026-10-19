@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {openProfile} from './navigation';
 
 // Artificial fixtures prove navigation/permissions, not data quality or forecast accuracy.
 async function install(page:Page,role='manager',lang='ru'){
@@ -18,19 +19,19 @@ async function install(page:Page,role='manager',lang='ru'){
 test('five daily sections group existing routes and preserve branch',async({page})=>{
  await install(page);await page.goto('/data');
  const nav=page.getByRole('navigation',{name:'Рабочий день',exact:true});
- // The four steps of the day are the header navigation; data and analysis is the tool beside them.
- await expect(nav.getByRole('button')).toHaveText(['Сегодня','План дня','Остатки','Закупки']);
- await expect(page.locator('.app-header').getByRole('button',{name:'Данные и анализ',exact:true})).toHaveAttribute('aria-current','page');
+ // Five sections in the header: the day's steps and the data behind them.
+ await expect(nav.getByRole('button')).toHaveText(['Сегодня','Прогноз','Склад','Закупки','Данные']);
+ await expect(page.locator('.app-header').getByRole('button',{name:'Данные',exact:true})).toHaveAttribute('aria-current','page');
  await page.getByLabel('Филиал',{exact:true}).selectOption('two');
  await expect(page.locator('.data-workspace-context')).toContainText('Второй филиал');
- await nav.getByRole('button',{name:'План дня',exact:true}).click();
+ await nav.getByRole('button',{name:'Прогноз',exact:true}).click();
  await page.getByRole('navigation',{name:'Навигация раздела'}).getByRole('link',{name:'Блюда и рецепты'}).click();
- await expect(page).toHaveURL(/\/recipes$/);await expect(nav.getByRole('button',{name:'План дня',exact:true})).toHaveAttribute('aria-current','page');
+ await expect(page).toHaveURL(/\/recipes$/);await expect(nav.getByRole('button',{name:'Прогноз',exact:true})).toHaveAttribute('aria-current','page');
  await expect(page.getByLabel('Филиал',{exact:true})).toHaveValue('two');
  await nav.getByRole('button',{name:'Закупки',exact:true}).click();
  await page.getByRole('link',{name:'Поставщики и цены'}).click();
  await expect(page).toHaveURL(/\/suppliers$/);await expect(nav.getByRole('button',{name:'Закупки',exact:true})).toHaveAttribute('aria-current','page');
- await page.getByRole('button',{name:'Настройки и управление',exact:true}).click();
+ await openProfile(page);
  await page.getByRole('link',{name:'Журнал действий',exact:true}).click();await expect(page).toHaveURL(/\/audit$/);
 });
 
@@ -73,15 +74,15 @@ test('warehouse gets stock tasks while analyst gets reading routes',async({page}
 
 test('nested deep links keep correct group after browser back and narrow screens',async({page})=>{
  await install(page,'admin');await page.goto('/reports');
- await expect(page.locator('.app-header').getByRole('button',{name:'Данные и анализ'})).toHaveAttribute('aria-current','page');
- await page.getByRole('link',{name:'Подготовка данных'}).click();
- await page.getByRole('link',{name:/Добавить продажи/}).click();await page.goBack();await expect(page.locator('main h1')).toHaveText('Данные и анализ');
+ await expect(page.locator('.app-header').getByRole('button',{name:'Данные',exact:true})).toHaveAttribute('aria-current','page');
+ await page.getByRole('link',{name:'Добавить данные',exact:true}).click();
+ await page.getByRole('link',{name:/Добавить продажи/}).click();await page.goBack();await expect(page.locator('main h1')).toHaveText('Добавить данные');
  for(const width of [1440,768,390,360]){
   await page.setViewportSize({width,height:900});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await expect(page.getByRole('link',{name:/Добавить продажи/})).toBeVisible();
  }
  await page.getByRole('button',{name:'Открыть меню',exact:true}).click();
- await page.getByRole('dialog').getByRole('button',{name:'Остатки',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'Склад',exact:true}).click();
  await expect(page).toHaveURL(/\/inventory$/);await expect(page.getByRole('dialog')).toHaveCount(0);
 });

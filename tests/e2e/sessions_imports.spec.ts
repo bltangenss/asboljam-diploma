@@ -1,4 +1,4 @@
-import {navigateTo,logout} from './navigation';
+import {navigateTo,logout,openProfile} from './navigation';
 import {test, expect, type Page, type Route} from '@playwright/test';
 
 // Deterministic browser race tests. No real credentials, worker jobs or database mutations.
@@ -138,8 +138,8 @@ for (const trigger of ['protected read','logout'] as const) {
     await page.goto('/'); await expectDashboard(page);
     auth.authenticated=false;
     if (trigger==='logout') await logout(page,'Шығу');
-    // The data page reads the branch's factor catalogue: the first protected read after expiry.
-    else await page.locator('.app-header').getByRole('button',{name:'Деректер және талдау',exact:true}).click();
+    // Sales history is the first protected read after expiry.
+    else await navigateTo(page,'sales');
     await expect(page).toHaveURL(/\/login$/);
     await signInAgain(page);
   });
@@ -157,7 +157,7 @@ test('a delayed 401 from an old session cannot sign out the new login',async({pa
   await page.goto('/'); await expectDashboard(page);
   await navigateTo(page,'sales');
   await started.promise; auth.authenticated=false;
-  await page.locator('.app-header').getByRole('button',{name:'Қалдықтар',exact:true}).click();
+  await page.locator('.app-header').getByRole('button',{name:'Қойма',exact:true}).click();
   await signInAgain(page);
   const completed=page.waitForEvent('requestfinished',request=>new URL(request.url()).pathname==='/api/v1/sales');
   release.resolve(); await completed; await settleBrowser(page);
@@ -181,7 +181,7 @@ test('a delayed branch lookup cannot replace branches after signing in again',as
   await page.goto('/');await started.promise;
   auth.authenticated=false;
   // Branch views now wait for an actual branch; settings still verifies the session.
-  await page.locator('.app-header').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
+  await openProfile(page);
   await expect(page.getByRole('button',{name:'Жүйеге кіру',exact:true})).toBeVisible();
   auth.user={...user,branch_ids:['2']};newSession=true;
   await signInAgain(page);

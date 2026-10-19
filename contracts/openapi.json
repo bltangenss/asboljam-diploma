@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "AsBoljam",
+    "title": "Predas",
     "description": "Scoped catering operations; explicit demo or operator-configured source; one-day forecasts; internal approval only.",
     "version": "1.1.0"
   },
@@ -1052,6 +1052,42 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RegistrationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demo-data": {
+      "post": {
+        "summary": "Load Demo",
+        "operationId": "load_demo_api_v1_demo_data_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoDataInput"
               }
             }
           },
@@ -4019,6 +4055,22 @@
           "next_cursor"
         ],
         "title": "CollectionResponse"
+      },
+      "DemoDataInput": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Branch Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "branch_id"
+        ],
+        "title": "DemoDataInput"
       },
       "FactorFillInput": {
         "properties": {

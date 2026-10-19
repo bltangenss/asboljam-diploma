@@ -1,6 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 
-// Synthetic browser contract for day factors: the twenty datasets are visible per branch,
+// Synthetic browser contract for day factors: the twenty datasets are visible per branch in the profile,
 // the factor model is selectable, and a forecast shows which factors it used and why others
 // were skipped. It is not evidence of forecast quality.
 const catalogue=[
@@ -44,8 +44,11 @@ async function install(page:Page){
  return requests;
 }
 
-test('data page lists the twenty datasets with branch coverage and empty ones stay visible',async({page})=>{
- const requests=await install(page);await page.goto('/data');
+test('the profile lists the twenty datasets with branch coverage and empty ones stay visible',async({page})=>{
+ const requests=await install(page);await page.goto('/profile');
+ // Automatic day factors are background information, folded in the establishment profile.
+ await expect(page.locator('.profile-factors')).not.toHaveAttribute('open','');
+ await page.locator('.profile-factors>summary').click();
  const section=page.getByRole('region',{name:'Факторы прогноза · 20 датасетов',exact:true});
  await expect(section.locator('.factor-group li')).toHaveCount(20);
  await expect(section.locator('.factor-summary')).toContainText('14 загружено · 3 из истории продаж · 3 ждут данных');

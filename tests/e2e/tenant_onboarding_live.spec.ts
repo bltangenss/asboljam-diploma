@@ -1,4 +1,4 @@
-import {navigateTo} from './navigation';
+import {navigateTo,openProfile} from './navigation';
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 
@@ -49,17 +49,18 @@ test('real empty workspace imports its first branch and refreshes session access
  const imported=await page.request.get('/api/v1/branches');expect(imported.status()).toBe(200);
  expect((await imported.json()).items.map((item:{branch_id:string})=>item.branch_id)).toEqual(['001']);
  await page.locator('.app-header').getByRole('button',{name:'Бүгін',exact:true}).click();
- await expect(page.locator('.next-action')).toContainText('Бұл бөлімшеде сатылым деректері әлі жоқ.');
- await expect(page.locator('.metric-value').nth(0)).toHaveText('—');
- await expect(page.locator('.metric-value').nth(1)).toHaveText('—');
- await expect(page.locator('.day-recap .empty')).toContainText('Бұл жерде әзірше дерек жоқ');
- await expect(page.locator('.day-attention')).not.toContainText('31.12.2025');
- await expect(page.locator('.day-recap')).not.toContainText('01.01.2026');
+ // An empty test-mode cabinet starts with a choice; nothing shows invented dates or zero sales.
+ const start=page.getByTestId('get-started');
+ await expect(start.getByRole('heading',{level:1})).toHaveText('Қош келдіңіз, Browser Synthetic Branch!');
+ await expect(start.getByRole('button',{name:'Деректерді жүктеу',exact:true})).toBeVisible();
+ // The branch came from CSV without a city: the demo first asks for one in the profile.
+ await expect(start.getByRole('button',{name:'Қаланы таңдау',exact:true})).toBeVisible();
+ await expect(start).not.toContainText('31.12.2025');await expect(start).not.toContainText('01.01.2026');
  await navigateTo(page,'sales');
  await expect(page.getByText('Таңдалған кезең: 04.12.2025 — 31.12.2025',{exact:true})).toBeVisible();
  await expect(page.getByText('Бұл жерде әзірше дерек жоқ',{exact:true})).toBeVisible();
  await expect(page.getByText('Соңғы сатылым: 31.12.2025',{exact:true})).toHaveCount(0);
- await page.locator('.app-header').getByRole('button',{name:'Баптаулар және басқару',exact:true}).click();
+ await openProfile(page);
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Ұйым',exact:true})}).locator('span')).toHaveText(metadata.organization.name??'—');
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Уақыт белдеуі',exact:true})}).locator('span')).toHaveText(metadata.organization.timezone??'—');
  await expect(page.locator('.settings-row').filter({has:page.getByRole('heading',{name:'Бөлімше',exact:true})}).locator('span')).toHaveText('001');

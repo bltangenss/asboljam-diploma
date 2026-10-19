@@ -96,7 +96,7 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
  await expect(page.locator('tbody tr')).toHaveCount(1);await expect(page.locator('tbody')).toContainText(displayDate(fixture.origin));
  const salesExport=await page.getByRole('link',{name:'CSV жүктеу',exact:true}).getAttribute('href');
  expect(new URL(salesExport!,'http://fixture.invalid').searchParams.get('date_to')).toBe(fixture.origin);
- await page.locator('.app-header').getByRole('button',{name:'Қалдықтар',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Қойма',exact:true}).click();
  await expect(page.getByLabel('Қор кесіндісінің күні',{exact:true})).toHaveValue(fixture.target_date);
  await page.getByLabel('Қор кесіндісінің күні',{exact:true}).selectOption(fixture.target_date);
  await page.getByRole('button',{name:'Кесте',exact:true}).click();await expect(page.locator('.stock-counted-task tbody')).toContainText(displayDate(fixture.target_date));
@@ -106,7 +106,7 @@ test('artificial REAL TEST source imports all schemas and completes actual forec
  const session=await getJson(page,'/session/me'),headers={Origin:new URL(page.url()).origin,'X-CSRF-Token':session.csrf_token};
  const missingOrigin=await page.request.post('/api/v1/forecasts',{headers,data:{branch_id:fixture.branch_id,model:'seasonal_naive_7'}});
  expect(missingOrigin.status()).toBe(422);expect((await missingOrigin.json()).detail.code).toBe('ORIGIN_REQUIRED');
- await page.locator('.app-header').getByRole('button',{name:'Күн жоспары',exact:true}).click();
+ await page.locator('.app-header').getByRole('button',{name:'Болжам',exact:true}).click();
  await page.locator('.planning-options>summary').click();await page.getByLabel('Модель',{exact:true}).selectOption('seasonal_naive_7');
  await page.getByLabel('Тарихтың шекті күні',{exact:true}).fill(fixture.origin);
  await expect(page.getByLabel('Болжам күні',{exact:true})).toHaveValue(displayDate(fixture.target_date));

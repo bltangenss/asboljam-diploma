@@ -23,6 +23,7 @@ from .accounts import CredentialError, change_password, lock_user, revoke_user_a
 from .config import load_settings
 from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, ProductionPlan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .places_api import register_place_routes
+from .demo_data import register_demo_routes
 from .factors import MIN_COVERAGE as FACTOR_MIN_COVERAGE, catalogue as factor_catalogue_items
 from .importing import OPERATIONAL_KINDS, SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
@@ -172,7 +173,7 @@ def forecast_json(forecast, freshness_cache=None):
 
 def create_app(database_url=None):
     runtime_settings = load_settings(database_url)
-    app = FastAPI(title='AsBoljam', version='1.1.0', description='Scoped catering operations; explicit demo or operator-configured source; one-day forecasts; internal approval only.')
+    app = FastAPI(title='Predas', version='1.1.0', description='Scoped catering operations; explicit demo or operator-configured source; one-day forecasts; internal approval only.')
     engine = make_engine(runtime_settings.database_url)
     migrate(engine)
     atexit.register(engine.dispose)
@@ -288,6 +289,7 @@ def create_app(database_url=None):
     register_place_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access,
                           fail=fail, audit=audit, origin_check=origin_check, user_json=user_json,
                           metadata=metadata, secure=secure)
+    register_demo_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
     # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
     unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):

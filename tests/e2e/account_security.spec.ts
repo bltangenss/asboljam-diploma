@@ -177,8 +177,7 @@ test('late password success cannot sign out a newer login',async({page})=>{
   await page.goto('/settings');await fillPasswords(page);
   await page.getByRole('button',{name:'Құпиясөзді өзгерту',exact:true}).click();await started.promise;
   auth.authenticated=false;
-  // Opening the data workspace makes a protected read at once; its 401 ends the session.
-  await page.locator('.app-header').getByRole('button',{name:'Деректер және талдау',exact:true}).click();
+  await navigateTo(page,'sales');
   await expectLogin(page,'Сессия аяқталды. Қайта кіріңіз.');
   await page.getByLabel('Электрондық пошта',{exact:true}).fill(user.email);
   await page.getByLabel('Құпиясөз',{exact:true}).fill(replacement);
