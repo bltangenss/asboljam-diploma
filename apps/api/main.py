@@ -25,6 +25,9 @@ from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, Log
 from .places_api import register_place_routes
 from .demo_data import register_demo_routes
 from .day_close import register_day_close_routes
+from .working_plan import register_working_plan_routes
+from .workday_tasks import register_workday_task_routes
+from .forecast_review import register_forecast_review_routes
 from .factors import MIN_COVERAGE as FACTOR_MIN_COVERAGE, catalogue as factor_catalogue_items
 from .importing import OPERATIONAL_KINDS, SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
@@ -292,6 +295,9 @@ def create_app(database_url=None):
                           metadata=metadata, secure=secure)
     register_demo_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
     register_day_close_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
+    register_working_plan_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, scoped=scoped)
+    register_workday_task_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail)
+    register_forecast_review_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
     # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
     unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):
@@ -585,7 +591,9 @@ def create_app(database_url=None):
     @app.get('/api/v1/forecasts/{forecast_id}')
     def forecast_detail(forecast_id:str,user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')
-        return forecast_json(scoped(db,Forecast,user,forecast_id))
+        from .forecast_explanation import explain_forecast
+        forecast = scoped(db,Forecast,user,forecast_id)
+        return {**forecast_json(forecast), 'explanation': explain_forecast(db, forecast)}
     @app.get('/api/v1/forecasts')
     def forecast_list(branch_id:str|None=None,limit:int=Query(50,ge=1,le=200),cursor:int=Query(0,ge=0),user=Depends(current),db=Depends(get_db)):
         roles(user,'admin','manager','analyst')

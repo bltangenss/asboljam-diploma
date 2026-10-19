@@ -12,13 +12,14 @@ normal startup never invents organizations for subsequently orphaned records.
 0009 adds empty immutable cooking variants and receipts; forecasts remain unchanged.
 0010 adds empty branch profiles (city, establishment type); no branch gets a city implicitly.
 0011 adds empty day closures; no day is closed or sales row written implicitly.
+0012 adds empty working-plan choices, comparison snapshots and notification receipts.
 """
 from sqlalchemy import CheckConstraint, Column, Float, JSON, MetaData, String, Table, Text, case, inspect, literal, select, text, union
 
 from .db import Base, now
 
 
-VERSIONS = ('0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010', '0011')
+VERSIONS = ('0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010', '0011', '0012')
 LEGACY_TABLE_NAMES = (
     'users', 'auth_sessions', 'refresh_tokens', 'login_attempts',
     'operational_records', 'import_batches', 'jobs', 'forecasts',
@@ -36,6 +37,7 @@ COUNT_ANCHOR_TABLE_NAMES = ('stock_count_anchors',)
 PRODUCTION_TABLE_NAMES = ('production_plans', 'production_plan_receipts')
 PROFILE_TABLE_NAMES = ('branch_profiles',)
 CLOSURE_TABLE_NAMES = ('day_closures',)
+WORKDAY_TABLE_NAMES = ('working_plan_selections', 'reconciliation_snapshots', 'notification_receipts')
 # Stable per-database PostgreSQL transaction lock shared by API/worker/migration CLI.
 _MIGRATION_LOCK = 0x4153424F4C4A414D
 
@@ -177,6 +179,12 @@ def _day_closure_schema(connection):
         Base.metadata.tables[name].create(connection, checkfirst=False)
 
 
+def _workday_schema(connection):
+    # Existing variants are not silently selected and no historical facts are invented.
+    for name in WORKDAY_TABLE_NAMES:
+        Base.metadata.tables[name].create(connection, checkfirst=False)
+
+
 def migrate(engine):
     if engine.dialect.name not in {'sqlite', 'postgresql'}:
         raise MigrationError('Unsupported database backend for schema migrations')
@@ -194,7 +202,7 @@ def migrate(engine):
             if applied != VERSIONS[:len(applied)]:
                 raise MigrationError('Unsupported or incomplete migration history; use a compatible application version')
             completed = []
-            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema, _job_heartbeat_schema, _stock_journal_schema, _dated_recipes_schema, _stock_count_anchor_schema, _production_plan_schema, _branch_profile_schema, _day_closure_schema)):
+            for version, operation in zip(VERSIONS, (_initial_schema, _tenant_schema, _import_schema, _real_source_schema, _job_heartbeat_schema, _stock_journal_schema, _dated_recipes_schema, _stock_count_anchor_schema, _production_plan_schema, _branch_profile_schema, _day_closure_schema, _workday_schema)):
                 if version not in applied:
                     operation(connection)
                     connection.execute(text('INSERT INTO schema_migrations (version) VALUES (:version)'), {'version': version})

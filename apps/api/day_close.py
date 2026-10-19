@@ -375,6 +375,8 @@ def register_day_close_routes(app, *, current, get_db, roles, branch_access, fai
                    'not_offered': state['counts']['not_offered'], 'batch_ids': batches, 'reason': reason})
             db.flush();db.expire_all()
             result = {**view(db, user, data.branch_id, data.business_date, policy), 'recorded_counts': counts}
+            from .forecast_review import capture_day_snapshot
+            capture_day_snapshot(db, user.organization_id, data.branch_id, day)
             db.add(Idempotency(id=hashlib.sha256((idempotency_key + user.id).encode()).hexdigest()[:32] + digest[:32],
                                organization_id=user.organization_id, actor_id=user.id, key=idempotency_key,
                                payload_hash=digest, response=result))
@@ -408,6 +410,10 @@ def register_day_close_routes(app, *, current, get_db, roles, branch_access, fai
             policy = day_policy(db, user.organization_id)
         except DayCloseError as exc:
             problem(exc)
+        from .forecast_review import capture_day_snapshot
+        # Preserve the previously closed comparison before an explicit correction.
+        # The snapshot shares the reopen transaction and cannot survive its rollback.
+        capture_day_snapshot(db, user.organization_id, data.branch_id, day)
         moved = db.execute(update(DayClosure).where(
             DayClosure.organization_id == user.organization_id, DayClosure.branch_id == data.branch_id,
             DayClosure.business_date == day, DayClosure.version == data.expected_version, DayClosure.status == 'closed').values(

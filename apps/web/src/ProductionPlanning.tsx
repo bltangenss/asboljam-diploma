@@ -4,6 +4,7 @@ import {ApiError} from '../../../packages/api-client';
 import {api,type Context,type Row,Button,ErrorBox,Table,Badge,date,fmt,items,name} from './shared';
 import './production-planning.css';
 import ProductionPrint from './ProductionPrint';
+import WorkingPlan,{useWorkingPlan} from './WorkingPlan';
 
 export const productionQuery=(id:string)=>id?'&production_plan_id='+encodeURIComponent(id):'';
 export const productionScope=(c:Context,forecastId:string)=>JSON.stringify([c.user?.organization_id,c.user?.id,c.user?.role,c.branch,forecastId,c.dataContext?.source,c.dataContext?.data_origin,c.dataContext?.usage_mode]);
@@ -58,19 +59,20 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
  const w=(kk:string,ru:string)=>c.lang==='kk'?kk:ru,result=forecast.result||forecast,predictions:Row[]=result.predictions||[];
  const canWrite=c.dataContext?.operations_enabled===true&&['admin','manager'].includes(c.user?.role),sourceReady=forecast.input_freshness==='unchanged';
  const selected=useProductionPlan(c,forecastId,selectedId),list=useProductionList(c,forecastId);
+ const working=useWorkingPlan(c,selected.data,String(result.target_date||''));
  const[draft,setDraft]=useState(false),[values,setValues]=useState<Record<string,string>>({}),[title,setTitle]=useState(''),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState<any>(null);
  const command=useRef<{key:string;body:Row}|null>(null),mounted=useRef(true),pending=useRef(false),scope=productionScope(c,forecastId),currentScope=useRef(scope);
  currentScope.current=scope;
- const locked=busy||uncertain,editing=!selectedId||draft;
+ const locked=busy||uncertain||working.phase!=='clean',editing=!selectedId||draft;
  const dirty=editing&&(draft||Object.values(values).some(value=>value!=='')||title!==''||reason!=='');
  const protection=useRef({dirty,uncertain});
  useLayoutEffect(()=>{protection.current={dirty,uncertain}},[dirty,uncertain]);
  function discardDraft(){
-  if(pending.current||protection.current.uncertain)return false;
+  if(pending.current||protection.current.uncertain||!working.discard())return false;
   protection.current.dirty=false;command.current=null;setDraft(false);setValues({});setTitle('');setReason('');setError(null);return true;
  }
  useLayoutEffect(()=>c.registerNavigationBlocker?.({
-  read:()=>pending.current?'pending':protection.current.uncertain?'uncertain':protection.current.dirty?'dirty':'clean',
+  read:()=>pending.current||working.read()==='pending'?'pending':protection.current.uncertain||working.read()==='uncertain'?'uncertain':protection.current.dirty||working.read()==='dirty'?'dirty':'clean',
   discard:discardDraft,
  }),[c.registerNavigationBlocker]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[]);
@@ -81,9 +83,9 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
  const canSuggest=predictions.length>0&&predictions.every(row=>row.point_forecast!==null&&row.point_forecast!==undefined&&Number.isFinite(Number(row.point_forecast))&&Number(row.point_forecast)>=0&&Math.ceil(Number(row.point_forecast))<=1e9);
  const variants=items(list.data).filter(row=>String(row.branch_id)===c.branch&&String(row.forecast_id)===forecastId);
  if(selected.data&&!variants.some(row=>row.id===selectedId))variants.unshift(selected.data);
- function edit(action:()=>void){if(pending.current||protection.current.uncertain)return;protection.current.dirty=true;command.current=null;setError(null);action()}
+ function edit(action:()=>void){if(pending.current||protection.current.uncertain||working.read()!=='clean')return;protection.current.dirty=true;command.current=null;setError(null);action()}
  async function save(){
-  if(pending.current||!canWrite||!c.online||(!command.current&&(!valid||!sourceReady)))return;
+  if(pending.current||working.read()!=='clean'||!canWrite||!c.online||(!command.current&&(!valid||!sourceReady)))return;
   if(!command.current)command.current={key:crypto.randomUUID(),body:{branch_id:c.branch,forecast_id:forecastId,name:title.trim(),reason:reason.trim(),portions:predictions.map(row=>({meal_id:String(row.meal_id),portions:Number(values[String(row.meal_id)])}))}};
   const attempt=command.current,csrf=api.csrf,requestScope=scope;pending.current=true;setBusy(true);setError(null);
   const current=()=>mounted.current&&requestScope===currentScope.current&&csrf===api.csrf;
@@ -113,6 +115,7 @@ function ProductionWorkspace({context:c,forecast,forecastId,meals,selectedId,onS
    {error&&<ErrorBox error={error} t={c.t}/>}
    <Button disabled={busy||!c.online||(!uncertain&&(!valid||!sourceReady))} onClick={save}><Save size={17}/>{uncertain?w('Сол сақтауды қайта тексеру','Повторить и проверить сохранение'):w('Жаңа нұсқаны сақтау','Сохранить новый вариант')}</Button>
   </div>:canWrite&&selected.data?<div className="production-draft-actions"><Button secondary disabled={locked||!sourceReady} onClick={()=>edit(()=>{setValues(Object.fromEntries(selected.data!.portions.map((row:Row)=>[String(row.meal_id),String(row.portions)])));setTitle('');setReason('');setDraft(true)})}>{w('Негізге алып жаңа нұсқа жасау','Изменить и сохранить новым вариантом')}</Button></div>:null}
+  <WorkingPlan context={c} plan={selected.data} controller={working} disabled={busy||uncertain||dirty}/>
   <p className="production-help">{w('Сақтау жаңа, өзгермейтін нұсқа жасайды. Сатып алуға тек сақталған нұсқа беріледі. Нақты дайындау мен қойма шығысы бөлек тіркеледі.','Сохранение создаёт новый неизменяемый вариант. В закупку передаётся только сохранённый вариант. Фактическое приготовление и расход склада регистрируются отдельно.')}</p>
  </section>;
 }

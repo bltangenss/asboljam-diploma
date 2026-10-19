@@ -1,5 +1,16 @@
 ﻿# Decisions — 2026-09-24
 
+## 19.10.2026 — решения незавершённого этапа 2
+
+- Рабочий вариант хранится отдельно, append-only, и не перепривязывает закупки. Выбор требует причины, ожидаемой версии и идемпотентного ключа.
+- Сверка использует только явно закрытый согласованный факт; null и ноль различаются. История снимков сохраняется в транзакциях закрытия/переоткрытия, чтение не создаёт записей.
+- Бизнес-метрики допускают только REAL/PILOT с прогнозом, созданным, завершённым и опубликованным до местной полуночи цели. Текущая политика origin<today этому не удовлетворяет: историческую сверку показываем отдельно, правило не обходим.
+- Поправку сравниваем с её собственным исходным прогнозом; ручные порции не становятся обучающим спросом.
+- Задачи выводятся из актуальных условий, read-receipt персональный. Просмотр не означает устранение причины. Все незавершённые закупки текущего дня остаются видимыми, даже если новый вариант уже утверждён.
+- Объяснение восстанавливается из сохранённого Job.snapshot с проверкой хеша. Использование признака не доказывает причинного влияния.
+- Миграция 0012 добавляет только три пустые таблицы; рабочая БД не мигрировалась. Этап сохранён по просьбе пользователя с двумя неразобранными browser-отказами; не считать полностью проверенным.
+
+
 | Decision | Reason and consequence |
 |---|---|
 | Day closure records sales through the regular import in one transaction | A manager closes one business day of a branch from a phone. The draft (table day_closures, migration 0011) keeps exactly what was entered: empty is unknown, zero is a confirmed zero, "not offered" writes no sales row, and yesterday's sales or the cooking plan are shown only as reference. Closing is allowed for a complete day only and writes daily_sales through import preview and commit (same parser, references, revisions, audit) in the same transaction as the closed status, with an expected version and an Idempotency-Key; a failure leaves the day open with nothing written. One natural key per date, branch and dish means identical facts never add up; different stored facts are a conflict that needs a correction reason. Reopening needs a reason and changes no recorded sales by itself. REAL days close after they end in the establishment's time zone; SYNTHETIC days stay on the scenario date. Stockout and replenishment times are kept with the closure but are not model inputs yet. One record per business day — not shift accounting. |

@@ -27,13 +27,13 @@ class ClosureMigrationTests(unittest.TestCase):
     def snapshot(self):
         with self.engine.connect() as db:
             return {name: [dict(row) for row in db.execute(select(table).order_by(*table.primary_key.columns)).mappings()]
-                    for name, table in Base.metadata.tables.items() if name not in migrations.CLOSURE_TABLE_NAMES}
+                    for name, table in Base.metadata.tables.items() if name not in migrations.CLOSURE_TABLE_NAMES + migrations.WORKDAY_TABLE_NAMES}
 
     def test_upgrade_preserves_all_prior_rows_and_closes_no_day(self):
         self.prepare(); before=self.snapshot()
         self.assertTrue(before['branch_profiles'])
         self.assertTrue(before['stock_count_anchors'])
-        self.assertEqual(migrate(self.engine), ('0011',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[10:])
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.versions(), migrations.VERSIONS)
         with self.engine.connect() as db:
@@ -52,7 +52,7 @@ class ClosureMigrationTests(unittest.TestCase):
         self.assertEqual(self.versions(), migrations.VERSIONS[:10])
         self.assertNotIn('day_closures', inspect(self.engine).get_table_names())
         self.assertEqual(self.snapshot(),before)
-        self.assertEqual(migrate(self.engine),('0011',))
+        self.assertEqual(migrate(self.engine),migrations.VERSIONS[10:])
 
     def test_fresh_database_and_concurrent_migrations(self):
         with ThreadPoolExecutor(max_workers=3) as pool:

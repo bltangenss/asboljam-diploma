@@ -317,6 +317,54 @@ class ProductionPlanReceipt(Base):
     response: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[str] = mapped_column(String(64), default=now)
     __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_production_plan_receipt'),)
+class WorkingPlanSelection(Base):
+    """Append-only choice of a saved cooking variant; never a stock/purchase mutation."""
+    __tablename__ = 'working_plan_selections'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    target_date: Mapped[str] = mapped_column(String(10))
+    production_plan_id: Mapped[str] = mapped_column(String(64), ForeignKey('production_plans.id'))
+    forecast_id: Mapped[str] = mapped_column(String(64), ForeignKey('forecasts.id'))
+    actor_id: Mapped[str] = mapped_column(String(64))
+    selected_at: Mapped[str] = mapped_column(String(64), default=now)
+    reason_code: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer)
+    data_origin: Mapped[str] = mapped_column(String(16))
+    usage_mode: Mapped[str] = mapped_column(String(16))
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'branch_id', 'target_date', 'version', name='uq_working_plan_version'),
+        CheckConstraint('version >= 1', name='ck_working_plan_version'),
+        CheckConstraint("reason_code IN ('confirmed_order', 'expected_attendance', 'ingredient_shortage', 'kitchen_capacity', 'manager_experience', 'other')", name='ck_working_plan_reason'),
+    )
+class ReconciliationSnapshot(Base):
+    """An immutable daily forecast/fact comparison, including its source version."""
+    __tablename__ = 'reconciliation_snapshots'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    target_date: Mapped[str] = mapped_column(String(10))
+    version: Mapped[int] = mapped_column(Integer)
+    input_sha256: Mapped[str] = mapped_column(String(64))
+    document: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'branch_id', 'target_date', 'version', name='uq_reconciliation_version'),
+        UniqueConstraint('organization_id', 'branch_id', 'target_date', 'input_sha256', name='uq_reconciliation_input'),
+        CheckConstraint('version >= 1', name='ck_reconciliation_version'),
+    )
+class NotificationReceipt(Base):
+    __tablename__ = 'notification_receipts'
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64))
+    user_id: Mapped[str] = mapped_column(String(64))
+    branch_id: Mapped[str] = mapped_column(String(64))
+    notification_key: Mapped[str] = mapped_column(String(64))
+    viewed_at: Mapped[str] = mapped_column(String(64), default=now)
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'user_id', 'branch_id', 'notification_key', name='uq_notification_receipt'),
+    )
 class BranchProfile(Base):
     # Where a branch is (city for solar times and weather) and what it is; not operational data.
     __tablename__ = 'branch_profiles'

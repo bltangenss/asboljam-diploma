@@ -1,0 +1,43 @@
+import {useState} from 'react';
+import {type Context,type Row,date,fmt,name,shiftDate,Table} from './shared';
+import {ForecastFactorDetails} from './ForecastFactors';
+import './forecast-review.css';
+
+/** Explain only the saved result. Current sales never impersonate its original inputs. */
+export default function ForecastExplanation({forecast,context:c,meals}:{forecast:Row;context:Context;meals:Row[]}){
+ const w=(kk:string,ru:string)=>c.lang==='kk'?kk:ru,result=forecast.result||forecast,meta=result.metadata||{};
+ const model=result.model,origin=String(result.origin||result.forecast_origin||meta.history_end||''),rows:Row[]=result.predictions||[];
+ const baseline=model==='seasonal_naive_7'||model==='rolling_mean_28';
+ const [mealId,setMealId]=useState('');
+ const explanation=forecast.explanation||result.explanation;
+ const saved=explanation?.source==='saved_job_snapshot'&&explanation.model===model&&explanation.target_date===result.target_date;
+ const inputs:Row[]=saved&&Array.isArray(explanation.rows)?explanation.rows:[];
+ const selectedInput=inputs.find(row=>String(row.meal_id)===mealId)||inputs[0];
+ const mealName=(id:string)=>name(rows.find(row=>String(row.meal_id)===id)?.meal_name||meals.find(row=>String(row.meal_id)===id)?.meal_name||id);
+ const basisDate=model==='seasonal_naive_7'?shiftDate(origin,-6):shiftDate(origin,-27);
+ const features: string[]=Array.isArray(meta.features)?meta.features:[];
+ const selected=result.selected_model_metrics||result.metrics?.find((row:Row)=>row.model===model);
+ return <details className="forecast-explanation" data-testid="forecast-explanation"><summary>{w('Неліктен осынша порция?','Почему столько порций?')}</summary>
+  {baseline?<><p>{model==='seasonal_naive_7'?w(`Болжам ${date(basisDate)} күніндегі — мақсатты күннен бір апта бұрынғы — сатылым санын алады.`,`Прогноз берёт продажи ${date(basisDate)} — за тот же день неделей раньше целевого.`):w(`Болжам ${date(basisDate)} — ${date(origin)} аралығындағы соңғы 28 күннің орташа сатылымына тең.`,`Прогноз равен средним продажам последних 28 дней: ${date(basisDate)} — ${date(origin)}.`)}</p>
+   {saved?<Table t={c.t} rows={inputs} columns={[{key:'meal_id',label:c.t('meal'),render:row=>mealName(String(row.meal_id))},{key:'period',label:w('Негізгі күндер','Даты основания'),render:row=>date(row.basis?.from)+(row.basis?.to!==row.basis?.from?' — '+date(row.basis?.to):'')},{key:'basis',label:model==='seasonal_naive_7'?w('Сол күнгі сатылым · порция','Продажи того дня · порции'):w('28 күндегі орташа · порция','Среднее за 28 дней · порции'),numeric:true,render:row=>fmt(row.basis?.value,2)}]}/>:<p className="review-caveat">{w('Бастапқы кіріс көшірмесі жоқ немесе нәтижеге сәйкес емес. Тек модель ережесін түсіндіреміз; қазіргі сатылымды бұрынғы негіз деп көрсетпейміз.','Исходный снимок входных данных отсутствует или не совпадает с результатом. Здесь объясняется только правило модели; текущие продажи не выдаются за прежнее основание.')}</p>}
+   <p className="muted">{w('Мәндер есептің сақталған кірісінен алынады. Қазіргі өзгертілген сатылыммен қайта есептелмейді.','Значения берутся из сохранённого входа расчёта. Они не пересчитаны по текущим изменённым продажам.')}</p></>:<><p>{w('HGB моделі бұрынғы сатылымның заңдылықтарынан үйренеді. Белгінің қолданылуы оның себептік әсерін дәлелдемейді. «Ауа райынан +10 порция» сияқты есептелмеген үлестер көрсетілмейді.','HGB учится на закономерностях прошлых продаж. Использование признака не доказывает его причинное влияние. Невычисленные вклады вроде «+10 порций из-за погоды» не показываются.')}</p>
+   <p>{w('Соңғы оқыту кезеңі','Период итогового обучения')}: {date(meta.final_fit_start)} — {date(meta.final_fit_end)}. {w('Сатылым тарихы','История продаж')}: {date(meta.history_start)} — {date(meta.history_end)}.</p>
+   <details className="review-details"><summary>{w('Сақталған белгілер тізімі','Сохранённый список признаков')} · {features.length}</summary>{features.length?<ul>{features.map(feature=><li key={feature}><code>{feature}</code></li>)}</ul>:<p>{w('Белгілер тізімі бұл нәтижеде сақталмаған.','Список признаков в этом результате не сохранён.')}</p>}{!saved&&<p className="review-caveat">{w('Сәйкес кіріс көшірмесі жоқ: белгі мәндері белгісіз.','Нет соответствующего снимка входных данных: значения признаков неизвестны.')}</p>}</details>
+   {meta.factor_model&&<ForecastFactorDetails meta={meta.factor_model} context={c}/>}
+  </>}
+  {saved&&selectedInput&&<details className="review-details"><summary>{w('Есепте қолданылған сақталған мәндер','Сохранённые значения, использованные в расчёте')}</summary><label>{w('Түсіндірілетін тағам','Блюдо для объяснения')}<select value={String(selectedInput.meal_id)} onChange={event=>setMealId(event.target.value)}>{inputs.map(row=><option key={row.meal_id} value={String(row.meal_id)}>{mealName(String(row.meal_id))}</option>)}</select></label>
+   {!baseline&&<Table t={c.t} rows={Object.entries(selectedInput.features||{}).map(([feature,value])=>({feature,value}))} columns={[{key:'feature',label:w('Белгі','Признак'),render:row=>featureLabel(row.feature,c.lang==='kk')},{key:'value',label:w('Мән','Значение'),numeric:true,render:row=>fmt(row.value,3)},{key:'source',label:w('Дерек негізі','Источник'),render:row=>['month','day_of_week'].includes(row.feature)?w('Мақсатты күн','Целевая дата'):row.feature==='meal_category'?w('Сақталған тағам коды','Код блюда в сохранённом расчёте'):row.feature==='promo'?w('Сақталған акция жорамалы','Сохранённое допущение об акции'):row.feature.startsWith('lag_')||row.feature.startsWith('rolling_')||['menu_price_ratio','stockout_recent'].includes(row.feature)?w('Сақталған сатылым тарихы','Сохранённая история продаж'):w('Сақталған day_factors','Сохранённые day_factors')}]}/>}
+   <p className="muted">{w('Тек есепке бекітілген кіріс көшірмесі. Бос белгі нөлге ауыстырылмайды.','Только снимок входных данных, закреплённый за расчётом. Пустой признак не заменяется нулём.')}</p>
+   <Table t={c.t} rows={selectedInput.history||[]} columns={[{key:'date',label:c.t('date'),render:row=>date(row.date)},{key:'units_sold',label:w('Кірістегі сатылған порциялар','Проданные порции во входных данных'),numeric:true,render:row=>fmt(row.units_sold)}]}/>
+  </details>}
+  <p>{w('Өткен кезеңдегі тексеру','Проверка на прошлом периоде')}: {date(meta.test_start)} — {date(meta.test_end)} · MAE {fmt(selected?.mae,2)} {w('порция','порций')} · {w('бақылау саны','наблюдений')} {fmt(selected?.n??selected?.n_observations)}.</p>
+  {meta.factor_model?.evaluation&&<details className="review-details"><summary>{w('Бағалау мен соңғы есептің белгілері неге бөлек','Почему признаки оценки и итогового расчёта разделены')}</summary><p>{w('Өткен кезеңдегі метрика үшін факторлар тек оқыту күндері бойынша таңдалған. Соңғы болжам үшін — тарихтың шегіне дейін. Сондықтан қолданылған факторлар тізімі өзгеше болуы мүмкін.','Для метрики прошлого периода факторы выбраны только по обучающим дням. Для итогового прогноза — по всей истории до её границы. Поэтому списки использованных факторов могут различаться.')}</p><p>{w('Бағалауда қолданылған кодтар','Коды, использованные при оценке')}: {(meta.factor_model.evaluation.used||[]).map((row:Row)=>row.code).join(', ')||'—'}.</p></details>}
+  <p className="muted">{w('Өткен кезең метрикасы болашақ дәлдігіне кепілдік бермейді. p10–p90 номиналы — 80%.','Метрика прошлого периода не гарантирует точность в будущем. Номинал p10–p90 — 80%.')}</p>
+  {forecast.input_freshness!=='unchanged'&&<p className="alert warning">{w('Бұл нәтиженің бастапқы деректері өзгерген немесе тексерілмеген.','Исходные данные этого результата изменились или не проверены.')} <button className="text-button" onClick={()=>c.go('/forecasts')}>{w('Болжамды жаңарту','Обновить прогноз')}</button></p>}
+ </details>;
+}
+
+function featureLabel(code:string,kk:boolean){
+ const labels:Record<string,[string,string]>={meal_category:['Тағам коды','Код блюда'],day_of_week:['Апта күні','День недели'],month:['Ай','Месяц'],lag_1:['1 күн бұрын сатылғаны','Продажи 1 день назад'],lag_7:['7 күн бұрын сатылғаны','Продажи 7 дней назад'],lag_14:['14 күн бұрын сатылғаны','Продажи 14 дней назад'],lag_28:['28 күн бұрын сатылғаны','Продажи 28 дней назад'],rolling_mean_7:['7 күндік орташа','Среднее за 7 дней'],rolling_mean_28:['28 күндік орташа','Среднее за 28 дней'],rolling_std_7:['7 күндік шашырау','Разброс за 7 дней'],rolling_std_28:['28 күндік шашырау','Разброс за 28 дней'],menu_price_ratio:['Баға арақатынасы','Отношение цены'],promo:['Акция жорамалы','Допущение об акции'],stockout_recent:['Соңғы 7 күнде тағам біту үлесі','Доля окончаний блюда за 7 дней']};
+ return labels[code]?.[kk?0:1]||code;
+}

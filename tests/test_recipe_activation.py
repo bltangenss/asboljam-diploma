@@ -265,7 +265,7 @@ class RecipeMigrationTests(unittest.TestCase):
         with self.engine.connect() as db:
             return {name: [dict(row) for row in db.execute(select(table).order_by(*table.primary_key.columns)).mappings()]
                     for name, table in Base.metadata.tables.items()
-                    if name not in migrations.RECIPE_TABLE_NAMES + migrations.COUNT_ANCHOR_TABLE_NAMES + migrations.PRODUCTION_TABLE_NAMES + migrations.PROFILE_TABLE_NAMES + migrations.CLOSURE_TABLE_NAMES}
+                    if name not in migrations.RECIPE_TABLE_NAMES + migrations.COUNT_ANCHOR_TABLE_NAMES + migrations.PRODUCTION_TABLE_NAMES + migrations.PROFILE_TABLE_NAMES + migrations.CLOSURE_TABLE_NAMES + migrations.WORKDAY_TABLE_NAMES}
 
     def test_upgrade_preserves_prior_rows_and_creates_no_implicit_recipe_versions(self):
         self.prepare()
