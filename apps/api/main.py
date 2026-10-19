@@ -24,6 +24,7 @@ from .config import load_settings
 from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, ProductionPlan, Record, RefreshToken, User, make_engine, migrate, sessions
 from .places_api import register_place_routes
 from .demo_data import register_demo_routes
+from .day_close import register_day_close_routes
 from .factors import MIN_COVERAGE as FACTOR_MIN_COVERAGE, catalogue as factor_catalogue_items
 from .importing import OPERATIONAL_KINDS, SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
@@ -290,6 +291,7 @@ def create_app(database_url=None):
                           fail=fail, audit=audit, origin_check=origin_check, user_json=user_json,
                           metadata=metadata, secure=secure)
     register_demo_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
+    register_day_close_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access, fail=fail, audit=audit)
     # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
     unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):
