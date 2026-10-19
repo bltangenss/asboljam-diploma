@@ -1,0 +1,10 @@
+﻿branch_id,ingredient_id,lot_id,snapshot_date,expiry_date,on_hand_qty,unit,data_origin
+bdk26_branch_01,bdk26_ingredient_beef,bdk26_lot_beef_01,2026-01-01,2026-01-04,2.000,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_rice,bdk26_lot_rice_01,2026-01-01,2026-05-30,2.000,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_potato,bdk26_lot_potato_01,2026-01-01,2026-01-15,2.000,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_onion,bdk26_lot_onion_01,2026-01-01,2026-01-25,0.500,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_carrot,bdk26_lot_carrot_01,2026-01-01,2026-01-10,0.500,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_flour,bdk26_lot_flour_01,2026-01-01,2026-05-30,1.000,kg,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_milk,bdk26_lot_milk_01,2026-01-01,2026-01-03,0.500,L,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_oil,bdk26_lot_oil_01,2026-01-01,2026-05-30,0.500,L,SYNTHETIC
+bdk26_branch_01,bdk26_ingredient_beef,bdk26_lot_beef_expired,2026-01-01,2025-12-31,1.000,kg,SYNTHETIC

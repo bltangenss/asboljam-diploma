@@ -1,0 +1,9 @@
+﻿ingredient_id,ingredient_name,unit,reference_cost_kzt,shelf_life_days,yield_factor,storage_capacity,data_origin
+bdk26_ingredient_beef,Сиыр еті / Говядина,kg,3400.00,5,0.85,60.000,SYNTHETIC
+bdk26_ingredient_rice,Күріш / Рис,kg,600.00,180,1.00,80.000,SYNTHETIC
+bdk26_ingredient_potato,Картоп / Картофель,kg,220.00,21,0.82,100.000,SYNTHETIC
+bdk26_ingredient_onion,Пияз / Лук,kg,180.00,30,0.90,40.000,SYNTHETIC
+bdk26_ingredient_carrot,Сәбіз / Морковь,kg,230.00,14,0.85,40.000,SYNTHETIC
+bdk26_ingredient_flour,Ұн / Мука,kg,300.00,180,1.00,80.000,SYNTHETIC
+bdk26_ingredient_milk,Сүт / Молоко,L,650.00,5,1.00,40.000,SYNTHETIC
+bdk26_ingredient_oil,Өсімдік майы / Растительное масло,L,950.00,180,1.00,40.000,SYNTHETIC

@@ -1,0 +1,9 @@
+﻿supplier_id,ingredient_id,pack_qty,unit_cost_kzt,min_packs,max_packs,lead_time_days,data_origin
+bdk26_supplier_fresh,bdk26_ingredient_beef,5.000,3400.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_rice,5.000,600.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_potato,5.000,220.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_onion,2.000,180.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_carrot,2.000,230.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_flour,5.000,300.00,1,20,0,SYNTHETIC
+bdk26_supplier_fresh,bdk26_ingredient_milk,1.000,650.00,1,20,0,SYNTHETIC
+bdk26_supplier_pantry,bdk26_ingredient_oil,1.000,950.00,1,20,0,SYNTHETIC

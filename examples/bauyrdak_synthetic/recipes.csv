@@ -1,0 +1,13 @@
+﻿meal_id,ingredient_id,net_qty_per_portion,recipe_version,data_origin
+bdk26_meal_plov,bdk26_ingredient_beef,0.080,KZ_2024_1,SYNTHETIC
+bdk26_meal_plov,bdk26_ingredient_rice,0.090,KZ_2024_1,SYNTHETIC
+bdk26_meal_plov,bdk26_ingredient_carrot,0.045,KZ_2024_1,SYNTHETIC
+bdk26_meal_plov,bdk26_ingredient_onion,0.020,KZ_2024_1,SYNTHETIC
+bdk26_meal_plov,bdk26_ingredient_oil,0.012,KZ_2024_1,SYNTHETIC
+bdk26_meal_kuyrdak,bdk26_ingredient_beef,0.140,KZ_2024_1,SYNTHETIC
+bdk26_meal_kuyrdak,bdk26_ingredient_potato,0.180,KZ_2024_1,SYNTHETIC
+bdk26_meal_kuyrdak,bdk26_ingredient_onion,0.040,KZ_2024_1,SYNTHETIC
+bdk26_meal_kuyrdak,bdk26_ingredient_oil,0.015,KZ_2024_1,SYNTHETIC
+bdk26_meal_baursak,bdk26_ingredient_flour,0.080,KZ_2024_1,SYNTHETIC
+bdk26_meal_baursak,bdk26_ingredient_milk,0.030,KZ_2024_1,SYNTHETIC
+bdk26_meal_baursak,bdk26_ingredient_oil,0.012,KZ_2024_1,SYNTHETIC

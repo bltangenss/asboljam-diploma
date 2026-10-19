@@ -1,0 +1,343 @@
+{
+  "status": "PASS",
+  "verified_on": "2026-10-13",
+  "data_origin": "SYNTHETIC",
+  "branch_id": "bdk26_branch_01",
+  "recipe_version": "KZ_2024_1",
+  "history": {
+    "history_start": "2025-10-01",
+    "history_end": "2025-12-31",
+    "meal_count": 3,
+    "observations": 276
+  },
+  "coverage": {
+    "origin": "2025-12-31",
+    "required_days": 84,
+    "ready_meals": 3,
+    "meals": [
+      {
+        "meal_id": "bdk26_meal_baursak",
+        "status": "ready",
+        "first_date": "2025-10-01",
+        "last_date": "2025-12-31",
+        "observed_days": 92,
+        "missing_days": 0,
+        "first_missing_date": null,
+        "continuous_days_through_origin": 92
+      },
+      {
+        "meal_id": "bdk26_meal_kuyrdak",
+        "status": "ready",
+        "first_date": "2025-10-01",
+        "last_date": "2025-12-31",
+        "observed_days": 92,
+        "missing_days": 0,
+        "first_missing_date": null,
+        "continuous_days_through_origin": 92
+      },
+      {
+        "meal_id": "bdk26_meal_plov",
+        "status": "ready",
+        "first_date": "2025-10-01",
+        "last_date": "2025-12-31",
+        "observed_days": 92,
+        "missing_days": 0,
+        "first_missing_date": null,
+        "continuous_days_through_origin": 92
+      }
+    ]
+  },
+  "files": {
+    "branches": {
+      "rows": 1,
+      "sha256": "eee680ccca970ac4cccd94c970b98140b873890516a61b70e318a8151ce4c18c",
+      "parser_errors": 0
+    },
+    "meals": {
+      "rows": 3,
+      "sha256": "72ce2ef84a305ac267d24c4558f2e7c6e9602f22dcf458b783b18a190562ca56",
+      "parser_errors": 0
+    },
+    "ingredients": {
+      "rows": 8,
+      "sha256": "ec7faba00a7c36f120dadb880ebf9b57cb8721791f6cfb437340e559eaeca6b2",
+      "parser_errors": 0
+    },
+    "suppliers": {
+      "rows": 2,
+      "sha256": "686861273cc606f532eab04d716ec72787abe35f36aa51f844ce17eb2689f624",
+      "parser_errors": 0
+    },
+    "recipes": {
+      "rows": 12,
+      "sha256": "7d72266661555656ff540c9db646860db53b9ed60b13921b4cb5ea1862538ae3",
+      "parser_errors": 0
+    },
+    "supplier_offers": {
+      "rows": 8,
+      "sha256": "9d081eaf652f887df2a70ac2e020e62539f30ba024ccd112edbb0c5aa33a191e",
+      "parser_errors": 0
+    },
+    "calendar": {
+      "rows": 93,
+      "sha256": "48dc858eb861ee721bbaca850f24fd80514e6bfaff50648547916ebf66690eab",
+      "parser_errors": 0
+    },
+    "daily_sales": {
+      "rows": 276,
+      "sha256": "fa77c97a739c885bac12cfef128a46b0b33a0777b6339d7a9bb0cebc31373217",
+      "parser_errors": 0
+    },
+    "inventory_lots": {
+      "rows": 9,
+      "sha256": "3084f969f5312007e3730a0b7c399cfbe573132ad8500aef49f47bcefeef3345",
+      "parser_errors": 0
+    }
+  },
+  "fixtures": {
+    "empty_synthetic": {
+      "status": "PASS",
+      "imported": {
+        "branches": 1,
+        "meals": 3,
+        "ingredients": 8,
+        "suppliers": 2,
+        "recipes": 12,
+        "supplier_offers": 8,
+        "calendar": 93,
+        "daily_sales": 276,
+        "inventory_lots": 9
+      },
+      "original_demo_unchanged": false,
+      "forecast_predictions": [
+        {
+          "meal_id": "bdk26_meal_baursak",
+          "point_forecast": 61.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        {
+          "meal_id": "bdk26_meal_kuyrdak",
+          "point_forecast": 29.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        {
+          "meal_id": "bdk26_meal_plov",
+          "point_forecast": 50.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        }
+      ],
+      "forecast_metadata": {
+        "seed": 42,
+        "features": [
+          "meal_category",
+          "day_of_week",
+          "month",
+          "lag_1",
+          "lag_7",
+          "lag_14",
+          "lag_28",
+          "rolling_mean_7",
+          "rolling_mean_28",
+          "rolling_std_7",
+          "rolling_std_28"
+        ],
+        "target": "observed units_sold",
+        "data_hash": "6c12fa8f4168b156fef7da7cb1073043fdd7276d84bdba5e1ce407b137495cb6",
+        "runtime_versions": {
+          "python": "3.13.9",
+          "numpy": "2.4.2",
+          "scipy": "1.17.0",
+          "scikit-learn": "1.8.0",
+          "threadpoolctl": "3.6.0"
+        },
+        "history_start": "2025-10-01",
+        "history_end": "2025-12-31",
+        "train_start": "2025-10-29",
+        "train_end": "2025-12-03",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31",
+        "test_days": 28,
+        "training_observations": 108,
+        "test_observations": 84,
+        "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
+        "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
+        "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
+        "evaluation_seconds": 3.954451,
+        "model_parameters": {
+          "max_iter": 70,
+          "max_leaf_nodes": 15,
+          "learning_rate": 0.08,
+          "min_samples_leaf": 15,
+          "early_stopping": false
+        },
+        "final_fit_start": null,
+        "final_fit_end": null,
+        "prediction_raw_crossing_rate": null,
+        "elapsed_seconds": 3.95775,
+        "mode": "LIVE_COMPUTE",
+        "hash_fields": [
+          "meal_id",
+          "date",
+          "units_sold"
+        ],
+        "branch_id": "bdk26_branch_01"
+      },
+      "plans": {
+        "50000": {
+          "total_cost_kzt": "44080",
+          "budget_kzt": "50000",
+          "solver_status": "optimal",
+          "shortage_count": 0,
+          "purchase_lines": 8,
+          "requirement_rows": 8,
+          "independent_decimal_recheck": "PASS"
+        },
+        "5000": {
+          "total_cost_kzt": "4720",
+          "budget_kzt": "5000",
+          "solver_status": "optimal",
+          "shortage_count": 4,
+          "purchase_lines": 5,
+          "requirement_rows": 8,
+          "independent_decimal_recheck": "PASS"
+        }
+      }
+    },
+    "with_current_data_kz": {
+      "status": "PASS",
+      "imported": {
+        "branches": 1,
+        "meals": 3,
+        "ingredients": 8,
+        "suppliers": 2,
+        "recipes": 12,
+        "supplier_offers": 8,
+        "calendar": 93,
+        "daily_sales": 276,
+        "inventory_lots": 9
+      },
+      "original_demo_unchanged": true,
+      "forecast_predictions": [
+        {
+          "meal_id": "bdk26_meal_baursak",
+          "point_forecast": 61.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        {
+          "meal_id": "bdk26_meal_kuyrdak",
+          "point_forecast": 29.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        {
+          "meal_id": "bdk26_meal_plov",
+          "point_forecast": 50.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        }
+      ],
+      "forecast_metadata": {
+        "seed": 42,
+        "features": [
+          "meal_category",
+          "day_of_week",
+          "month",
+          "lag_1",
+          "lag_7",
+          "lag_14",
+          "lag_28",
+          "rolling_mean_7",
+          "rolling_mean_28",
+          "rolling_std_7",
+          "rolling_std_28"
+        ],
+        "target": "observed units_sold",
+        "data_hash": "6c12fa8f4168b156fef7da7cb1073043fdd7276d84bdba5e1ce407b137495cb6",
+        "runtime_versions": {
+          "python": "3.13.9",
+          "numpy": "2.4.2",
+          "scipy": "1.17.0",
+          "scikit-learn": "1.8.0",
+          "threadpoolctl": "3.6.0"
+        },
+        "history_start": "2025-10-01",
+        "history_end": "2025-12-31",
+        "train_start": "2025-10-29",
+        "train_end": "2025-12-03",
+        "test_start": "2025-12-04",
+        "test_end": "2025-12-31",
+        "test_days": 28,
+        "training_observations": 108,
+        "test_observations": 84,
+        "evaluation": "One-step rolling origins; fit frozen before test, earlier test observations become past lags.",
+        "target_notice": "Observed sales can be censored by stockouts; this is not unconstrained demand.",
+        "quantile_correction": "Clamp at zero, then sort p10/p50/p90; raw crossing rate retained.",
+        "evaluation_seconds": 3.954451,
+        "model_parameters": {
+          "max_iter": 70,
+          "max_leaf_nodes": 15,
+          "learning_rate": 0.08,
+          "min_samples_leaf": 15,
+          "early_stopping": false
+        },
+        "final_fit_start": null,
+        "final_fit_end": null,
+        "prediction_raw_crossing_rate": null,
+        "elapsed_seconds": 0.004904,
+        "mode": "LIVE_COMPUTE",
+        "hash_fields": [
+          "meal_id",
+          "date",
+          "units_sold"
+        ],
+        "branch_id": "bdk26_branch_01"
+      },
+      "plans": {
+        "50000": {
+          "total_cost_kzt": "44080",
+          "budget_kzt": "50000",
+          "solver_status": "optimal",
+          "shortage_count": 0,
+          "purchase_lines": 8,
+          "requirement_rows": 22,
+          "independent_decimal_recheck": "PASS"
+        },
+        "5000": {
+          "total_cost_kzt": "4720",
+          "budget_kzt": "5000",
+          "solver_status": "optimal",
+          "shortage_count": 4,
+          "purchase_lines": 5,
+          "requirement_rows": 22,
+          "independent_decimal_recheck": "PASS"
+        }
+      }
+    }
+  },
+  "live_database_accessed": false,
+  "main_imported": false,
+  "not_tested": [
+    "Current user database compatibility",
+    "Browser/API/worker live import",
+    "HGB final forecast selection",
+    "PostgreSQL",
+    "Full regression"
+  ],
+  "verification_command": ".venv/Scripts/python.exe -X utf8 .cache/bauyrdak-csv-20261013/verify_bundle.py",
+  "application_source_sha256": {
+    "apps\\api\\importing.py": "aecdcc2644f01cf193e476c7c4c1132fb738327d9c2e4231b8f298511fe81d8e",
+    "apps\\api\\import_service.py": "d425b9f8afb7ff155e0ac431e40259a907873b1220cceec9142c36d9934d0004",
+    "apps\\api\\engine.py": "90d7eeedb98eac0414d88bfb7882793482073a36f8cf586c2a617dcf705bd95e",
+    "data\\kz\\recipes.csv": "8996ab1a6d86271187c4a8387a6b4c9dbc21f535f7c08c29a523c06c50e1a5c0"
+  }
+}

@@ -1,0 +1,3 @@
+﻿supplier_id,supplier_name,lead_time_days,data_origin
+bdk26_supplier_fresh,Учебный поставщик свежих продуктов,0,SYNTHETIC
+bdk26_supplier_pantry,Учебный поставщик бакалеи и овощей,0,SYNTHETIC
