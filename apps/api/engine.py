@@ -404,24 +404,53 @@ def _factor_plan(table: dict, dates: list, target: date) -> tuple:
     return used, skipped
 
 
-@lru_cache(maxsize=8)
-def _factor_matrices(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> dict | None:
-    """Feature rows of the factor model on exactly the split used by _evaluate."""
-    origin = _date(origin_text, "origin")
-    target, test_start = origin + timedelta(days=1), origin - timedelta(days=TEST_DAYS - 1)
-    series = _series(history, origin)
+def _factor_table(factor_rows: tuple) -> dict:
     table = defaultdict(dict)
     for day, code, value in factor_rows:
         table[_date(day, "day_factors.date")][code] = value
+    return table
+
+
+# Days a factor choice may look at. "evaluation" sees the training part of the common
+# temporal test only, so the metrics row never selects on its own test days; "final"
+# sees every day through the origin, the data the refit that predicts the target day uses.
+SELECTION_DAYS = {"evaluation": "training", "final": "all_history_through_origin"}
+
+
+@lru_cache(maxsize=8)
+def _factor_selection(history: tuple, origin_text: str, factor_rows: tuple, selection: str) -> dict:
+    """Which factors enter the model in one selection mode; decided without any fitting."""
+    if selection not in SELECTION_DAYS:
+        raise ValueError(f"Unknown factor selection; choose one of {', '.join(SELECTION_DAYS)}")
+    origin = _date(origin_text, "origin")
+    target, test_start = origin + timedelta(days=1), origin - timedelta(days=TEST_DAYS - 1)
+    dates = sorted({days[index] for days, values in _series(history, origin).values()
+                    for index in range(28, len(values)) if selection == "final" or days[index] < test_start})
+    used, skipped = _factor_plan(_factor_table(factor_rows), dates, target)
+    return {"used": used, "skipped": skipped, "codes": [item["code"] for item in used],
+            "selection_days": SELECTION_DAYS[selection], "days": len(dates)}
+
+
+@lru_cache(maxsize=8)
+def _factor_matrices(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple,
+                     selection: str) -> dict | None:
+    """Feature rows of the factor model on exactly the split used by _evaluate.
+
+    The factor columns are the codes of one selection mode. A day without a value
+    stays NaN (HistGradientBoosting routes it); it is never filled with an invented one.
+    """
+    plan = _factor_selection(history, origin_text, factor_rows, selection)
+    if not plan["codes"]:
+        return None
+    origin = _date(origin_text, "origin")
+    target, test_start = origin + timedelta(days=1), origin - timedelta(days=TEST_DAYS - 1)
+    series = _series(history, origin)
+    table = _factor_table(factor_rows)
     price, promo, stockout = defaultdict(dict), defaultdict(dict), defaultdict(dict)
     for meal, day, price_value, promo_value, stockout_value in extras:
         day = _date(day, "sales.date")
         price[meal][day], promo[meal][day], stockout[meal][day] = price_value, promo_value, stockout_value
-    dates = sorted({days[index] for days, values in series.values() for index in range(28, len(values))})
-    used, skipped = _factor_plan(table, dates, target)
-    if not used:
-        return None
-    codes = [item["code"] for item in used]
+    codes = plan["codes"]
 
     def derived(meal: str, day: date) -> list:
         # Target day: the last known menu price and no promotion unless a plan is imported.
@@ -452,34 +481,43 @@ def _factor_matrices(history: tuple, origin_text: str, factor_rows: tuple, extra
                 y_test.append(values[index])
         x_future.append(row(category, meal, values, target))
     return {"x_train": np.asarray(x_train), "y_train": np.asarray(y_train), "x_test": np.asarray(x_test),
-            "y_test": np.asarray(y_test), "x_future": np.asarray(x_future), "meals": meals,
-            "used": used, "skipped": skipped, "codes": codes,
+            "y_test": np.asarray(y_test), "x_future": np.asarray(x_future), "meals": meals, **plan,
             "bounds": (test_start.isoformat(), origin.isoformat())}
 
 
 @lru_cache(maxsize=8)
 def _evaluate_factors(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> tuple | None:
-    data = _factor_matrices(history, origin_text, factor_rows, extras)
+    """Fourth metrics row; its factors are chosen on the training days, never on the test days."""
+    data = _factor_matrices(history, origin_text, factor_rows, extras, "evaluation")
     if data is None:
         return None
     with threadpool_limits(limits=1):
         boosted = _fit_boosting(data["x_train"], data["y_train"])
         point, quantiles, crossing = _boost_predictions(boosted, data["x_test"])
     metrics = _metrics(FACTOR_MODEL, data["y_test"], point, quantiles, crossing, *data["bounds"])
-    meta = {
-        "features": FEATURES + data["codes"] + list(DERIVED), "used": data["used"],
-        "skipped": data["skipped"], "derived": list(DERIVED), "min_coverage": MIN_COVERAGE,
+    evaluation = {**{key: data[key] for key in ("used", "skipped", "selection_days", "days")},
+                  "features": FEATURES + data["codes"] + list(DERIVED)}
+    return metrics, evaluation
+
+
+def _factor_metadata(final: dict, evaluation: dict, factor_rows: tuple, extras: tuple) -> dict:
+    """What the refit through the origin uses; the metrics row's own choice sits under "evaluation"."""
+    return {
+        "features": FEATURES + final["codes"] + list(DERIVED), "used": final["used"], "skipped": final["skipped"],
+        "selection_days": final["selection_days"], "days": final["days"], "evaluation": evaluation,
+        "derived": list(DERIVED), "min_coverage": MIN_COVERAGE,
         "assumptions": ["TARGET_PRICE_LAST_KNOWN", "TARGET_PROMO_ASSUMED_NONE"],
         "known_in_advance": "Factor values are read for the forecast day itself only because each one is known before that day.",
         "factors_hash": _hash(factor_rows), "sales_extras_hash": _hash(extras),
     }
-    return metrics, meta
 
 
 @lru_cache(maxsize=4)
 def _factor_forecast(history: tuple, origin_text: str, factor_rows: tuple, extras: tuple) -> tuple:
     """Refit through the origin, as the history-only HGB does, and predict the target day."""
-    data = _factor_matrices(history, origin_text, factor_rows, extras)
+    data = _factor_matrices(history, origin_text, factor_rows, extras, "final")
+    if data is None:
+        raise ValueError("No day factor keeps enough coverage through the origin for the final factor model fit")
     with threadpool_limits(limits=1):
         estimators = _fit_boosting(np.vstack([data["x_train"], data["x_test"]]),
                                    np.concatenate([data["y_train"], data["y_test"]]))
@@ -494,7 +532,8 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
 
     History models read only date, branch_id, meal_id and units_sold. Baselines deliberately
     have null quantiles. HGB is refitted through origin for its final prediction. When day
-    factors are supplied the factor model is evaluated on the same test as a fourth row.
+    factors are supplied the factor model is evaluated on the same test as a fourth row; that
+    row chooses its factors on training days only, the refit through origin on every day.
     """
     started = time.perf_counter()
     if model not in MODELS:
@@ -517,7 +556,8 @@ def forecast(sales: list[dict], branch_id: str, origin: str = "2025-12-31",
     evaluated = deepcopy(_evaluate_factors(history, origin, factor_rows, extras)) if factor_rows else None
     if evaluated is not None:
         metrics.append(evaluated[0])
-        metadata["factor_model"] = evaluated[1]
+        final = deepcopy(_factor_selection(history, origin, factor_rows, "final"))
+        metadata["factor_model"] = _factor_metadata(final, evaluated[1], factor_rows, extras)
     if model == FACTOR_MODEL and evaluated is None:
         raise ValueError("The factor model needs at least one usable day factor for this branch")
     if model == FACTOR_MODEL:
