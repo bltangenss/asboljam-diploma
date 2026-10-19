@@ -23,7 +23,7 @@ const validSavedPlan=(plan:Row,branch:string)=>Boolean(
 
 /** Prints a frozen saved document; no draft, stock operation, order, or API request. */
 export default function ProductionPrint({plan,context:c}:{plan:Row;context:Context}){
- const id=useId(),mounted=useRef(false),pending=useRef(false),[snapshot,setSnapshot]=useState<PrintSnapshot|null>(null),[failed,setFailed]=useState(false);
+ const id=useId(),mounted=useRef(false),pending=useRef(false),closeSnapshot=useRef<()=>void>(()=>{}),[snapshot,setSnapshot]=useState<PrintSnapshot|null>(null),[failed,setFailed]=useState(false);
  const eligible=validSavedPlan(plan,c.branch),w=(kk:string,ru:string)=>c.lang==='kk'?kk:ru;
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[]);
  useEffect(()=>{
@@ -35,17 +35,16 @@ export default function ProductionPrint({plan,context:c}:{plan:Row;context:Conte
    if(printOwner===id){printOwner=null;document.body.classList.remove('production-print-active')}
    if(mounted.current)setSnapshot(null);
   };
+  closeSnapshot.current=finish;
   window.addEventListener('afterprint',finish);
   // Allow the portal and its table to commit before the browser takes the print snapshot.
   firstFrame=requestAnimationFrame(()=>{secondFrame=requestAnimationFrame(()=>{
    if(finished||!mounted.current)return;
-   try{window.print()}catch{if(mounted.current)setFailed(true)}finally{
-    // Browsers return when print/cancel completes; mocked or unsupported afterprint
-    // events must not leave a hidden document or prevent a later print attempt.
-    finish();
-   }
+   // Returning does not prove that every browser has finished taking its snapshot.
+   // Keep the document until afterprint or an explicit user close, including cancel.
+   try{window.print()}catch{if(mounted.current)setFailed(true);finish()}
   })});
-  return()=>{cancelAnimationFrame(firstFrame);cancelAnimationFrame(secondFrame);window.removeEventListener('afterprint',finish);finish()};
+  return()=>{cancelAnimationFrame(firstFrame);cancelAnimationFrame(secondFrame);window.removeEventListener('afterprint',finish);if(closeSnapshot.current===finish)closeSnapshot.current=()=>{};finish()};
  },[snapshot,id]);
  function print(){
   if(!eligible||pending.current||printOwner!==null)return;
@@ -60,6 +59,7 @@ export default function ProductionPrint({plan,context:c}:{plan:Row;context:Conte
  }
  return <div className="production-print-action">
   <button type="button" className="button secondary" disabled={!eligible||!!snapshot} onClick={print}><Printer size={17}/>{w('Дайындау жоспарын басып шығару','Распечатать план приготовления')}</button>
+  {snapshot&&<div className="production-print-prepared"><p role="status">{w('Баспа көшірмесі дайын. Басып шығару терезесі жабылғаннан кейін көшірмені жабуға болады.','Печатная копия подготовлена. После закрытия окна печати её можно закрыть.')}</p><button type="button" className="text-button" onClick={()=>closeSnapshot.current()}>{w('Баспа көшірмесін жабу','Закрыть печатную копию')}</button></div>}
   {failed&&<p className="alert warning" role="alert">{w('Басып шығару терезесін ашу мүмкін болмады. Қайта көріңіз.','Не удалось открыть окно печати. Попробуйте ещё раз.')}</p>}
   {snapshot&&createPortal(<CookingSheet snapshot={snapshot}/>,document.body)}
  </div>;

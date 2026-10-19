@@ -3,6 +3,7 @@ import {ArrowRight,Save} from 'lucide-react';
 import {ApiError} from '../../../packages/api-client';
 import {api,type Context,type Row,Button,ErrorBox,Table,Badge,date,fmt,items,name} from './shared';
 import './production-planning.css';
+import ProductionPrint from './ProductionPrint';
 
 export const productionQuery=(id:string)=>id?'&production_plan_id='+encodeURIComponent(id):'';
 export const productionScope=(c:Context,forecastId:string)=>JSON.stringify([c.user?.organization_id,c.user?.id,c.user?.role,c.branch,forecastId,c.dataContext?.source,c.dataContext?.data_origin,c.dataContext?.usage_mode]);
@@ -36,6 +37,7 @@ export function ProductionEvidence({plan,context:c,meals=[],compact=false}:{plan
   <p className="muted">{date(plan.target_date)} · {w('Сақталған уақыт','Сохранено')}: {plan.created_at?new Date(plan.created_at).toLocaleString(c.lang==='kk'?'kk-KZ':'ru-RU'):'—'} · {plan.usage_mode??'—'}</p>
   {!compact&&<Table t={c.t} rows={plan.portions||[]} columns={[{key:'meal_id',label:c.t('meal'),render:row=>mealTitle(row,meals)},{key:'forecast_point',label:w('Болжам · порция','Прогноз · порции'),numeric:true,render:row=>fmt(row.forecast_point,1)},{key:'portions',label:w('Дайындау · порция','Приготовить · порции'),numeric:true,render:row=>fmt(row.portions)}]}/>}
   <p className="production-help">{w('Бұл сақталған нұсқа қоймадан шығыс жасамайды және сатып алуды бекітпейді.','Этот сохранённый вариант не списывает склад и не утверждает закупку.')}</p>
+  <ProductionPrint plan={plan} context={c}/>
  </section>;
 }
 

@@ -57,10 +57,20 @@ test('Kazakh sheet keeps TEST and unknown freshness explicit',async({page})=>{
  const printed=(await captures(page))[0];expect(printed.text).toContain('Сақталған дайындау жоспары');expect(printed.text).toContain('Дайындау, порция');expect(printed.text).toContain('REAL / TEST');expect(printed.text).toContain('өзектілігі белгісіз');expect(printed.text).toContain('орындалу есебі емес');expect(printed.rows[1][1]).toBe('0');await cleaned(page);expect(state.mutations).toEqual([]);
 });
 
-test('cancel or omitted afterprint event cleans the portal and allows another print',async({page})=>{
+test('omitted afterprint keeps the snapshot until explicit close and allows another print',async({page})=>{
  const state=await install(page,{mode:'noevent',source:null,freshness:'changed'});await page.emulateMedia({media:'print'});
- const button=page.getByRole('button',{name:buttonName(),exact:true});await button.click();await expect.poll(async()=>(await captures(page)).length).toBe(1);await cleaned(page);await expect(button).toBeEnabled();await button.click();await expect.poll(async()=>(await captures(page)).length).toBe(2);await cleaned(page);
+ const button=page.getByRole('button',{name:buttonName(),exact:true});await button.click();await expect.poll(async()=>(await captures(page)).length).toBe(1);
+ await expect(page.getByTestId('production-print-sheet')).toHaveCount(1);await page.emulateMedia({media:'screen'});await expect(button).toBeDisabled();
+ await page.getByRole('button',{name:'Закрыть печатную копию',exact:true}).click();await cleaned(page);await expect(button).toBeEnabled();
+ await page.emulateMedia({media:'print'});await button.click();await expect.poll(async()=>(await captures(page)).length).toBe(2);await page.emulateMedia({media:'screen'});await page.getByRole('button',{name:'Закрыть печатную копию',exact:true}).click();await cleaned(page);
  const printed=(await captures(page))[1];expect(printed.text).toContain('Источник данных неизвестен');expect(printed.text).toContain('Исходные данные изменились');expect(state.mutations).toEqual([]);
+});
+
+test('asynchronous print return retains the saved snapshot until delayed afterprint',async({page})=>{
+ const state=await install(page,{mode:'noevent'});await page.emulateMedia({media:'print'});
+ await page.getByRole('button',{name:buttonName(),exact:true}).click();await expect.poll(async()=>(await captures(page)).length).toBe(1);
+ await expect(page.getByTestId('production-print-sheet')).toContainText(fixture.name);await expect(page.getByTestId('production-print-sheet')).toContainText(fixture.reason);
+ await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));await cleaned(page);await expect(page.getByRole('button',{name:buttonName(),exact:true})).toBeEnabled();expect(state.mutations).toEqual([]);
 });
 
 test('print dialog error is visible and does not lock later attempts',async({page})=>{

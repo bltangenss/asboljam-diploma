@@ -1,5 +1,7 @@
 .production-print-action{margin-top:16px}
 .production-print-action>.button{white-space:normal;text-align:left;line-height:1.5}
+.production-print-prepared{margin-top:12px;font-size:13px;line-height:1.6;color:var(--muted)}
+.production-print-prepared>.text-button{margin-top:8px}
 .production-print-root{display:none}
 @media print{
  @page production-cooking{size:A4 portrait;margin:16mm 14mm 18mm}
