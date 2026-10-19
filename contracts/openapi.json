@@ -875,6 +875,210 @@
         }
       }
     },
+    "/api/v1/cities": {
+      "get": {
+        "summary": "Cities",
+        "operationId": "cities_api_v1_cities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/branch-profiles": {
+      "get": {
+        "summary": "Branch Profiles",
+        "operationId": "branch_profiles_api_v1_branch_profiles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/branches/{branch_id}/profile": {
+      "put": {
+        "summary": "Set Branch Profile",
+        "operationId": "set_branch_profile_api_v1_branches__branch_id__profile_put",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Branch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/factors/fill": {
+      "post": {
+        "summary": "Fill Factors",
+        "operationId": "fill_factors_api_v1_factors_fill_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FactorFillInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather": {
+      "get": {
+        "summary": "Weather Outlook",
+        "operationId": "weather_outlook_api_v1_weather_get",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Branch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registration": {
+      "get": {
+        "summary": "Registration Status",
+        "operationId": "registration_status_api_v1_registration_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/register": {
+      "post": {
+        "summary": "Register",
+        "operationId": "register_api_v1_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health",
@@ -3816,6 +4020,39 @@
         ],
         "title": "CollectionResponse"
       },
+      "FactorFillInput": {
+        "properties": {
+          "branch_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Branch Id"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "weather": {
+            "type": "boolean",
+            "title": "Weather",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "branch_id",
+          "date_from",
+          "date_to"
+        ],
+        "title": "FactorFillInput"
+      },
       "ForecastInput": {
         "properties": {
           "branch_id": {
@@ -4223,6 +4460,34 @@
         ],
         "title": "ProductionPortion"
       },
+      "ProfileInput": {
+        "properties": {
+          "city_code": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "City Code"
+          },
+          "establishment_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Establishment Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "city_code"
+        ],
+        "title": "ProfileInput"
+      },
       "QueuedResponse": {
         "properties": {
           "run_id": {
@@ -4456,6 +4721,56 @@
           "refresh_token"
         ],
         "title": "Refresh"
+      },
+      "RegistrationInput": {
+        "properties": {
+          "establishment_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Establishment Name"
+          },
+          "establishment_type": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Establishment Type"
+          },
+          "city_code": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "City Code"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 12,
+            "title": "Password"
+          },
+          "accept_test_mode": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accept Test Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "establishment_name",
+          "establishment_type",
+          "city_code",
+          "email",
+          "password",
+          "accept_test_mode"
+        ],
+        "title": "RegistrationInput"
       },
       "RunCollection": {
         "properties": {

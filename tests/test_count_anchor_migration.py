@@ -47,7 +47,7 @@ class CountAnchorMigrationTests(unittest.TestCase):
     def snapshot(self):
         with self.engine.connect() as db:
             return {name: [dict(row) for row in db.execute(select(table).order_by(*table.primary_key.columns)).mappings()]
-                for name, table in Base.metadata.tables.items() if name not in migrations.COUNT_ANCHOR_TABLE_NAMES + migrations.PRODUCTION_TABLE_NAMES}
+                for name, table in Base.metadata.tables.items() if name not in migrations.COUNT_ANCHOR_TABLE_NAMES + migrations.PRODUCTION_TABLE_NAMES + migrations.PROFILE_TABLE_NAMES}
 
     def values(self, **changes):
         return dict(id='anchor', ledger_id='ledger', organization_id='A', branch_id='01', sequence=1,

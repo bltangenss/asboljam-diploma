@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import func,select
-from apps.api.db import ROOT,Organization,Record,User,make_engine,migrate,sessions
+from apps.api.db import ROOT,BranchProfile,Organization,Record,User,make_engine,migrate,sessions
 from apps.api.importing import SCHEMAS,insert_rows,parse_csv,validate_rows
 from apps.api.security import password_hash
 
@@ -18,6 +18,8 @@ from apps.api.security import password_hash
 DATASETS={'kz':ROOT/'data'/'kz','raw':ROOT/'data'/'raw'}
 # Kinds a dataset may omit. They are also added to an existing demo that holds the same dataset.
 OPTIONAL_KINDS=('day_factors',)
+# Where the shipped KZ demo branches are and what they are; set only when no profile exists.
+DEMO_PROFILES={'kz':{'1':('kyzylorda','canteen'),'2':('kyzylorda','cafe'),'3':('kyzylorda','restaurant')}}
 
 def seed(factory,password,email='admin@asboljam.local',organization_id='demo',dataset='raw'):
     if os.environ.get('ASBOLJAM_ENV','local').strip().lower() != 'local':
@@ -46,6 +48,11 @@ def seed(factory,password,email='admin@asboljam.local',organization_id='demo',da
                 raise ValueError(f'{kind}: {errors[:3]}')
             insert_rows(db,organization_id,kind,rows)
             db.flush()
+        if stored in (None,dataset):
+            for branch_id,(city_code,kind) in DEMO_PROFILES.get(dataset,{}).items():
+                if db.get(BranchProfile,(organization_id,branch_id)) is None:
+                    db.add(BranchProfile(organization_id=organization_id,branch_id=branch_id,city_code=city_code,
+                                         establishment_type=kind,updated_by='demo_seed'))
         user=db.scalar(select(User).where(User.email==email.lower()))
         created=False
         if user is None:

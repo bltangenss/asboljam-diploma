@@ -1,6 +1,7 @@
 import UserAdmin from './UserAdmin';
 import AccountSecurity from './AccountSecurity';
 import StockShelf from './StockShelf';
+import BranchProfiles from './BranchProfiles';
 import {SheetDetails} from './Sheet';
 import StockLedger from './StockLedger';
 import SalesHistory from './SalesHistory';
@@ -104,6 +105,6 @@ export function Reference(c:Context & {section:string}){
    :<section className="panel reference-journal">{section==='inventory'&&<div className="stock-counted-heading"><h2>{s('counted')}</h2><p>{s('countedHint')}</p><p>{kk?'Жоқ жол — белгісіз қалдық. Нөлдік қалдық бөлек көрсетілуі керек.':'Отсутствующая строка — неизвестный остаток. Нулевой остаток указывается явно.'}</p></div>}<Table t={t} rows={rows} columns={columns}/><Pagination data={state.data} cursor={cursor} setCursor={setCursor}/></section>}
   </DataState>}
   {section==='inventory'&&<StockLedger {...c} countedStock={<DataState state={state} t={t} retry={refresh}><section className="panel reference-journal"><div className="stock-counted-heading"><h2>{s('counted')}</h2><p>{s('countedHint')}</p><p>{kk?'Жоқ жол — белгісіз қалдық. Нөлдік қалдық бөлек көрсетілуі керек.':'Отсутствующая строка — неизвестный остаток. Нулевой остаток указывается явно.'}</p></div><StockShelf rows={rows} columns={columns} day={c.inventoryDate} t={t} lang={lang}/><Pagination data={state.data} cursor={cursor} setCursor={setCursor}/></section></DataState>}/>}
-  {section==='settings'&&<><section className="panel reference-security"><AccountSecurity {...c}/></section>{user?.role==='admin'&&<section className="panel reference-access"><UserAdmin {...c}/></section>}</>}
+  {section==='settings'&&<><section className="panel reference-security"><AccountSecurity {...c}/></section>{user?.role==='admin'&&<section className="panel reference-profiles"><BranchProfiles {...c}/></section>}{user?.role==='admin'&&<section className="panel reference-access"><UserAdmin {...c}/></section>}</>}
  </div>;
 }

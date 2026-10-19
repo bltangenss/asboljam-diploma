@@ -8,7 +8,8 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-GENERAL_SOURCES = ('main.py', 'data_policy.py', 'import_service.py', 'importing.py', 'accounts.py', 'lineage.py', 'production.py')
+GENERAL_SOURCES = ('main.py', 'data_policy.py', 'import_service.py', 'importing.py', 'accounts.py', 'lineage.py', 'production.py',
+                   'places_api.py', 'factor_builder.py', 'weather.py')
 STOCK_SOURCES = ('stock.py', 'stock_service.py', 'stock_api.py', 'stock_recipes.py', 'stock_dependencies.py')
 CODE = re.compile(r"""['"]([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)['"]""")
 # Codes that never reach the web interface as a refusal: operator CLIs, setting names,
@@ -19,6 +20,7 @@ NOT_WEB = {
     'IMPORT_MAX_BYTES', 'IMPORT_MAX_ROWS', 'DATABASE_UNAVAILABLE', 'MIGRATION_REQUIRED',
     'NATIVE_REAL_UNSUPPORTED', 'NATIVE_STOCK_UNSUPPORTED', 'REFRESH_INVALID', 'REFRESH_REUSED',
     'EXPIRED_LOTS', 'EXPIRING_LOTS', 'DEMO_ORIGIN', 'DEMO_TARGET',
+    'ASBOLJAM_SELF_REGISTRATION', 'WEATHER_PROVIDER', 'WEATHER_API_KEY', 'WEATHER_FORECAST_URL', 'WEATHER_ARCHIVE_URL',
 }
 KAZAKH_ONLY = re.compile('[әғқңөұүһіӘҒҚҢӨҰҮҺІ]')
 

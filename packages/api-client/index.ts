@@ -47,5 +47,6 @@ export class ApiClient {
   }
   async session() { const data = await this.request<{user:User;csrf_token:string}>('/session/me'); this.csrf=data.csrf_token; return data.user; }
   async login(email:string,password:string) { const data=await this.request<{user:User;csrf_token:string}>('/session/login',{method:'POST',body:JSON.stringify({email,password})});this.csrf=data.csrf_token;return data.user; }
+  async register(input:{establishment_name:string;establishment_type:string;city_code:string;email:string;password:string;accept_test_mode:true}) { const data=await this.request<{user:User;csrf_token:string}>('/register',{method:'POST',body:JSON.stringify(input)});this.csrf=data.csrf_token;return data.user; }
   post<T=any>(path:string,body:unknown,headers?:Record<string,string>) { return this.request<T>(path,{method:'POST',body:JSON.stringify(body),headers}); }
 }

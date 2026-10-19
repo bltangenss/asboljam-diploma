@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {ChartNoAxesCombined,ChevronDown,Database,Eye,EyeOff,FlaskConical,Leaf,LogOut,Menu,Search,Settings,ShieldCheck,ShoppingBasket,TrendingUp,WifiOff,ArrowRight,X,Store} from 'lucide-react';
 import {CommandPalette} from './CommandPalette';
+import Register from './Register';
 import {api,words,items,date,shiftDate,workspaceData,ErrorBox,type Lang,type Row,type Context,type WorkspaceSettings,type WorkspaceDataContext} from './shared';
 import Dashboard from './Dashboard';
 import DataWorkspace from './DataWorkspace';
@@ -206,6 +207,7 @@ export default function App() {
   </div>;
 }
 function Login({t,lang,setLang,error,onLogin}:any){
+ const[mode,setMode]=useState<'login'|'register'>(()=>location.pathname==='/register'?'register':'login');
  const[email,setEmail]=useState(''),[password,setPassword]=useState(''),[show,setShow]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState<any>(error);
  const copy=(kk:string,ru:string)=>lang==='kk'?kk:ru;
  async function submit(e:FormEvent){e.preventDefault();setBusy(true);setErr(null);try{onLogin(await api.login(email,password))}catch(e){setErr(e)}finally{setBusy(false)}}
@@ -226,14 +228,15 @@ function Login({t,lang,setLang,error,onLogin}:any){
   </div>
   <div className="login-panel">
    <button className="language login-language" aria-label={copy('Тілді ауыстыру','Переключить язык')} onClick={()=>setLang(lang==='kk'?'ru':'kk')}>ҚАЗ / РУС</button>
-   <form onSubmit={submit} className="login-form">
+   {mode==='register'?<Register t={t} lang={lang} onRegistered={onLogin} onBack={()=>{setMode('login');if(location.pathname==='/register')history.replaceState(history.state,'','/')}}/>:<form onSubmit={submit} className="login-form">
     <span className="eyebrow">{copy('ҚАЙТА ҚОШ КЕЛДІҢІЗ','С ВОЗВРАЩЕНИЕМ')}</span><h2>{t('login')}</h2><p>{copy('Филиалыңыздың жұмыс кеңістігін ашыңыз.','Откройте рабочее пространство вашего филиала.')}</p>
     {err&&<div role={err.code==='PASSWORD_CHANGED'?'status':'alert'} className={`alert ${err.code==='PASSWORD_CHANGED'?'success':'danger'}`}>{err.code==='PASSWORD_CHANGED'?t('passwordChangedLogin'):err.code==='AUTH_REQUIRED'?copy('Сессия аяқталды. Қайта кіріңіз.','Сессия завершена. Войдите снова.'):err.status===401?t('loginError'):err.message}</div>}
     <label>{t('email')}<input type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>
     <div className="login-password-field"><label htmlFor="login-password">{t('password')}</label><span className="password-wrap"><input id="login-password" type={show?'text':'password'} autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="icon-button" title={show?copy('Құпиясөзді жасыру','Скрыть пароль'):copy('Құпиясөзді көрсету','Показать пароль')} aria-pressed={show} onClick={()=>setShow(!show)}>{show?<EyeOff size={19}/>:<Eye size={19}/>}</button></span></div>
     <button className="button primary wide" disabled={busy}>{busy?<><span className="spinner"/>{copy('Кіру…','Входим…')}</>:t('login')}<ArrowRight size={17}/></button>
     <p className="login-hint"><ShieldCheck size={16}/>{t('workspaceLoginHint')}</p><div className="login-demo">{t('workspaceLoginNotice')}</div>
-   </form>
+    <p className="login-register">{copy('Мекемеңіз әлі тіркелмеген бе?','Ваше заведение ещё не зарегистрировано?')} <button type="button" className="text-button" onClick={()=>setMode('register')}>{copy('Тіркелу','Регистрация')}<ArrowRight size={15}/></button></p>
+   </form>}
   </div>
  </div>
 }

@@ -22,6 +22,7 @@ from sqlalchemy.orm import object_session
 from .accounts import CredentialError, change_password, lock_user, revoke_user_access
 from .config import load_settings
 from .db import AuthSession, Audit, Forecast, Idempotency, ImportBatch, Job, LoginAttempt, Organization, Plan, ProductionPlan, Record, RefreshToken, User, make_engine, migrate, sessions
+from .places_api import register_place_routes
 from .factors import MIN_COVERAGE as FACTOR_MIN_COVERAGE, catalogue as factor_catalogue_items
 from .importing import OPERATIONAL_KINDS, SCHEMAS, insert_rows, parse_csv, rows_for, safe_csv, validate_rows
 from .import_service import ImportProblem, batch_view, commit_import, get_batch, list_batches, preview_import
@@ -194,7 +195,7 @@ def create_app(database_url=None):
             # The normal Pydantic response includes input values. Passwords stay private.
             return JSONResponse({'detail': {'code': 'PASSWORD_INVALID',
                 'message': 'Құпиясөз өрістерін тексеріңіз: қазіргі 1–1024, жаңа 12–1024 таңба.'}}, 422)
-        if request.url.path in {'/api/v1/session/login','/api/v1/auth/token','/api/v1/auth/refresh','/api/v1/users'}:
+        if request.url.path in {'/api/v1/session/login','/api/v1/auth/token','/api/v1/auth/refresh','/api/v1/users','/api/v1/register'}:
             return JSONResponse({'detail': {'code': 'VALIDATION_ERROR',
                 'message': 'Сұрау өрістерін тексеріңіз.'}}, 422)
         return await request_validation_exception_handler(request, exc)
@@ -284,6 +285,9 @@ def create_app(database_url=None):
         return row
     register_production_routes(app, current=current, get_db=get_db, roles=roles,
                                branch_access=branch_access, scoped=scoped)
+    register_place_routes(app, current=current, get_db=get_db, roles=roles, branch_access=branch_access,
+                          fail=fail, audit=audit, origin_check=origin_check, user_json=user_json,
+                          metadata=metadata, secure=secure)
     # Unknown emails still pay one scrypt check, so response time does not reveal registered addresses.
     unknown_user_hash = password_hash(secrets.token_urlsafe(24))
     def authenticate(data, request, db):

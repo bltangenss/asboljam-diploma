@@ -26,12 +26,12 @@ class ProductionMigrationTests(unittest.TestCase):
     def snapshot(self):
         with self.engine.connect() as db:
             return {name: [dict(row) for row in db.execute(select(table).order_by(*table.primary_key.columns)).mappings()]
-                    for name, table in Base.metadata.tables.items() if name not in migrations.PRODUCTION_TABLE_NAMES}
+                    for name, table in Base.metadata.tables.items() if name not in migrations.PRODUCTION_TABLE_NAMES + migrations.PROFILE_TABLE_NAMES}
 
     def test_upgrade_preserves_all_prior_rows_and_is_repeatable(self):
         self.prepare(); before=self.snapshot()
         self.assertTrue(before['stock_count_anchors'])
-        self.assertEqual(migrate(self.engine), ('0009',))
+        self.assertEqual(migrate(self.engine), migrations.VERSIONS[8:])
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.versions(), migrations.VERSIONS)
         with self.engine.connect() as db:
@@ -51,7 +51,7 @@ class ProductionMigrationTests(unittest.TestCase):
         self.assertEqual(self.versions(), migrations.VERSIONS[:8])
         self.assertTrue(set(migrations.PRODUCTION_TABLE_NAMES).isdisjoint(inspect(self.engine).get_table_names()))
         self.assertEqual(self.snapshot(),before)
-        self.assertEqual(migrate(self.engine),('0009',))
+        self.assertEqual(migrate(self.engine),migrations.VERSIONS[8:])
 
     def test_fresh_database_and_concurrent_migrations(self):
         with ThreadPoolExecutor(max_workers=3) as pool:

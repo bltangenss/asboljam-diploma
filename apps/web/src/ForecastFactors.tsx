@@ -1,5 +1,6 @@
 import {ArrowRight,CalendarDays,CloudSun,Footprints,GraduationCap,Moon,Store,Wallet} from 'lucide-react';
 import {type Context,type Row,DataState,date,fmt,items,useData} from './shared';
+import {CityWeather,FactorAutofill,useBranchCity} from './FactorAutofill';
 
 // The twenty day factors: what each branch has imported, and what a forecast actually used.
 const groups:Record<string,{icon:any;name:[string,string]}>={
@@ -39,7 +40,7 @@ export function useFactorCatalogue(c:Context){
 
 export function FactorCatalogue(c:Context){
  const kk=c.lang==='kk',copy=(kz:string,ru:string)=>kk?kz:ru;
- const state=useFactorCatalogue(c),rows=items(state.data);
+ const state=useFactorCatalogue(c),rows=items(state.data),city=useBranchCity(c);
  const loaded=rows.filter(item=>item.origin==='day_factors'&&item.days>0).length;
  const derived=rows.filter(item=>item.origin==='daily_sales').length;
  const missing=rows.filter(item=>item.origin==='day_factors'&&!item.days).length;
@@ -50,6 +51,8 @@ export function FactorCatalogue(c:Context){
     <p>{copy('Сатылымнан бөлек болжамға әсер ететін, алдын ала белгілі деректер. Факторлы модель болжам күніне мәні бар және оқу күндерінің кемінде 90%-ын қамтитын факторды ғана қолданады.','Заранее известные данные, которые влияют на продажи помимо их истории. Модель с факторами берёт фактор, только если у него есть значение на день прогноза и покрыто не меньше 90% дней обучения.')}</p></div>
    {canImport&&<button className="button secondary" onClick={()=>c.go('/imports?kind=day_factors')}>{copy('Факторлар CSV жүктеу','Загрузить CSV факторов')}<ArrowRight size={16}/></button>}
   </div>
+  <FactorAutofill {...c} city={city}/>
+  <CityWeather {...c} city={city}/>
   <DataState state={state} t={c.t} retry={c.refresh}>
    <p className="factor-summary"><strong>{loaded}</strong> {copy('жүктелген','загружено')} · <strong>{derived}</strong> {copy('сатылым тарихынан','из истории продаж')} · <strong>{missing}</strong> {copy('деректі күтеді','ждут данных')}{state.data?.target_date&&<> · {copy('болжам күні','день прогноза')} {date(state.data.target_date)}</>}</p>
    <div className="factor-groups">{Object.entries(groups).map(([key,group])=>{const list=rows.filter(item=>item.group===key);if(!list.length)return null;const Icon=group.icon;return <section className="factor-group" key={key}>

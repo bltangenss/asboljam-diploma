@@ -317,6 +317,15 @@ class ProductionPlanReceipt(Base):
     response: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[str] = mapped_column(String(64), default=now)
     __table_args__ = (UniqueConstraint('organization_id', 'actor_id', 'key', name='uq_production_plan_receipt'),)
+class BranchProfile(Base):
+    # Where a branch is (city for solar times and weather) and what it is; not operational data.
+    __tablename__ = 'branch_profiles'
+    organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    branch_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    city_code: Mapped[str] = mapped_column(String(32))
+    establishment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    updated_by: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[str] = mapped_column(String(64), default=now)
 class Audit(Base):
     __tablename__ = 'audit_events'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

@@ -424,3 +424,46 @@ details>.sheet{position:fixed;top:0;right:0;bottom:0;z-index:50;width:min(860px,
 .factor-skipped li{display:flex;flex-wrap:wrap;gap:4px 10px}
 .factor-skipped span{color:var(--muted)}
 @media(max-width:767px){.factor-catalogue{padding:16px 14px}.factor-groups{grid-template-columns:1fr}.factor-status{white-space:normal}}
+
+/* Registration: one establishment, its city and type, in test mode. */
+.login-register{margin:14px 0 0;font-size:13px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.register-form{gap:12px}
+.register-back{display:flex;align-self:flex-start;align-items:center;gap:4px;margin-bottom:6px;font-size:13px}
+.register-form>.eyebrow{display:block}
+.register-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.register-row>*{min-width:0}
+.register-note{font-size:12px;color:var(--muted)}
+.register-note strong{color:var(--danger)}
+.register-consent{flex-direction:row!important;align-items:flex-start;gap:10px;font-size:12px;font-weight:450;line-height:1.5;color:var(--ink-2);padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fafaf9}
+.register-consent input{appearance:auto;-webkit-appearance:checkbox;flex-shrink:0;width:16px;height:16px;min-height:0;margin:2px 0 0;padding:0;border:0;box-shadow:none}
+.register-consent span svg{vertical-align:-3px;margin-right:4px;color:var(--warning)}
+@media(max-width:560px){.register-row{grid-template-columns:1fr}}
+
+/* Branch cities in settings. */
+.branch-profiles h2{display:flex;align-items:center;gap:8px;font-size:17px}
+.branch-profiles ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.branch-profiles li{display:grid;grid-template-columns:minmax(160px,1fr) minmax(200px,1.4fr) minmax(140px,1fr) auto;align-items:end;gap:10px;padding:10px 0;border-top:1px solid var(--border)}
+.branch-profiles li>strong{align-self:center;font-size:14px}
+.branch-profiles label{margin:0;font-size:12px}
+@media(max-width:860px){.branch-profiles li{grid-template-columns:1fr}}
+
+/* Automatic factors and the week's weather on the data page. */
+.factor-autofill{margin:0 0 16px;padding:14px 16px;border:1px dashed var(--border-strong);border-radius:12px;background:#fafaf9}
+.factor-autofill-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.factor-autofill-head>svg{color:var(--action);flex-shrink:0;margin-top:2px}
+.factor-autofill-head>div{display:flex;flex-direction:column;gap:2px}
+.factor-autofill-head strong{font-size:14px}
+.factor-autofill-head span{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.factor-autofill-form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-top:10px}
+.factor-autofill-form label{margin:0;font-size:12px}
+.factor-autofill-weather{flex-direction:row!important;align-items:center;gap:8px;font-size:13px!important;min-height:44px}
+.factor-autofill-weather input{appearance:auto;-webkit-appearance:checkbox;width:16px;height:16px;min-height:0;padding:0;margin:0;border:0;box-shadow:none}
+.city-weather{margin:0 0 16px}
+.city-weather h3{display:flex;align-items:center;gap:7px;font-size:14px;margin:0 0 8px}
+.city-weather h3 svg{color:var(--muted)}
+.city-weather ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.city-weather li{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-variant-numeric:tabular-nums}
+.city-weather li span{font-size:12px;color:var(--muted)}
+.city-weather li strong{font-size:18px;font-weight:620}
+.city-weather li small{font-size:11px;color:var(--muted)}
+@media(max-width:767px){.city-weather ol{grid-template-columns:repeat(4,minmax(0,1fr))}}
