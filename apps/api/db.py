@@ -326,6 +326,28 @@ class BranchProfile(Base):
     establishment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     updated_by: Mapped[str] = mapped_column(String(64))
     updated_at: Mapped[str] = mapped_column(String(64), default=now)
+class DayClosure(Base):
+    # One business day of a branch: the facts a manager entered (draft) and, once closed, the
+    # sales imports that recorded them. Empty values stay unknown; zero is a confirmed zero.
+    __tablename__ = 'day_closures'
+    organization_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    branch_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    business_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16))
+    version: Mapped[int] = mapped_column(Integer)
+    is_open: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    lines: Mapped[list] = mapped_column(JSON)
+    data_origin: Mapped[str] = mapped_column(String(16))
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[str] = mapped_column(String(64), default=now)
+    updated_by: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[str] = mapped_column(String(64), default=now)
+    closed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    closed_at: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    batch_ids: Mapped[list] = mapped_column(JSON, default=list)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    __table_args__ = (CheckConstraint("status in ('draft','closed')", name='ck_day_closure_status'),
+                      CheckConstraint('version >= 1', name='ck_day_closure_version'))
 class Audit(Base):
     __tablename__ = 'audit_events'
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
