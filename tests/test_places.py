@@ -12,9 +12,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from apps.api import factor_builder, kz_calendar, weather
+from apps.api import factor_builder, kz_calendar, places_api, weather
 from apps.api.cities import CITIES, ESTABLISHMENT_TYPES
-from apps.api.db import Audit, BranchProfile, Organization, Record, User
+from apps.api.db import Audit, AuthSession, BranchProfile, Organization, Record, User
 from apps.api.main import create_app
 from scripts import generate_kz_demo, seed_demo
 
@@ -169,6 +169,28 @@ class ApiTests(unittest.TestCase):
         seed_demo.seed(self.app.state.sessions, PASSWORD, dataset='kz')
         response = self.client().post('/api/v1/register', json=self.registration(email='admin@asboljam.local'), headers=ORIGIN)
         self.assertEqual((response.status_code, response.json()['detail']['code']), (409, 'EMAIL_EXISTS'))
+
+    def test_concurrent_registration_of_one_email_is_a_clean_conflict(self):
+        # Another registration commits the same e-mail after this one's check but before its write.
+        def race(password):
+            with self.app.state.sessions() as other:
+                other.add(Organization(id='org-race', name='Race', timezone='Asia/Almaty', currency='KZT', status='active',
+                                       data_policy='synthetic_only', provenance='self_registration'))
+                other.add(User(id='race-user', organization_id='org-race', email='owner@samsa.test',
+                               password_hash='not-a-real-hash', role='admin', branch_ids=['1']))
+                other.commit()
+            return real(password)
+        real = places_api.password_hash
+        with patch('apps.api.places_api.password_hash', side_effect=race):
+            response = self.client().post('/api/v1/register', json=self.registration(), headers=ORIGIN)
+        self.assertEqual((response.status_code, response.json()['detail']['code']), (409, 'EMAIL_EXISTS'))
+        self.assertNotIn('asboljam_session', response.headers.get('set-cookie', ''))
+        with self.app.state.sessions() as db:
+            self.assertEqual([row.id for row in db.scalars(select(Organization))], ['org-race'])
+            for model in (BranchProfile, AuthSession):
+                self.assertEqual(db.scalar(select(func.count()).select_from(model)), 0)
+            self.assertEqual(db.scalar(select(func.count()).select_from(Record)), 0)
+            self.assertEqual(db.scalar(select(func.count()).select_from(Audit).where(Audit.action == 'tenant.registered')), 0)
 
     def test_factor_fill_builds_a_reviewable_preview_and_keeps_existing_rows(self):
         seed_demo.seed(self.app.state.sessions, PASSWORD, dataset='kz')

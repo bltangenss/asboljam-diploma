@@ -189,24 +189,26 @@ def register_place_routes(app, *, current, get_db, roles, branch_access, fail, a
             fail('PASSWORD_TOO_SIMILAR', 'Құпиясөз пошта мен атауға ұқсамауы керек.', 422)
         if db.scalar(select(User.id).where(User.email == email)) is not None:
             fail('EMAIL_EXISTS', 'Бұл поштамен тіркелгі бар. Кіріңіз немесе басқа пошта енгізіңіз.', 409)
-        organization = Organization(id='org-' + uuid.uuid4().hex[:16], name=name, timezone=place['timezone'],
-                                    currency='KZT', status='active', data_policy='synthetic_only',
-                                    provenance='self_registration')
-        user = User(id=uuid.uuid4().hex, organization_id=organization.id, email=email,
-                    password_hash=password_hash(data.password), role='admin', branch_ids=['1'], active=True)
-        db.add(organization);db.add(user)
-        db.flush()
-        insert_rows(db, organization.id, 'branches', [{'branch_id': '1', 'branch_name': name, 'data_origin': 'SYNTHETIC'}])
-        db.add(BranchProfile(organization_id=organization.id, branch_id='1', city_code=place['code'],
-                             establishment_type=data.establishment_type, updated_by=user.id))
-        db.add(Audit(id=uuid.uuid4().hex, organization_id=organization.id, branch_id=None, actor_id=user.id,
-                     action='tenant.registered', entity_id=organization.id,
-                     details={'city_code': place['code'], 'establishment_type': data.establishment_type,
-                              'data_policy': 'synthetic_only'}))
-        token, csrf = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
-        db.add(AuthSession(id=uuid.uuid4().hex, user_id=user.id, token_hash=token_hash(token), csrf_token=csrf,
-                           kind='web', expires_at=time.time() + 8 * 3600))
+        # Organization, admin, branch, profile, audit and session form one transaction: a concurrent
+        # registration of the same e-mail wins whole, and this one leaves nothing behind.
         try:
+            organization = Organization(id='org-' + uuid.uuid4().hex[:16], name=name, timezone=place['timezone'],
+                                        currency='KZT', status='active', data_policy='synthetic_only',
+                                        provenance='self_registration')
+            user = User(id=uuid.uuid4().hex, organization_id=organization.id, email=email,
+                        password_hash=password_hash(data.password), role='admin', branch_ids=['1'], active=True)
+            db.add(organization);db.add(user)
+            db.flush()
+            insert_rows(db, organization.id, 'branches', [{'branch_id': '1', 'branch_name': name, 'data_origin': 'SYNTHETIC'}])
+            db.add(BranchProfile(organization_id=organization.id, branch_id='1', city_code=place['code'],
+                                 establishment_type=data.establishment_type, updated_by=user.id))
+            db.add(Audit(id=uuid.uuid4().hex, organization_id=organization.id, branch_id=None, actor_id=user.id,
+                         action='tenant.registered', entity_id=organization.id,
+                         details={'city_code': place['code'], 'establishment_type': data.establishment_type,
+                                  'data_policy': 'synthetic_only'}))
+            token, csrf = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
+            db.add(AuthSession(id=uuid.uuid4().hex, user_id=user.id, token_hash=token_hash(token), csrf_token=csrf,
+                               kind='web', expires_at=time.time() + 8 * 3600))
             db.commit()
         except IntegrityError:
             db.rollback()
