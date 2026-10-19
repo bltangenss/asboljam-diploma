@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {AlertTriangle,ArrowRight,ArrowUpRight,CalendarDays,Check,ClipboardCheck,Database,Package,ShoppingBasket,TrendingUp} from 'lucide-react';
+import {AlertTriangle,ArrowRight,ArrowUpRight,CalendarDays,Check,ClipboardCheck,Database,Lock,Package,ShoppingBasket,TrendingUp} from 'lucide-react';
 import {type Context,type Row,useData,fmt,money,date,name,shiftDate,Badge,Button,DataState,Empty} from './shared';
 import './dashboard-today.css';
 import GetStarted,{cabinetIsEmpty} from './GetStarted';
@@ -68,6 +68,7 @@ export default function Dashboard(c:Context){
  return <div className="today-page">
   <header className="day-header">
    <div><h1>{copy('Бүгін','Сегодня')}</h1><p className="day-context"><CalendarDays size={15}/><strong>{synthetic?copy('Оқу күні','Учебный день'):copy('Есептеу күні','День расчёта')} · {date(target)}</strong><span>{branchName||t('branch')+' '+branch}</span>{!source&&<span>{copy('Дерек көзі белгісіз','Источник неизвестен')}</span>}</p></div>
+   {canOperate&&<button className="button secondary day-close-entry" onClick={()=>go('/day-close')}><Lock size={16}/>{copy('Күнді жабу','Закрыть день')}</button>}
    {c.dataContext?.dates_editable&&<label className="dashboard-date">{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}<select value={c.inventoryDate} onChange={event=>c.setInventoryDate(event.target.value)}>{!c.inventoryDate&&<option value="">{t('snapshotMissing')}</option>}{c.dataContext.inventory_dates.map(value=><option key={value} value={value}>{date(value)}</option>)}</select></label>}
   </header>
   {synthetic&&<p className="today-source-note" role="note"><Database size={15}/>{copy('Бұл — жасанды деректердегі оқу сценарийі. Күндер нақты күнтізбелік бүгінге ауыстырылмайды.','Это учебный сценарий на синтетических данных. Даты не переносятся на сегодняшнее число.')}</p>}

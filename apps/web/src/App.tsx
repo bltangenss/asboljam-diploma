@@ -3,6 +3,7 @@ import {CalendarDays,ChevronDown,Eye,EyeOff,FlaskConical,LogOut,MapPin,Menu,Sear
 import {CommandPalette} from './CommandPalette';
 import Register from './Register';
 import Profile from './Profile';
+import DayClose from './DayClose';
 import {BRAND,Logo} from './Logo';
 import {api,words,items,date,shiftDate,workspaceData,ErrorBox,type Lang,type Row,type Context,type WorkspaceSettings,type WorkspaceDataContext} from './shared';
 import Dashboard from './Dashboard';
@@ -157,7 +158,7 @@ export default function App() {
  else if(!operations||(!branch&&!(section==='imports'&&canBootstrap)))content=<Onboarding {...ctx}/>;
  else if(contextError&&section!=='imports')content=<ErrorBox error={contextError} t={t} retry={()=>void refreshWorkspace()}/>;
  else if(branch&&dataContext?.branch_id!==branch&&section!=='imports')content=<div className="alert info" role="status">{t('workspaceLoading')}</div>;
- else content=section==='dashboard'?<Dashboard {...ctx}/>:section==='data'?<DataWorkspace {...ctx}/>:section==='sales'?<Sales {...ctx}/>:section==='forecasts'?<Forecasts {...ctx} id={id}/>:section==='procurement'?<Procurement {...ctx} id={id}/>:section==='imports'?<Imports {...ctx}/>:section==='reports'?<Reports {...ctx}/>:<Reference {...ctx} section={section}/>;
+ else content=section==='dashboard'?<Dashboard {...ctx}/>:section==='day-close'?<DayClose {...ctx}/>:section==='data'?<DataWorkspace {...ctx}/>:section==='sales'?<Sales {...ctx}/>:section==='forecasts'?<Forecasts {...ctx} id={id}/>:section==='procurement'?<Procurement {...ctx} id={id}/>:section==='imports'?<Imports {...ctx}/>:section==='reports'?<Reports {...ctx}/>:<Reference {...ctx} section={section}/>;
  const city=cities[branch],cityName=city?.name?.[kk?'kk':'ru'];
  const modeText=workspace?t(globalContext?.usage_mode==='TEST'?'testDataContext':globalContext?.usage_mode==='PILOT'?'pilotDataContext':synthetic?'syntheticOnly':globalContext?.data_origin==='REAL'?'realOnly':'dataSetupPending'):t('workspaceLoading');
  const activeGroup=sectionGroup(section)?.key;

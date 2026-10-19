@@ -6,7 +6,7 @@ import './workday-ui.css';
 // Routes remain stable; five plain sections follow a manager's day: today, forecast,
 // stock, purchase and the data behind them. The establishment profile holds the rest.
 export const workdaySections=[
- {key:'dashboard',label:['Бүгін','Сегодня'],icon:House,routes:['dashboard']},
+ {key:'dashboard',label:['Бүгін','Сегодня'],icon:House,routes:['dashboard','day-close']},
  {key:'forecasts',label:['Болжам','Прогноз'],icon:TrendingUp,routes:['forecasts','recipes']},
  {key:'inventory',label:['Қойма','Склад'],icon:Package,routes:['inventory']},
  {key:'procurement',label:['Сатып алу','Закупки'],icon:ShoppingBasket,routes:['procurement','suppliers']},
