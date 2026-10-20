@@ -24,7 +24,14 @@
 
 **TESTED дополнительно:** `python scripts/check_secrets.py` — 476 файлов, 0 находок. Локальный `.venv/Scripts/python.exe -X utf8 .cache/damir-stage2/live_read_smoke.py` выполнил настоящий login → GET трёх API этапа 2 → logout на отдельной browser-базе: задачи — HTTP 200, SYNTHETIC, дата 2026-01-01; рабочий выбор — HTTP 200, `selection=null`, версия 0; сверка — HTTP 200, 28 дней, `WAPE=null`. Рабочие планы, факты и квитанции просмотра не записывались.
 
-**IN PROGRESS:** заключительная синхронизация с main около T+1:30 и повтор focused/browser/build.
+**DONE / TESTED на итоговом main `12f5327`:** повторный `git pull --rebase origin main` около T+1:30 — ветка актуальна, конфликтов нет. Последний полученный коммит main меняет конфигурацию Render; новых правок строк экранов в этом обновлении нет.
+
+- Та же focused Python-команда на отдельной `.cache/damir-stage2/unit-final.sqlite` — **51/51 PASS**, 129.816 с.
+- Те же пять Playwright-файлов, `--trace=off --output=.cache/pw-results/rebased-final --reporter=list,json` и `PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/damir-stage2/browser-rebased-final.json` — **41/41 PASS**, 66.619 с, без пропусков и flaky.
+- `npm.cmd run build` — **PASS**, TypeScript и Vite; Vite 7.54 с.
+- Полная Python-команда с `.cache/damir-stage2/regression-final.sqlite` и `LOKY_MAX_CPU_COUNT=1` — **633 случая: 632 PASS + 1 skip**, 561.964 с. Ещё один тест конфигурации пришёл с `12f5327`; единственный пропуск — POSIX SIGTERM drain на Windows.
+- `git diff --check origin/main` — PASS; пять JSON контрактов/дизайна проверены на LF. Diff ограничен семью файлами этапа 2, включая этот журнал; общие `templates/*` оставлены интегратору.
+- После проверок `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/stop.ps1` остановил тестовые API, worker и web; порты 8000/3000 свободны.
 
 **Ограничения проверки / NOT TESTED:** браузерные сценарии используют искусственные HTTP-фикстуры; этот прогон не доказывает полный живой поток через worker. Не выполнены полный браузерный набор, PostgreSQL, native/device/APK, production и проверки на данных предприятия. API-схемы и миграции в этом исправлении не менялись. Новые функции, включая ранее отложенные уведомления о росте ошибки/цен, не добавлялись.
 
