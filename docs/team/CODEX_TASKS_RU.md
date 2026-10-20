@@ -197,7 +197,7 @@ Deliverables:
 2. Slides (facts only from the repository, see the list below; never invent customers,
    revenue, savings, accuracy or pilots; market numbers only with a source link in the
    speaker notes, otherwise leave them out):
-   1) Title: Predas — «Знайте завтрашний спрос сегодня»; prognoz продаж и закупок для
+   1) Title: Predas — «Знайте завтрашний спрос сегодня»; прогноз продаж и закупок для
       столовых, кафе и ресторанов Казахстана.
    2) Problem: every day a canteen or cafe guesses how much to cook and what to buy →
       leftovers and write-offs or dishes run out; purchases by eye.
