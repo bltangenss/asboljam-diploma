@@ -1,6 +1,6 @@
 # Задачи для Codex на спринт к Idea Battle
 
-Пять задач с кодом (E — продолжение задачи B, пока ждём слияния). Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
+Шесть задач с кодом (E и F — продолжения задач B и D, пока ждём слияния). Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
 
 | Задача | Кто запускает | Ветка / PR | Срок |
 |---|---|---|---|
@@ -9,6 +9,7 @@
 | C. Тексты KK/RU на четырёх экранах | Болат Танирберген | `team/bolat-copy` | T+1:30 |
 | D. Питч: веб-презентация, скриншоты продукта, PDF | Сарсенбаева Айдана | `team/aidana-pitch` | T+1:45 |
 | E. Проверка и «разогрев» стенда перед показом (локальный и облачный) | Жорабек Бекзат | `team/bekzat-stand-check` | 45 минут |
+| F. Казахская версия презентации и речи, одностраничник A4 для жюри | Сарсенбаева Айдана | `team/aidana-pitch-kk` | 60 минут |
 
 Как запускать:
 - **Codex в облаке** (Linux): в настройках окружения выберите Python 3.13 и Node.js 24, setup-скрипт — `bash scripts/cloud_setup.sh`. Каждую задачу запускайте отдельным заданием в ветке `main`.
@@ -341,4 +342,67 @@ After Bolat writes «main слит» (texts, stage 2 and your PR #2 merged): git
 git pull --ff-only; start a fresh isolated stand, run scripts/prepare_battle_demo.mjs and
 re-record the 3-minute RU video with scripts/record_demo_video.mjs (the screen texts changed).
 Send the videos to Bolat outside Git. Report bugs: stage 2 → Damir, everything else → Bolat.
+```
+
+## Задача F — казахская версия презентации и речи, одностраничник A4 для жюри (для Codex)
+
+```text
+Repository: bltangenss/asboljam-diploma (Predas, formerly AsBoljam). Read AGENTS.md first and
+follow it strictly. Your PR #3 (team/aidana-pitch) is reviewed and waits for merge: do not
+change that branch. Create branch team/aidana-pitch-kk from origin/team/aidana-pitch (or from
+main if PR #3 is already merged). Time box: about 60 minutes, then a Pull Request to main
+(after PR #3 is merged GitHub shows only your new commits).
+
+Goal: the jury in Kazakhstan can get the pitch in Kazakh, and every juror can take a one-page
+summary. Facts stay exactly as in the Russian deck: no new numbers, customers, pilots, savings
+or accuracy claims; the business model stays marked as a hypothesis («гипотеза» / «болжам
+ретіндегі модель»); the demo data stay «синтетические» / «жасанды».
+
+Files you may create or change (nothing else — other people own the rest):
+- docs/pitch/** (deck, speech, Q&A, one-pager, verification)
+- scripts/capture_pitch_screens.mjs, scripts/export_pitch_pdf.mjs
+
+Deliverables:
+1. Kazakh deck: docs/pitch/deck/index.html gets a language switch — key L and ?lang=kk / ?lang=ru
+   in the URL (default ru), <html lang> follows the choice; all slide texts and speaker notes
+   exist in both languages. Keep one self-contained offline file; the Russian version must
+   look exactly as before.
+2. Kazakh terminology must match the product interface. Use design/copy.kk.json and the KK
+   strings in apps/web/src/*.tsx as the glossary, e.g. болжам (прогноз), сатып алу (закупка),
+   мекеме (заведение), бөлімше (филиал), күнді жабу (закрыть день), тағам / порция,
+   жеткізуші (поставщик), жасанды деректер (синтетические данные), сынақ режимі (тестовый
+   режим). Brand «Predas» and the slogan stay; KK slogan: «Ертеңгі сұранысты бүгін біліңіз».
+   Write natural Kazakh, not word-by-word translation; keep sentences short.
+3. docs/pitch/speech_kk.md (3 minutes, same structure and demo switch marks as speech_ru.md)
+   and docs/pitch/qa_kk.md (the same 10 questions and honest answers).
+4. One-pager: docs/pitch/onepager/index.html (A4 portrait, self-contained, Predas style) with a
+   Russian page and a Kazakh page: problem, solution, how it works (3 steps), why Kazakhstan,
+   current status (working prototype on synthetic data; no pilot and no measured savings yet),
+   what we ask (pilot establishments, mentorship), team with roles. No phone numbers or
+   personal e-mails; contact line «Команда Predas» only.
+5. scripts/export_pitch_pdf.mjs also writes docs/pitch/predas-pitch-kk.pdf (deck in Kazakh,
+   notes hidden) and docs/pitch/predas-onepager.pdf (2 A4 pages: RU, KK). Keep the existing
+   docs/pitch/predas-pitch.pdf unchanged in content.
+6. Update docs/pitch/README.md: how to switch language, where the KK files and the one-pager are.
+
+Checks:
+- Extend docs/pitch/verify_deck.mjs: both languages at 1920×1080 and 1366×768, no text
+  overflow, every slide has notes in both languages, Kazakh letters ә ғ қ ң ө ұ ү һ і render
+  with Onest (no fallback font), the switch works by key and by URL. Check the one-pager for
+  overflow at A4. Record the results in docs/pitch/verification.json.
+- Open both PDFs and confirm page counts (deck KK: 10 pages; one-pager: 2 pages) and sizes
+  (each PDF under ~5 MB).
+- Ask a Kazakh-speaking teammate to read the KK slide titles and the one-pager once; fix what
+  sounds unnatural.
+- npm run build. Before each commit: git diff --cached --stat; python scripts/check_secrets.py
+  --staged; git checkout -- artifacts/security-scan.json. Never commit .env, *.sqlite, .cache/,
+  videos, node_modules/, .claude/. No force push.
+
+Open a PR to main titled "Pitch: Kazakh deck and speech, A4 one-pager". In the description:
+what was added, how to switch language, the check results, and what was not verified.
+
+After Bolat writes «main слит»: git switch main; git pull --ff-only; re-run
+scripts/capture_pitch_screens.mjs on a fresh isolated database (the screen texts changed),
+then scripts/export_pitch_pdf.mjs, and open a small PR "Pitch: refresh screenshots after
+merge" with only the new PNG and PDF files. Rehearsal with Bolat at T+2:30.
 ```
