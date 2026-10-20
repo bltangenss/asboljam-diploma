@@ -1,6 +1,6 @@
 # Задачи для Codex на спринт к Idea Battle
 
-Четыре независимые задачи с кодом. Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
+Пять задач с кодом (E — продолжение задачи B, пока ждём слияния). Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
 
 | Задача | Кто запускает | Ветка / PR | Срок |
 |---|---|---|---|
@@ -8,6 +8,7 @@
 | B. Демо-стенд, сценарий показа, видео с закрытием дня | Жорабек Бекзат | `team/bekzat-demo` | T+1:45 |
 | C. Тексты KK/RU на четырёх экранах | Болат Танирберген | `team/bolat-copy` | T+1:30 |
 | D. Питч: веб-презентация, скриншоты продукта, PDF | Сарсенбаева Айдана | `team/aidana-pitch` | T+1:45 |
+| E. Проверка и «разогрев» стенда перед показом (локальный и облачный) | Жорабек Бекзат | `team/bekzat-stand-check` | 45 минут |
 
 Как запускать:
 - **Codex в облаке** (Linux): в настройках окружения выберите Python 3.13 и Node.js 24, setup-скрипт — `bash scripts/cloud_setup.sh`. Каждую задачу запускайте отдельным заданием в ветке `main`.
@@ -268,4 +269,76 @@ Checks:
 Open a PR to main titled "Pitch: Predas web deck, product screenshots and PDF". In the
 description (Russian is fine): what was built, how to open and present it, which checks were
 run, and anything not verified.
+```
+
+## Задача E — проверка и «разогрев» стенда перед показом (для Codex)
+
+```text
+Repository: bltangenss/asboljam-diploma (Predas, formerly AsBoljam). Read AGENTS.md first and
+follow it strictly. Work on branch team/bekzat-stand-check created from the latest main. Time
+box: about 45 minutes, then a Pull Request to main. Your PR #2 (team/bekzat-demo) is reviewed
+and waits for merge: do not change that branch.
+
+Goal: one command that tells us, minutes before the pitch, whether a stand really works, and
+wakes up the free Render service (it sleeps after 15 minutes; the first request takes 30–60 s).
+The same command must work on the local stand now and on the cloud stand later:
+Cloudflare Pages https://<project>.pages.dev → /api/* proxied to Render → Supabase
+(see render.yaml, apps/web/public/_worker.js, docs/commercial/DEPLOYMENT_CLOUD_RU.md).
+
+Files you may create (nothing else — other people own the rest):
+- scripts/check_stand.mjs (new)
+- docs/STAND_CHECK_RU.md (new)
+
+scripts/check_stand.mjs:
+  node scripts/check_stand.mjs --url <origin> [--lang ru|kk] [--full]
+1. Accept only an origin: https://host, or http:// only for localhost/127.0.0.1; no path,
+   query, credentials. Default --url http://localhost:3000.
+2. Quick mode (default, creates nothing):
+   - warm-up: GET /api/v1/health, retry every 5 s for up to 120 s; print the time to the
+     first 200;
+   - GET / returns HTML with the app root; print whether X-Frame-Options: DENY and
+     X-Content-Type-Options: nosniff are present;
+   - GET /api/v1/registration: print whether self-registration is enabled;
+   - a POST to /api/v1/demo-data without a session must be refused (401/403) — print the code.
+3. --full mode (creates one SYNTHETIC test cabinet on the target):
+   Playwright (channel 'chrome' if available, otherwise bundled Chromium), 1440×900. Register
+   a cafe with email stand-check-<random>@example.invalid, a random password and city Almaty,
+   load demo data («Загрузить демо-данные»), compute a forecast, open «Закупки», open
+   «Закрыть день» and mark «Да, работало» but do NOT close the day, open «Профиль». Reuse the
+   label constants from scripts/record_demo_video.mjs by copying them; do not edit that file.
+   Print the time of every step.
+4. Output: one line per step («OK 12.3 s warm-up» / «FAIL forecast: <short reason>») and a
+   final line «STAND OK» or «STAND FAILED at <step>»; exit code 0 / 1. On failure in --full,
+   save one screenshot with masked email/password inputs to .cache/stand-check/.
+5. Never print, save or pass on the command line: passwords, cookies, CSRF tokens, session
+   data or full connection strings. It is an HTTP client only: never open data/*.sqlite and
+   never set DATABASE_URL.
+6. Warn in --help and in the doc: every --full run creates a test cabinet, and registration
+   is limited to 5 per hour per address (behind the Render proxy this limit is shared by
+   everyone), so run --full at most once before the pitch; quick mode can run any time.
+
+docs/STAND_CHECK_RU.md (Russian, short): what the check does, commands for the local stand
+and for the cloud stand, what to do when a step fails (Render sleeping → wait and repeat;
+API_NOT_CONFIGURED → API_ORIGIN in Cloudflare; ORIGIN_FORBIDDEN → ALLOWED_ORIGINS in Render),
+and a 5-minute pre-pitch checklist: quick check → open the site → live demo tab ready →
+backup video open.
+
+Checks:
+- Start a local stand on a fresh isolated database (DATABASE_URL to a new SQLite file under
+  .cache, never data/asboljam-kz.sqlite), then run quick mode and --full against
+  http://localhost:3000; both must print STAND OK. Stop the stand.
+- Quick mode against a URL that is not running must end with STAND FAILED at warm-up after
+  the retry window (use --timeout to shorten it in this check if you add such a flag).
+- npm run build. Before each commit: git diff --cached --stat; python scripts/check_secrets.py
+  --staged; git checkout -- artifacts/security-scan.json. Never commit .env, *.sqlite, .cache/,
+  videos, node_modules/, .claude/. No force push.
+
+Open a PR to main titled "Stand check: warm-up and click-path check for local and cloud
+stands". In the description: the commands, the real output of both local runs, and what was
+not verified (the cloud stand is not deployed yet).
+
+After Bolat writes «main слит» (texts, stage 2 and your PR #2 merged): git switch main;
+git pull --ff-only; start a fresh isolated stand, run scripts/prepare_battle_demo.mjs and
+re-record the 3-minute RU video with scripts/record_demo_video.mjs (the screen texts changed).
+Send the videos to Bolat outside Git. Report bugs: stage 2 → Damir, everything else → Bolat.
 ```
