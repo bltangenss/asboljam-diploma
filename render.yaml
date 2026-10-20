@@ -1,7 +1,15 @@
-# Render Blueprint: the Predas API with its database-queue worker in one free web service.
-# The database is Supabase PostgreSQL; the web client is Cloudflare Pages (see
-# docs/commercial/DEPLOYMENT_CLOUD_RU.md). Values marked sync: false are entered by the owner
-# in the Render dashboard and are never committed.
+# Render Blueprint: the Predas API with its database-queue worker in one free web service
+# and a Render PostgreSQL database reachable only inside Render. The web client is Cloudflare
+# Pages (see docs/commercial/DEPLOYMENT_CLOUD_RU.md). Render generates the database password and
+# passes the connection string itself; values marked sync: false are entered in the dashboard.
+databases:
+  - name: predas-db
+    plan: free
+    region: frankfurt
+    databaseName: predas
+    user: predas
+    ipAllowList: []
+
 services:
   - type: web
     name: predas-api
@@ -25,9 +33,12 @@ services:
       # Exactly the Cloudflare Pages origin, e.g. https://predas.pages.dev (no trailing slash).
       - key: ALLOWED_ORIGINS
         sync: false
-      # Supabase session pooler URL (port 5432) with sslmode=require.
+      # Internal connection string of predas-db. To use Supabase instead, replace this with
+      # sync: false and enter the session pooler URL (port 5432, sslmode=require).
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: predas-db
+          property: connectionString
       # The pitch demo lets an establishment open a test cabinet itself; set "off" to close it.
       - key: ASBOLJAM_SELF_REGISTRATION
         value: "on"

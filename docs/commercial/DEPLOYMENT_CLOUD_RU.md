@@ -1,5 +1,11 @@
 # Predas в облаке: Supabase + Render + Cloudflare Pages
 
+> **Текущий вариант (20.10.2026):** вместо Supabase используется бесплатная база Render `predas-db`
+> (`render.yaml`, раздел `databases`). Render сам создаёт пароль и передаёт строку подключения
+> в `DATABASE_URL`, доступ к базе только изнутри Render (`ipAllowList: []`). Бесплатная база Render
+> временная — срок действия виден в панели Render. Переезд на Supabase: заменить `fromDatabase`
+> у `DATABASE_URL` на `sync: false` и ввести строку session pooler, как описано ниже.
+
 Схема:
 
 ```text

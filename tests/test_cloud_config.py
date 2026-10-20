@@ -32,7 +32,11 @@ def render_env():
 class CloudConfigTests(unittest.TestCase):
     def test_secrets_and_origin_are_entered_in_the_dashboard(self):
         env = render_env()
-        self.assertEqual(env['DATABASE_URL'], ('sync', 'false'))
+        # The database URL comes from Render's own database, never from a committed value.
+        self.assertIsNone(env['DATABASE_URL'])
+        self.assertIn('fromDatabase:\n          name: predas-db\n          property: connectionString', RENDER)
+        self.assertIn('  - name: predas-db\n    plan: free\n    region: frankfurt', RENDER)
+        self.assertIn('ipAllowList: []', RENDER)
         self.assertEqual(env['ALLOWED_ORIGINS'], ('sync', 'false'))
         self.assertEqual(env['ASBOLJAM_ENV'], ('value', 'production'))
         self.assertEqual(env['COOKIE_SECURE'], ('value', 'true'))
