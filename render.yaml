@@ -5,16 +5,19 @@
 services:
   - type: web
     name: predas-api
-    runtime: docker
+    runtime: python
     plan: free
     region: frankfurt
     branch: main
-    dockerfilePath: ./infra/Dockerfile.api
-    dockerContext: .
-    dockerCommand: sh infra/render_start.sh
+    buildCommand: pip install -r requirements.lock
+    startCommand: sh infra/render_start.sh
     healthCheckPath: /api/v1/health
     autoDeploy: true
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.9"
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: ASBOLJAM_ENV
         value: production
       - key: COOKIE_SECURE

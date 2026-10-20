@@ -50,8 +50,14 @@ class CloudConfigTests(unittest.TestCase):
         self.assertEqual(settings.allowed_origins, ('https://predas.pages.dev',))
         self.assertTrue(settings.cookie_secure)
 
+    def test_native_python_service_uses_the_locked_dependencies_and_start_script(self):
+        self.assertIn('runtime: python', RENDER)
+        self.assertIn('buildCommand: pip install -r requirements.lock', RENDER)
+        self.assertIn('startCommand: sh infra/render_start.sh', RENDER)
+        self.assertEqual(render_env()['PYTHON_VERSION'][1].rsplit('.', 1)[0], '3.13')
+        self.assertIn('Python 3.13', (ROOT / 'requirements.lock').read_text(encoding='utf-8').splitlines()[0])
+
     def test_start_script_is_shipped_and_uses_render_port(self):
-        self.assertIn('dockerCommand: sh infra/render_start.sh', RENDER)
         dockerfile = (ROOT / 'infra/Dockerfile.api').read_text(encoding='utf-8')
         self.assertIn('infra/render_start.sh ./infra/render_start.sh', dockerfile)
         script = (ROOT / 'infra/render_start.sh').read_bytes()

@@ -19,7 +19,7 @@
 - **Воркер в том же контейнере.** На бесплатном плане Render нет фоновых воркеров. Поэтому `infra/render_start.sh` запускает воркер в цикле перезапуска рядом с API, а Render проверяет только API (`/api/v1/health`).
 - **Схема базы создаётся при старте.** На свежей базе Supabase API сам применяет миграции `0001…0012`, под защитой `pg_advisory_xact_lock`.
 
-Файлы: `render.yaml`, `infra/render_start.sh`, `infra/Dockerfile.api`, `apps/web/public/_worker.js`. Их проверяют `tests/test_cloud_config.py` и `tests/pages_worker_check.mjs`.
+Файлы: `render.yaml` (обычная среда Python на Render без Docker: `pip install -r requirements.lock`, Python 3.13.9), `infra/render_start.sh`, `apps/web/public/_worker.js`. `infra/Dockerfile.api` тоже копирует стартовый скрипт — на случай перехода на Docker. Их проверяют `tests/test_cloud_config.py` и `tests/pages_worker_check.mjs`.
 
 ## Что делает владелец (вход в аккаунты, пароли, оплата)
 
@@ -40,7 +40,7 @@
 ### 2. Render — API и воркер
 
 1. Войдите на render.com через GitHub и дайте Render доступ к приватному репозиторию `bltangenss/asboljam-diploma`.
-2. Выберите **New → Blueprint**, укажите репозиторий и ветку `main`. Render прочитает `render.yaml` и создаст сервис `predas-api` (Docker, план Free, Frankfurt).
+2. Выберите **New → Blueprint**, укажите репозиторий и ветку `main`. Render прочитает `render.yaml` и создаст сервис `predas-api` (Python, план Free, Frankfurt).
 3. Render попросит значения переменных с `sync: false`:
    - `DATABASE_URL` — строка из шага 1.2;
    - `ALLOWED_ORIGINS` — будущий адрес сайта, например `https://predas.pages.dev`. Без слэша на конце. Если имя проекта в Cloudflare будет другим, поменяйте это значение потом.
@@ -86,7 +86,7 @@
 - **Не проверено:**
   - реальные Render, Cloudflare и Supabase;
   - PostgreSQL через pooler;
-  - сборка Docker-образа (Docker Desktop не был запущен);
+  - установка зависимостей в среде Python на Render;
   - поведение настоящего workerd;
   - память на Linux.
 
