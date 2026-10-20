@@ -26,10 +26,10 @@ export default function Profile(c:Context&{cities:Record<string,Row>}){
  const access:[string,string][]=[[t('email'),user.email],[copy('Рөл','Роль'),t('role_'+user.role)],[t('branch'),user.branch_ids.join(', ')||'—']];
  const tiles=[
   {label:copy('Мәзірдегі тағамдар','Блюда в меню'),value:fmt(meals.data?.total),icon:ChefHat,url:'/recipes',show:reads},
-  {label:copy('Рецепт жолдары','Строки рецептов'),value:fmt(recipes.data?.total),icon:BookOpen,url:'/recipes',show:reads},
+  {label:copy('Рецепттердегі позициялар','Позиции в рецептах'),value:fmt(recipes.data?.total),icon:BookOpen,url:'/recipes',show:reads},
   {label:copy('Жеткізушілер','Поставщики'),value:fmt(suppliers.data?.total),icon:Truck,url:'/suppliers',show:reads},
   {label:copy('Сатылым тарихы','История продаж'),value:c.dataContext?.history_start?date(c.dataContext.history_start)+' — '+date(c.dataContext.history_end):copy('Әлі жоқ','Пока нет'),icon:History,url:'/sales',show:reads&&Boolean(branch)},
-  {label:copy('Қойма кесіндісі','Срез склада'),value:c.dataContext?.inventory_date?date(c.dataContext.inventory_date):copy('Әлі жоқ','Пока нет'),icon:Package,url:'/inventory',show:operations&&Boolean(branch)},
+  {label:copy('Қойма қалдығының күні','Остатки на дату'),value:c.dataContext?.inventory_date?date(c.dataContext.inventory_date):copy('Әлі жоқ','Пока нет'),icon:Package,url:'/inventory',show:operations&&Boolean(branch)},
  ].filter(tile=>tile.show);
  return <div className="profile-page">
   <header className="profile-hero">
@@ -39,15 +39,15 @@ export default function Profile(c:Context&{cities:Record<string,Row>}){
   {tiles.length>0&&<section className="profile-tiles" aria-label={copy('Мекеме деректері','Данные заведения')}>{tiles.map(({label,value,icon:Icon,url})=><button key={label} className="profile-tile" onClick={()=>go(url)}><Icon size={18} aria-hidden="true"/><span>{label}</span><strong>{value}</strong><ArrowRight size={15} aria-hidden="true"/></button>)}</section>}
   <DataState state={settings} t={t} retry={c.refresh}>
    <div className="profile-grid">
-    <section className="panel settings-panel profile-card"><h2>{copy('Мекеме туралы','О заведении')}</h2>{about.map(([k,v])=><div className="settings-row" key={k}><h3>{k}</h3><span>{v}</span></div>)}<p className="reference-footnote">{user.role==='admin'?copy('Қала мен түрін төмендегі «Бөлімшелердің қаласы» бөлімінде өзгертесіз.','Город и тип меняются ниже, в разделе «Города филиалов».'):copy('Өзгерту үшін ұйым әкімшісіне хабарласыңыз.','Для изменений обратитесь к администратору организации.')}</p></section>
-    <section className="panel settings-panel profile-card"><h2>{copy('Сіздің рұқсатыңыз','Ваш доступ')}</h2>{access.map(([k,v])=><div className="settings-row" key={k}><h3>{k}</h3><span>{v}</span></div>)}<p className="reference-footnote">{copy('Рұқсаттар ұйым мен бөлімше шегінде қолданылады.','Доступ действует в пределах организации и выбранных филиалов.')}</p></section>
+    <section className="panel settings-panel profile-card"><h2>{copy('Мекеме туралы','О заведении')}</h2>{about.map(([k,v])=><div className="settings-row" key={k}><h3>{k}</h3><span>{v}</span></div>)}<p className="reference-footnote">{user.role==='admin'?copy('Қала мен түрін төменде, «Бөлімшелердің қаласы» бөлімінде өзгертуге болады.','Город и тип можно изменить ниже, в разделе «Города филиалов».'):copy('Өзгерту үшін ұйым әкімшісіне хабарласыңыз.','Чтобы что-то изменить, обратитесь к администратору организации.')}</p></section>
+    <section className="panel settings-panel profile-card"><h2>{copy('Сіздің рұқсатыңыз','Ваш доступ')}</h2>{access.map(([k,v])=><div className="settings-row" key={k}><h3>{k}</h3><span>{v}</span></div>)}<p className="reference-footnote">{copy('Сіз тек өз ұйымыңыз бен бөлімшелеріңіздің деректерін көресіз.','Вы видите данные только своей организации и своих филиалов.')}</p></section>
    </div>
   </DataState>
   {user.role==='admin'&&operations&&<section className="panel reference-profiles"><BranchProfiles {...c}/></section>}
   <section className="panel reference-security"><AccountSecurity {...c}/></section>
   {user.role==='admin'&&<section className="panel reference-access"><UserAdmin {...c}/></section>}
   {operations&&branch&&user.role!=='warehouse'&&<details className="profile-factors">
-   <summary><Sparkles size={18} aria-hidden="true"/><span><strong>{copy('Болжам нені ескереді','Что учитывает прогноз')}</strong><small>{copy('Мерекелер, Ораза, мектеп демалысы, күн бату, ауа райы — автоматты түрде. Қосымша ақпарат.','Праздники, Рамадан, каникулы, закат, погода — автоматически. Дополнительная информация.')}</small></span></summary>
+   <summary><Sparkles size={18} aria-hidden="true"/><span><strong>{copy('Болжам нені ескереді','Что учитывает прогноз')}</strong><small>{copy('Мерекелер, Ораза, мектеп демалысы, күн бату мен ауа райы автоматты түрде ескеріледі. Барлық факторды көру үшін басыңыз.','Праздники, Рамадан, школьные каникулы, закат и погода учитываются автоматически. Нажмите, чтобы увидеть все факторы.')}</small></span></summary>
    <FactorCatalogue {...c}/>
   </details>}
   <p className="profile-audit"><ShieldCheck size={16} aria-hidden="true"/>{copy('Барлық шешімдер мен өзгерістер журналда сақталады.','Все решения и изменения сохраняются в журнале.')} <button className="text-button" onClick={()=>go('/audit')}>{copy('Әрекеттер журналы','Журнал действий')}<ArrowRight size={14}/></button></p>
