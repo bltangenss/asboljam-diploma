@@ -43,12 +43,12 @@ export default function DayClose(c:Context){
   return {missing,invalid,unmarked,sold,off,portions,ran,complete:isOpen===0||(isOpen===1&&!missing.length&&!invalid.length&&!unmarked.length)};
  },[lines,isOpen,meals]);
  const label:Record<string,[string,string]>={units_sold:['сатылғаны','продано'],available_portions:['дайыны','готово'],stockout_flag:['бітті ме','закончилось ли'],promo:['акция','акция'],price_kzt:['бағасы','цена']};
- const messages:Record<string,[string,string]>={DAY_INCOMPLETE:['Күнді жабу үшін деректер толық емес.','Для закрытия дня данных недостаточно.'],
+ const messages:Record<string,[string,string]>={DAY_INCOMPLETE:['Күнді жабу үшін жетіспейтін деректерді толтырыңыз.','Чтобы закрыть день, заполните недостающие данные.'],
   DAY_CONFLICT:['Бұл күнге басқа мәндер сақталған. Түзету себебін көрсетіңіз.','На этот день сохранены другие значения. Укажите причину исправления.'],
   DAY_CLOSED:['Күн жабылған. Өзгерту үшін алдымен қайта ашыңыз.','День закрыт. Чтобы изменить, сначала откройте его снова.'],
   STALE_VERSION:['Жобаны басқа адам өзгерткен. Бетті жаңартып, қайта тексеріңіз.','Черновик изменил другой пользователь. Обновите страницу и проверьте снова.'],
-  BUSINESS_DATE_NOT_CLOSED:['Бұл күн әлі аяқталмады: жоба ретінде сақтаңыз, жабу — күн аяқталғаннан кейін.','День ещё не закончился: сохраните черновик, закрыть можно после окончания дня.'],
-  BUSINESS_DATE_IN_FUTURE:['Бұл күн әлі келген жоқ.','Этот день ещё не наступил.'],DAY_LINES_INVALID:['Кейбір тағам жолдары жарамсыз.','Некоторые строки блюд заполнены неверно.'],
+  BUSINESS_DATE_NOT_CLOSED:['Бұл күн әлі аяқталмады: жоба ретінде сақтаңыз, ал күнді ол аяқталғаннан кейін жабасыз.','День ещё не закончился: сохраните черновик, а закрыть день можно будет после его окончания.'],
+  BUSINESS_DATE_IN_FUTURE:['Бұл күн әлі келген жоқ.','Этот день ещё не наступил.'],DAY_LINES_INVALID:['Кейбір тағамдар қате толтырылған.','Некоторые блюда заполнены с ошибками.'],
   RECORDED_SALES_NOT_LISTED:['Сатылымы сақталған тағам «ұсынылмады» деп белгіленген.','Блюдо с сохранёнными продажами отмечено как «не предлагалось».'],
   CONCURRENT_CLOSE:['Күнді бір уақытта басқа адам жапты. Бетті жаңартыңыз.','День одновременно закрыл другой пользователь. Обновите страницу.']};
  const message=(problem:any)=>messages[problem?.code]?.[kk?0:1]||(c.t('error_'+problem?.code)!=='error_'+problem?.code?c.t('error_'+problem?.code):problem?.message);
@@ -88,11 +88,11 @@ export default function DayClose(c:Context){
      <Badge tone={closed?'green':dirty||data.status==='draft'?'amber':'neutral'}>{closed?copy('Жабылды','Закрыт'):dirty?copy('Сақталмаған','Не сохранено'):data.status==='draft'?copy('Жоба сақталған','Черновик сохранён'):copy('Басталмаған','Не начат')}</Badge></p>
     {data.data_origin==='REAL'?<label className="day-close-date">{copy('Күн','Дата')}<input type="date" value={day||data.business_date} max={data.default_date>data.business_date?data.default_date:data.business_date}
       onChange={event=>{if(!dirtyRef.current&&event.target.value)setDay(event.target.value)}}/></label>
-     :<p className="day-close-note">{copy('Сынақ сценарийі: күн 01.01.2026 болып қалады, компьютер күніне ауыспайды.','Учебный сценарий: дата остаётся 01.01.2026 и не переносится на дату компьютера.')}</p>}
+     :<p className="day-close-note">{copy('Оқу сценарийі: күн 01.01.2026 болып қалады, компьютердегі күнге байланысты емес.','Учебный сценарий: дата остаётся 01.01.2026 и не зависит от даты на компьютере.')}</p>}
    </header>
    {notice&&<p className="alert success" role="status"><CheckCircle2 size={17}/>{notice}</p>}
    {error&&!review&&<p className="alert danger" role="alert">{message(error)}</p>}
-   {!data.closable&&!closed&&<p className="alert info">{copy('Бұл күн әлі аяқталмады: деректерді жоба ретінде сақтай аласыз, жабу — күн аяқталғаннан кейін.','День ещё не закончился: факты можно сохранить черновиком, закрыть — после окончания дня.')}</p>}
+   {!data.closable&&!closed&&<p className="alert info">{copy('Бұл күн әлі аяқталмады: деректерді жоба ретінде сақтай аласыз, ал күнді ол аяқталғаннан кейін жабасыз.','День ещё не закончился: данные можно сохранить черновиком, а закрыть день — после его окончания.')}</p>}
    {closed?<section className="day-close-card is-closed" aria-labelledby="day-closed-title">
      <Lock size={20} aria-hidden="true"/><h2 id="day-closed-title">{copy('Күн жабылды','День закрыт')}</h2>
      <p>{data.closed_at?new Date(data.closed_at).toLocaleString(kk?'kk-KZ':'ru-RU'):'—'} · {data.closed_by||'—'}</p>
@@ -124,7 +124,7 @@ export default function DayClose(c:Context){
        {busy==='close'||busy==='save'?<span className="spinner"/>:<Lock size={16}/>}{conflict?copy('Түзетіп жабу','Исправить и закрыть'):copy('Күнді жабу','Закрыть день')}</button></div>
     </section>
    :<>
-    <section className="day-close-card"><h2>{copy('Мекеме бүгін жұмыс істеді ме?','Заведение в этот день работало?')}</h2>
+    <section className="day-close-card"><h2>{copy('Мекеме осы күні жұмыс істеді ме?','Заведение в этот день работало?')}</h2>
      <Choice label={copy('Мекеме жұмыс істеді ме?','Заведение работало?')} value={isOpen} disabled={!canWrite} options={[[1,copy('Иә, жұмыс істеді','Да, работало')],[0,copy('Жоқ, жабық болды','Нет, было закрыто')]]} onChange={value=>{setIsOpen(value);touch()}}/>
      {isOpen===0&&<p className="day-close-note">{copy('Барлық тағамға нөлдік сатылым жазылады — бұл «дерек жоқ» емес, расталған жабық күн.','Для всех блюд запишутся нулевые продажи — это не «нет данных», а подтверждённый закрытый день.')}</p>}
     </section>
@@ -138,7 +138,7 @@ export default function DayClose(c:Context){
      <ul className="day-close-meals">{meals.map(meal=>{const id=meal.meal_id,entry=lines[id]||blank(id),ref=meal.reference||{};
       const missing=entry.state==='sold'?FIELDS.filter(field=>entry[field]===null):[];
       return <li key={id} className={'day-close-meal'+(entry.state==='not_offered'?' is-off':'')+(entry.state===null?' is-unmarked':'')}>
-       <div className="day-close-meal-head"><strong>{names[id]}</strong><small>{[ref.previous_day_units_sold!=null?copy('Кеше','Вчера')+': '+fmt(ref.previous_day_units_sold):'',ref.planned_portions!=null?copy('Жоспар','План')+': '+fmt(ref.planned_portions):''].filter(Boolean).join(' · ')||copy('Анықтама жоқ','Справки нет')}</small></div>
+       <div className="day-close-meal-head"><strong>{names[id]}</strong><small>{[ref.previous_day_units_sold!=null?copy('Кеше','Вчера')+': '+fmt(ref.previous_day_units_sold):'',ref.planned_portions!=null?copy('Жоспар','План')+': '+fmt(ref.planned_portions):''].filter(Boolean).join(' · ')||copy('Кешегі дерек пен жоспар жоқ','Нет данных за вчера и плана')}</small></div>
        <Choice label={names[id]} value={entry.state} disabled={!canWrite} options={[['sold',copy('Сатылды','Продавалось')],['not_offered',copy('Ұсынылмады','Не предлагалось')]]}
         onChange={value=>setLine(id,value==='not_offered'?{...blank(id),state:'not_offered'}:{state:value})}/>
        {entry.state==='sold'&&<div className="day-close-fields">
@@ -148,7 +148,7 @@ export default function DayClose(c:Context){
          onChange={value=>setLine(id,value===0?{stockout_flag:0,stockout_time:null,replenished_time:null}:{stockout_flag:1})}/></div>
         {entry.stockout_flag===1&&<div className="day-close-times">
          <label>{copy('Қашан бітті','Когда закончилось')}<input type="time" value={entry.stockout_time??''} disabled={!canWrite} onChange={event=>setLine(id,{stockout_time:event.target.value||null})}/></label>
-         <label>{copy('Қайта толтырылды','Пополнили')}<input type="time" value={entry.replenished_time??''} disabled={!canWrite} onChange={event=>setLine(id,{replenished_time:event.target.value||null})}/></label></div>}
+         <label>{copy('Қашан толықтырылды','Когда пополнили')}<input type="time" value={entry.replenished_time??''} disabled={!canWrite} onChange={event=>setLine(id,{replenished_time:event.target.value||null})}/></label></div>}
         <div className="day-close-flag"><span>{copy('Акция болды ма?','Была акция?')}</span><Choice label={copy('Акция болды ма?','Была акция?')} value={entry.promo} disabled={!canWrite} options={[[1,copy('Иә','Да')],[0,copy('Жоқ','Нет')]]} onChange={value=>setLine(id,{promo:value})}/></div>
         <label>{copy('Бағасы, ₸','Цена, ₸')}<input inputMode="decimal" value={entry.price_kzt??''} placeholder={copy('мәзірде','в меню')+' '+fmt(meal.base_price_kzt)} disabled={!canWrite}
          onChange={event=>{const text=event.target.value.replace(',','.').replace(/[^\d.]/g,'');setLine(id,{price_kzt:text===''?null:text})}}/></label>
