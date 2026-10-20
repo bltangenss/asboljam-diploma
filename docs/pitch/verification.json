@@ -1,0 +1,96 @@
+{
+  "slides": 10,
+  "viewports": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "slidesPassed": 10
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "slidesPassed": 10
+    }
+  ],
+  "navigation": [
+    "arrows",
+    "space",
+    "click",
+    "home/end",
+    "bounds",
+    "speaker notes",
+    "fullscreen"
+  ],
+  "standaloneOffline": true,
+  "kazakhGlyphFonts": [
+    {
+      "familyName": "Onest",
+      "glyphCount": 60
+    }
+  ],
+  "pageErrors": [],
+  "print": "10 visible slides, notes and controls hidden",
+  "date": "2026-10-20",
+  "timezone": "Asia/Qyzylorda",
+  "source_main": "344e81d8258291281d3f424f045c9293b62ed4c8",
+  "browser": "Installed Google Chrome",
+  "capture_language": "ru",
+  "capture": "PASS on a fresh SQLite database outside the repository; real API/worker/UI; SYNTHETIC only",
+  "visual_review": "All 20 viewport screenshots, all six product screenshots and all 10 rendered PDF pages inspected",
+  "pdf": {
+    "pages": 10,
+    "page_points": [
+      1200,
+      675.12
+    ],
+    "bytes": 768460
+  },
+  "assets": [
+    {
+      "name": "day-close.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 93413,
+      "sha256": "2e4f62a0f75e2f941b5a079da0f1f4f11a46b5a29d5e73879404197643ab3986"
+    },
+    {
+      "name": "forecast.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 99923,
+      "sha256": "08b99f773886aa3c31e734b5fd3a49be76634880b705a9a74ecc09e7537ff382"
+    },
+    {
+      "name": "login.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 133511,
+      "sha256": "0a34a9fe31619887ba60b468ef3234a340c7904c14fbe387b94ed407e4bc881a"
+    },
+    {
+      "name": "profile.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 102099,
+      "sha256": "27dee4914451232b9abcc809f6109361917d0b863327d6073006424b7e0b9bc7"
+    },
+    {
+      "name": "purchase.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 114465,
+      "sha256": "6f3afc48fdcca358c52390d630fe60756138da088bd699f0a9ba0df1db731d1b"
+    },
+    {
+      "name": "today.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 118623,
+      "sha256": "610a0fda42395310999af2d8f3648084da71228c536aa254eccbde7606144767"
+    }
+  ],
+  "artifact_sha256": {
+    "docs/pitch/deck/index.html": "f4d126957ff9cf389b3890d7b777c96d09af7b4ec79adceaae0f377875c4964e",
+    "docs/pitch/predas-pitch.pdf": "88d06f0ec608c3ce8297ec88d85820d46aea857de3f4f27542a7bc7088265607"
+  }
+}
