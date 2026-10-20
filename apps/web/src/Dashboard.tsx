@@ -5,6 +5,7 @@ import './dashboard-today.css';
 import GetStarted,{cabinetIsEmpty} from './GetStarted';
 import ForecastReview from './ForecastReview';
 import WorkdayTasks from './WorkdayTasks';
+import {DayCharts,DayKpis,useStockSummary} from './Overview';
 
 export default function Dashboard(c:Context){
  const {t,branch,branchName,go,revision,refresh,lang}=c;
@@ -13,6 +14,7 @@ export default function Dashboard(c:Context){
  const d=state.data||{},hasSales=Boolean(d.as_of),history:Row[]=d.history||[],forecast=d.latest_forecast;
  const target=shiftDate(c.forecastOrigin,1),plans:Row[]=d.latest_plans||[];
  const plan=plans.find(p=>p.target_date===target&&p.forecast_id===forecast?.id);
+ const stock=useStockSummary(c,d.inventory_date||null,Boolean(d.inventory_known));
  const forecastCurrent=Boolean(target&&forecast?.target_date===target&&forecast?.input_freshness==='unchanged');
  const planCurrent=forecastCurrent&&plan&&plan.input_freshness==='unchanged';
  // A stale purchase may still have a valid, immutable cooking basis. Preserve it
@@ -32,7 +34,7 @@ export default function Dashboard(c:Context){
  const portionTotal=predictions.length&&predictions.every(row=>row.point_forecast!==null&&row.point_forecast!==undefined&&row.point_forecast!==''&&Number.isFinite(Number(row.point_forecast)))?predictions.reduce((sum,row)=>sum+Number(row.point_forecast),0):null;
  const salesCaption=hasSales?date(d.as_of)+' · '+t('lastdata'):t('noSalesHistory');
  let next={step:'01',title:copy('Сатылым тарихын қосыңыз','Начните с истории продаж'),body:t('salesHistoryNeeded'),label:t('imports'),url:'/imports',icon:Database};
- if(hasSales)next={step:'02',title:copy('Қанша сатылатынын есептеңіз','Узнайте, сколько продастся'),body:copy('Кезеңді тексеріп, болжамды іске қосыңыз. Жүйе әр тағамға қатарынан кемінде 84 күн барын тексереді.','Проверьте период и запустите прогноз. Система проверит наличие хотя бы 84 дней подряд для каждого блюда.'),label:t('newForecast'),url:'/forecasts',icon:TrendingUp};
+ if(hasSales)next={step:'02',title:copy('Қанша сатылатынын есептеңіз','Узнайте, сколько продастся'),body:copy('Әр тағамға кемінде 84 күндік сатылым керек.','Нужно не меньше 84 дней продаж по каждому блюду.'),label:t('newForecast'),url:'/forecasts',icon:TrendingUp};
  if(forecastCurrent&&!stockMatches)next={step:'03',title:copy('Болжам күніне қор қажет','Нужны остатки на дату прогноза'),body:copy(`${date(target)} күнгі қор кесіндісін қосыңыз. Басқа күнгі қалдық сатып алуға қолданылмайды.`,`Добавьте срез на ${date(target)}. Остатки за другую дату не используются для этой закупки.`),label:copy('Қор деректерін қосу','Добавить остатки'),url:stockImportUrl,icon:Package};
  if(forecastCurrent&&stockMatches)next={step:'03',title:copy('Қажетті сатып алуды есептеңіз','Рассчитайте закупку'),body:copy('Болжамды рецепттермен және қормен салыстырыңыз. Бюджет пен қаптама шарттары есептеуде ескеріледі.','Сопоставьте прогноз с рецептами и остатками. Расчёт учитывает бюджет и условия упаковки.'),label:copy('Сатып алуға өту','Перейти к закупке'),url:procurementUrl,icon:ShoppingBasket};
  if(planCurrent)next={step:'04',title:plan!.status==='approved'?copy('Жоспар бекітілді','План утверждён'):copy('Жоспарды қарап, шешім қабылдаңыз','Проверьте план и примите решение'),body:plan!.status==='approved'?t('internalOnly'):copy('Құнын, жеткізушілерді және тапшылықты тексеріңіз. Бекіту шешімі өзіңізде.','Проверьте стоимость, поставщиков и дефицит. Решение об утверждении принимаете вы.'),label:copy('Жоспарды ашу','Открыть план'),url:'/procurement/'+plan!.id,icon:ClipboardCheck};
@@ -55,8 +57,8 @@ export default function Dashboard(c:Context){
  // Order of the page: what needs attention now (one focus step plus the remaining tasks),
  // then the day as four steps with their state, then the last known day.
  const steps=[
-  {key:'forecast',title:copy('Қанша дайындау керек','Сколько готовить'),value:forecastCurrent?portionTotal===null?copy('Болжам есептелген','Прогноз рассчитан'):fmt(portionTotal,1)+' '+copy('порция күтіледі','порций ожидается'):copy('Болжам қажет','Нужен прогноз'),note:copy('Болжам — өндіріс тапсырмасы емес.','Прогноз не является производственным заданием.'),action:forecastCurrent?copy('Тағамдар бойынша қарау','Посмотреть по блюдам'):copy('Болжамды дайындау','Подготовить прогноз'),url:forecastCurrent?'/forecasts/'+forecast.id:'/forecasts',done:forecastCurrent,warning:false},
-  {key:'stock',title:copy('Қоймада не бар','Что есть в запасе'),value:stockMatches?copy('Күнге арналған кесінді бар','Срез на нужную дату есть'):copy('Күнге арналған кесінді жоқ','Нет среза на нужную дату'),note:copy('Кесіндінің болуы барлық ингредиенттің толық екенін білдірмейді.','Наличие среза ещё не означает, что в нём есть все ингредиенты.'),action:copy('Қалдықтарды тексеру','Проверить остатки'),url:stockUrl,done:stockMatches,warning:false},
+  {key:'forecast',title:copy('Қанша дайындау керек','Сколько готовить'),value:forecastCurrent?portionTotal===null?copy('Болжам есептелген','Прогноз рассчитан'):fmt(portionTotal,1)+' '+copy('порция күтіледі','порций ожидается'):copy('Болжам қажет','Нужен прогноз'),note:'',action:forecastCurrent?copy('Тағамдар бойынша қарау','Посмотреть по блюдам'):copy('Болжамды дайындау','Подготовить прогноз'),url:forecastCurrent?'/forecasts/'+forecast.id:'/forecasts',done:forecastCurrent,warning:false},
+  {key:'stock',title:copy('Қоймада не бар','Что есть в запасе'),value:stockMatches?copy('Күнге арналған кесінді бар','Срез на нужную дату есть'):copy('Күнге арналған кесінді жоқ','Нет среза на нужную дату'),note:'',action:copy('Қалдықтарды тексеру','Проверить остатки'),url:stockUrl,done:stockMatches,warning:false},
   {key:'purchase',title:copy('Не сатып алу керек','Что нужно закупить'),value:planCurrent?money(plan!.total_cost):copy('Өзекті есептеу қажет','Нужен актуальный расчёт'),note:planCurrent?t('budget')+' '+money(plan!.budget)+' · '+t('shortages')+': '+fmt(plan!.shortage_count):copy('Осы күнге өзекті сатып алу жоспары жоқ.','Актуального плана закупки на этот день нет.'),action:planCurrent?copy('Сатып алуды қарау','Посмотреть закупку'):copy('Сатып алуға өту','Перейти к закупке'),url:planCurrent?'/procurement/'+plan!.id:forecastCurrent?procurementUrl:'/procurement',done:Boolean(planCurrent&&plan!.status!=='rejected'&&!invalidProduction),warning:Boolean(planCurrent&&Number(plan!.shortage_count)>0)},
   {key:'decision',title:copy('Шешім','Решение'),value:planCurrent?t(plan!.status):'—',note:t('internalOnly'),action:'',url:'',done:Boolean(planCurrent&&plan!.status==='approved'),warning:false},
  ];
@@ -74,9 +76,11 @@ export default function Dashboard(c:Context){
    {canOperate&&<button className="button secondary day-close-entry" onClick={()=>go('/day-close')}><Lock size={16}/>{copy('Күнді жабу','Закрыть день')}</button>}
    {c.dataContext?.dates_editable&&<label className="dashboard-date">{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}<select value={c.inventoryDate} onChange={event=>c.setInventoryDate(event.target.value)}>{!c.inventoryDate&&<option value="">{t('snapshotMissing')}</option>}{c.dataContext.inventory_dates.map(value=><option key={value} value={value}>{date(value)}</option>)}</select></label>}
   </header>
-  {synthetic&&<p className="today-source-note" role="note"><Database size={15}/>{copy('Бұл — жасанды деректердегі оқу сценарийі. Күндер нақты күнтізбелік бүгінге ауыстырылмайды.','Это учебный сценарий на синтетических данных. Даты не переносятся на сегодняшнее число.')}</p>}
+  {synthetic&&<p className="today-source-note" role="note"><Database size={15}/>{copy('Оқу сценарийі, жасанды деректер.','Учебный сценарий на синтетических данных.')}</p>}
   {!synthetic&&usage==='TEST'&&<p className="today-source-note" role="note"><Database size={15}/>{copy('TEST — сынақ режимі. Нәтижелер нақты бизнестің тиімділігін дәлелдемейді.','TEST — тестовый режим. Результаты не подтверждают эффективность в реальном бизнесе.')}</p>}
   <DataState state={state} t={t} retry={refresh}>
+   <DayKpis c={c} d={d} target={target} forecastCurrent={forecastCurrent} portionTotal={portionTotal} plan={plan} planCurrent={Boolean(planCurrent)} stock={stock}
+    urls={{forecast:forecastCurrent?'/forecasts/'+forecast.id:'/forecasts',stock:stockUrl,purchase:planCurrent?'/procurement/'+plan!.id:forecastCurrent?procurementUrl:'/procurement'}}/>
    <section className="day-attention" aria-labelledby="day-attention-title">
     <h2 id="day-attention-title" className="day-section-title">{copy('Назар аударуды қажет етеді','Требует внимания')}</h2>
     {['admin','manager','analyst'].includes(c.user.role)&&<WorkdayTasks {...c} fallback={knownTaskList}/>}
@@ -84,7 +88,7 @@ export default function Dashboard(c:Context){
      <div className="day-focus-copy"><span className="eyebrow">{current===5?copy('КҮН ДАЙЫН','ДЕНЬ ГОТОВ'):copy('КЕЛЕСІ ҚАДАМ','СЛЕДУЮЩИЙ ШАГ')} · {next.step}</span><h2 id="next-action-title">{next.title}</h2><p>{next.body}</p>
       {planCurrent&&production&&<p className="day-basis" data-testid="today-production-basis">{copy('Дайындау жоспары бойынша','По плану приготовления')}: <strong>{production.name||'—'}</strong>. {copy('Мөлшерді басқарушы таңдаған.','Объёмы выбраны управляющим.')} <button className="text-button" onClick={()=>go('/forecasts/'+encodeURIComponent(production.forecast_id)+'?production_plan_id='+encodeURIComponent(production.id))}>{copy('Порцияларды қарау','Посмотреть порции')}<ArrowRight size={15}/></button></p>}
      </div>
-     <div className="day-focus-action"><Button onClick={()=>go(next.url)}><NextIcon size={18}/>{next.label}<ArrowRight size={17}/></Button><span className="next-action-foot">{copy('Соңғы шешімді адам қабылдайды.','Последнее решение принимает человек.')}</span></div>
+     <div className="day-focus-action"><Button onClick={()=>go(next.url)}><NextIcon size={18}/>{next.label}<ArrowRight size={17}/></Button></div>
     </section>
     {c.user.role==='warehouse'&&knownTaskList}
    </section>
@@ -94,22 +98,14 @@ export default function Dashboard(c:Context){
      {steps.map((step,index)=>{const number=index+1,state=step.done?'done':number===current?'current':'waiting';return <li key={step.key} className={'day-step day-step-'+step.key+' is-'+state+(step.warning?' has-warning':'')} aria-current={number===current?'step':undefined}>
       <span className="day-step-mark" aria-hidden="true">{step.done?<Check size={14}/>:number}</span><span className="day-step-title">{step.title}</span>
       <strong>{step.key==='decision'&&planCurrent?<Badge tone={plan!.status==='approved'?'green':plan!.status==='rejected'?'red':'amber'}>{step.value}</Badge>:step.value}</strong>
-      <small className={step.key==='purchase'&&!planCurrent?'day-purchase-empty':undefined}>{step.note}</small>
+      {step.note&&<small className={step.key==='purchase'&&!planCurrent?'day-purchase-empty':undefined}>{step.note}</small>}
       {step.action&&<button className="text-button" onClick={()=>go(step.url)}>{step.action}<ArrowRight size={14}/></button>}
      </li>})}
     </ol>
     <dl className="day-data-dates"><div><dt>{copy('Соңғы сатылым','Последние продажи')}</dt><dd>{hasSales?date(d.as_of):t('noSalesHistory')}</dd></div><div><dt>{copy('Қаралатын қор кесіндісі','Просматриваемый срез остатков')}</dt><dd>{d.inventory_known?date(d.inventory_date):t('snapshotMissing')}</dd></div><div><dt>{copy('Соңғы болжам күні','Дата последнего прогноза')}</dt><dd>{date(forecast?.target_date)}</dd></div></dl>
    </section>
    <ForecastReview {...c}/>
-   <section className="day-recap" aria-labelledby="today-analytics-title">
-    <div className="day-recap-head"><h2 id="today-analytics-title">{copy('Соңғы белгілі күн','Последний известный день')}</h2><span>{salesCaption}</span><button className="text-button" onClick={()=>go('/sales')}>{copy('Талдау','Анализ')}<ArrowUpRight size={15}/></button></div>
-    <div className="day-recap-body">
-     <dl className="day-recap-figures"><div><dt>{t('portions')}</dt><dd className="metric-value">{fmt(hasSales?d.sold_portions:null)}</dd></div><div><dt>{t('revenue')}</dt><dd className="metric-value">{money(hasSales?d.revenue:null)}</dd></div></dl>
-     <div className="day-recap-chart">{history.length?<SalesChart history={history} t={t} compact/>:<Empty t={t}/>}</div>
-     {recap.length>0&&<ol className="day-recap-meals" aria-label={t('topMeals')}>{recap.map(r=><li key={String(r.meal_id)}><span>{name(r.meal_name||r.meal_id)}</span><strong>{fmt(r.units_sold)}</strong></li>)}</ol>}
-    </div>
-    <button className="text-button day-recap-plans" onClick={()=>go('/procurement')}>{t('recentPlans')}: {plans.length?plans.length:t('planAbsent')}<ArrowRight size={15}/></button>
-   </section>
+   <DayCharts c={c} d={d} forecastCurrent={forecastCurrent} predictions={predictions} stock={stock} urls={{forecast:forecastCurrent?'/forecasts/'+forecast.id:'/forecasts',stock:stockUrl}}/>
   </DataState>
  </div>;
 }

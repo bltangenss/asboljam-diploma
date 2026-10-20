@@ -53,7 +53,7 @@ test('Today prioritizes actionable risks before daily work and analytics without
  });
  expect(order).toBeTruthy();
  await expect(page.locator('.day-pipeline')).toContainText('123 порций ожидается');
- await expect(page.locator('.day-pipeline')).toContainText('Наличие среза ещё не означает');
+ await expect(page.locator('.day-kpis')).toContainText('123');
  await expect(page.locator('.day-step-purchase')).toContainText('45');
  await page.locator('.next-action').getByRole('button',{name:'Открыть план'}).click();
  await expect(page).toHaveURL(/\/procurement\/day-purchase$/);
@@ -101,6 +101,21 @@ test('changed or other-date forecasts never present saved purchases as the curre
  await expect(page.locator('.day-attention')).toContainText('Нужен прогноз на этот день');
  await expect(page.locator('.day-pipeline')).not.toContainText('123');
  await expect(page.locator('.day-step-purchase')).toContainText('Актуального плана закупки на этот день нет');
+});
+
+test('the dashboard shows key numbers first and keeps unknown values as a dash',async({page})=>{
+ await install(page,{forecast:true,plan:true});
+ const kpis=page.locator('.day-kpis');
+ await expect(kpis.locator('.kpi')).toHaveCount(6);
+ await expect(kpis.locator('.metric-value').nth(0)).toHaveText('186');
+ // No history in this fixture: the 7-day total is unknown, not zero.
+ await expect(kpis.locator('.metric-value').nth(2)).toHaveText('—');
+ await expect(kpis.locator('.kpi').nth(3)).toContainText('123');
+ // The snapshot exists but no lots came back: stock stays unknown.
+ await expect(kpis.locator('.kpi').nth(4).locator('.metric-value')).toHaveText('—');
+ await expect(page.locator('.day-charts')).toContainText('Остатки на эту дату неизвестны');
+ await kpis.locator('.kpi').nth(4).click();
+ await expect(page).toHaveURL(/\/inventory/);
 });
 
 test('synthetic and real historical day labels remain honest on a narrow screen',async({page})=>{

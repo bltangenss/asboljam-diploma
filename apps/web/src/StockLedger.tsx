@@ -163,7 +163,7 @@ function StockWorkspace(c:StockProps) {
  const reconciliationStale=Boolean(reconciliation&&((reconciliationFreshness&&reconciliationFreshness!=='unchanged')||(reconciliation.context_freshness&&reconciliation.context_freshness!=='unchanged')));
  return <section className="stock-ledger" aria-label={s('title')}>
   <div className="stock-toolbar"><h2>{s('title')}</h2><button className="button secondary" disabled={locked} onClick={refreshData}>{s('refresh')}</button></div>
-  <p className="stock-intro">{s('intro')}</p>
+  <details className="stock-intro"><summary>{w('Бұл қалай есептеледі','Как это считается')}</summary><p>{s('intro')}</p></details>
   <div className="stock-context"><strong>{publicContext?.data_origin??s('unknown')}</strong><span>{publicContext?.usage_mode??s('unknown')}</span><span>{t('branch')}: {c.branchName||c.branch}</span></div>
   {forecastId&&<section className="stock-planning-context" aria-label={w('Жоспарды жалғастыру','Продолжение планирования')}>
    <div><span className="stock-task-kicker">{w('02 · Қалдықты тексеру','02 · Проверка остатков')}</span><h3>{flowReady?w(`Сатып алу күні: ${date(forecastTarget)}`,`День закупки: ${date(forecastTarget)}`):w('Болжамды тексеру','Проверка прогноза')}</h3><p>{w('Саналған қорды, мерзімі өткен партияларды және журнал айырмашылықтарын тексеріңіз. Кесіндінің бар болуы оның толықтығын растамайды.','Проверьте посчитанный запас, сроки годности и расхождения журнала. Наличие среза не подтверждает его полноту.')}</p></div>

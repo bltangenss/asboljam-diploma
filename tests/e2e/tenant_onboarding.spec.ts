@@ -106,7 +106,7 @@ test('dated zero sales remain zero and actual history dates replace demo labels'
  await page.goto('/');
  await expect(page.locator('.metric-value').nth(0)).toHaveText('0');
  await expect(page.locator('.metric-value').nth(1)).toHaveText('0 ₸');
- await expect(page.locator('.day-recap .sales-sparkline small')).toHaveText('20.11.2025 — 20.11.2025');
+ await expect(page.locator('.day-recap .sales-bars small')).toHaveText('20.11.2025 — 20.11.2025');
  await expect(page.locator('.day-data-dates').getByText('20.11.2025',{exact:true})).toBeVisible();
  await expect(page.getByRole('status')).toHaveCount(0);
 });
