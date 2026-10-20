@@ -1,5 +1,13 @@
 # AsBoljam — журнал прогресса
 
+## 20.10.2026 — облачный деплой: Supabase + Render + Cloudflare Pages (конфигурация)
+
+**DONE:** `render.yaml` (Docker, Free, Frankfurt; `DATABASE_URL` и `ALLOWED_ORIGINS` вводятся в панели Render), `infra/render_start.sh` (воркер в цикле перезапуска + API на `$PORT`), `infra/Dockerfile.api` копирует скрипт, `apps/web/public/_worker.js` (Pages advanced mode: клиент + прокси `/api` на Render, тело буферизуется ради точного `Content-Length`), инструкция [DEPLOYMENT_CLOUD_RU](../docs/commercial/DEPLOYMENT_CLOUD_RU.md), тесты `tests/test_cloud_config.py` и `tests/pages_worker_check.mjs`.
+
+**TESTED:** `test_cloud_config` 4/4 PASS; `node tests/pages_worker_check.mjs` PASS; `npm run build` PASS (`dist/web/_worker.js` в сборке). Живой прогон на Windows/SQLite: `sh infra/render_start.sh` (PORT=8123) + локальный эмулятор Pages с этим `_worker.js` — клиент 200, health 200, регистрация 200 с `HttpOnly` cookie `Path=/api`, без CSRF 403 `CSRF_INVALID`, без Origin 403 `ORIGIN_FORBIDDEN`, демо-данные 200 за 4,9 с, прогноз `hist_gradient_boosting_factors` выполнен воркером за 26 с. Первый прогон нашёл дефект (потоковое тело в прокси) — исправлен до коммита. Пик памяти: API ~228 МБ, воркер ~172 МБ (лимит Render Free 512 МБ).
+
+**NOT TESTED / BLOCKED (владелец):** вход в Supabase, Render, Cloudflare и создание проектов; PostgreSQL через session pooler; сборка Docker-образа (Docker Desktop не запущен); настоящий workerd; память на Linux. Деплой не выполнен.
+
 ## 19.10.2026 — этап 2 сохранён по просьбе пользователя; работа остановлена
 
 **DONE (исходники):** рабочий вариант дня с причинами/версиями/повторами; сверка прогноза и закрытого факта с историей исправлений; задачи и готовность данных; объяснения из сохранённого входного snapshot; миграция `0012` с тремя пустыми таблицами; web KK/RU. Это незавершённый этап, не release. Рабочая БД не изменялась.

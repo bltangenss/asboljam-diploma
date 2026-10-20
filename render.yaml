@@ -1,0 +1,38 @@
+# Render Blueprint: the Predas API with its database-queue worker in one free web service.
+# The database is Supabase PostgreSQL; the web client is Cloudflare Pages (see
+# docs/commercial/DEPLOYMENT_CLOUD_RU.md). Values marked sync: false are entered by the owner
+# in the Render dashboard and are never committed.
+services:
+  - type: web
+    name: predas-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./infra/Dockerfile.api
+    dockerContext: .
+    dockerCommand: sh infra/render_start.sh
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: ASBOLJAM_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      # Exactly the Cloudflare Pages origin, e.g. https://predas.pages.dev (no trailing slash).
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Supabase session pooler URL (port 5432) with sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+      # The pitch demo lets an establishment open a test cabinet itself; set "off" to close it.
+      - key: ASBOLJAM_SELF_REGISTRATION
+        value: "on"
+      - key: LOKY_MAX_CPU_COUNT
+        value: "1"
+      - key: WORKER_CALCULATION_TIMEOUT_SECONDS
+        value: "900"
+      - key: IMPORT_MAX_BYTES
+        value: "20971520"
+      - key: IMPORT_MAX_ROWS
+        value: "250000"

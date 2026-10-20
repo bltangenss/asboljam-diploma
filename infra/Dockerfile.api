@@ -9,6 +9,7 @@ COPY --chown=appuser:appuser apps/api ./apps/api
 COPY --chown=appuser:appuser apps/worker ./apps/worker
 COPY --chown=appuser:appuser database ./database
 COPY --chown=appuser:appuser scripts/seed_demo.py scripts/backup_db.py ./scripts/
+COPY --chown=appuser:appuser infra/render_start.sh ./infra/render_start.sh
 COPY --chown=appuser:appuser data/raw ./data/raw
 COPY --chown=appuser:appuser data/kz ./data/kz
 RUN chown -R appuser:appuser /app/data

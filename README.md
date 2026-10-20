@@ -867,6 +867,8 @@ docker compose stop
 
 Production-вариант для одного сервера: `docker-compose.yml` + `infra/compose.prod.yml` (Caddy с HTTPS, внутренние API/web, ротация логов), настройки по `infra/production.env.example`, backup `scripts/backup_postgres.sh`, проверка `scripts/verify_tls_deployment.py`. Пошагово — [DEPLOYMENT_VPS_RU.md](docs/commercial/DEPLOYMENT_VPS_RU.md). Конфигурация проверена локально 11.10.2026 ([отчёт](artifacts/verification/deployment-config-20261011.json)); на реальном сервере не разворачивалась.
 
+Облачный вариант без своего сервера: Supabase PostgreSQL + Render (API и воркер в одном бесплатном сервисе, `render.yaml`) + Cloudflare Pages (клиент и прокси `/api` в `apps/web/public/_worker.js`). Пошагово — [DEPLOYMENT_CLOUD_RU.md](docs/commercial/DEPLOYMENT_CLOUD_RU.md). Проверено локально 20.10.2026 через эмулятор Pages; на настоящих Render, Cloudflare и Supabase ещё не разворачивалось.
+
 ### 13.2. Backup/restore
 
 Выберите новые несуществующие имена:
@@ -1105,6 +1107,7 @@ Push только после успешного commit, без force. При о�
 | [WORKER_OPERATIONS_RU.md](docs/commercial/WORKER_OPERATIONS_RU.md) | Queue/heartbeat/deadline/shutdown, диагностика request → job |
 | [INSTALL_UPDATE_BACKUP_RU.md](docs/commercial/INSTALL_UPDATE_BACKUP_RU.md) | Установка, обновление, backup/restore, release checklist |
 | [DEPLOYMENT_VPS_RU.md](docs/commercial/DEPLOYMENT_VPS_RU.md) | Вариант запуска на одном сервере с HTTPS и что нужно от владельца |
+| [DEPLOYMENT_CLOUD_RU.md](docs/commercial/DEPLOYMENT_CLOUD_RU.md) | Supabase + Render + Cloudflare Pages: шаги владельца, ограничения бесплатных планов |
 | [KAZAKHSTAN_LAUNCH_RU.md](docs/commercial/KAZAKHSTAN_LAUNCH_RU.md) | Запуск в РК: язык, часовой пояс, персональные данные, домен .kz, НДС, праздники |
 | [data/kz/README.md](data/kz/README.md) | Казахстанский demo-набор: сценарий, источники, допущения |
 | [LAUNCH_BACKLOG_RU.md](docs/commercial/LAUNCH_BACKLOG_RU.md) | Приоритетный backlog запуска с критериями готовности |
