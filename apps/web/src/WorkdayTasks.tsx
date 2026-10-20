@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {ArrowRight,Check,Eye} from 'lucide-react';
 import {ApiError} from '../../../packages/api-client';
 import {api,type Context,type Row,date,fmt} from './shared';
@@ -19,11 +19,11 @@ const texts:Record<string,[string,string,string,string]>={
 const readinessLabels:Record<string,[string,string,string]>={sales:['Сатылым','Продажи','/sales'],closure:['Күнді жабу','Закрытие дня','/day-close'],history:['Тарих','История','/sales'],recipes:['Рецепттер','Рецептуры','/recipes'],inventory:['Қалдықтар','Остатки','/inventory'],forecast:['Болжам','Прогноз','/forecasts']};
 const statusLabels:Record<string,[string,string]>={complete:['Толық','Полные'],available:['Бар','Есть'],closed:['Жабық','Закрыт'],unchanged:['Өзгермеген','Не изменились'],unconfirmed:['Расталмаған','Не подтверждены'],incomplete:['Толық емес','Неполные'],missing:['Жоқ','Нет'],draft:['Жоба','Черновик'],reopened:['Қайта ашылған','Открыт повторно'],changed:['Өзгерген','Изменились'],unknown:['Белгісіз','Неизвестно']};
 
-export default function WorkdayTasks(c:Context){
- return <TaskWorkspace key={JSON.stringify([c.user.organization_id,c.user.id,c.user.role,c.branch])} context={c}/>;
+export default function WorkdayTasks({fallback,...c}:Context&{fallback?:ReactNode}){
+ return <TaskWorkspace key={JSON.stringify([c.user.organization_id,c.user.id,c.user.role,c.branch])} context={c} fallback={fallback}/>;
 }
 
-function TaskWorkspace({context:c}:{context:Context}){
+function TaskWorkspace({context:c,fallback}:{context:Context;fallback?:ReactNode}){
  const kk=c.lang==='kk',w=(kz:string,ru:string)=>kk?kz:ru;
  const [revision,reload]=useState(0),[busy,setBusy]=useState(''),[error,setError]=useState(''),[viewed,setViewed]=useState<Set<string>>(new Set());
  const mounted=useRef(true),pending=useRef(false);
@@ -42,8 +42,10 @@ function TaskWorkspace({context:c}:{context:Context}){
    else setError(w('Қаралғаны расталмады. Қайталап көріңіз.','Не удалось подтвердить просмотр. Попробуйте ещё раз.'));
   }}finally{if(mounted.current&&api.csrf===csrf){pending.current=false;setBusy('')}}
  }
- if(state.loading)return <p role="status">{w('Күн міндеттерін тексереміз…','Проверяем задачи дня…')}</p>;
- if(state.error||!data)return <p className="alert warning" role="alert">{w('Күн міндеттері жүктелмеді. Ескерту жоқ деп қорытынды жасамаңыз.','Задачи дня не загрузились. Это не означает отсутствия предупреждений.')} <button className="text-button" onClick={()=>reload(value=>value+1)}>{c.t('retry')}</button></p>;
+ // A failed task read must not hide risks already known from the dashboard.
+ // Keep the failure explicit; this fallback is not a successful readiness result.
+ if(state.loading)return <><p role="status">{w('Күн міндеттерін тексереміз…','Проверяем задачи дня…')}</p>{fallback}</>;
+ if(state.error||!data)return <><p className="alert warning" role="alert">{w('Күн міндеттері жүктелмеді. Ескерту жоқ деп қорытынды жасамаңыз.','Задачи дня не загрузились. Это не означает отсутствия предупреждений.')} <button className="text-button" onClick={()=>reload(value=>value+1)}>{c.t('retry')}</button></p>{fallback}</>;
  const list:Row[]=data.items;
  function detail(item:Row){
   const d=item.details||{};
