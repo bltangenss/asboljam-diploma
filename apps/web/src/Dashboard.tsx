@@ -63,6 +63,7 @@ export default function Dashboard(c:Context){
  const current=!canOperate?0:!forecastCurrent?1:!stockMatches?2:(!planCurrent||plan!.status==='rejected'||invalidProduction)?3:plan!.status==='approved'?5:4;
  // The focus block already carries its own action; the list holds everything else.
  const listed=tasks.filter(task=>!(task.url===next.url&&task.label===next.label));
+ const knownTaskList=listed.length>0&&<ul className="day-task-list">{listed.map(task=><li key={task.key} className={task.warning?'day-task is-warning':'day-task'}><span className="day-task-icon" aria-hidden="true">{task.warning?<AlertTriangle size={16}/>:<ClipboardCheck size={16}/>}</span><div><h3>{task.title}</h3><p>{task.body}</p></div><button className="text-button" onClick={()=>go(task.url)}>{task.label}<ArrowRight size={15}/></button></li>)}</ul>;
  const recap=(d.top_meals||[]).slice(0,4) as Row[];
  // A test-mode cabinet with no sales and no stock starts with a choice: demo data or its own files.
  // Operator-configured REAL sources keep the regular empty day with its import step.
@@ -78,14 +79,14 @@ export default function Dashboard(c:Context){
   <DataState state={state} t={t} retry={refresh}>
    <section className="day-attention" aria-labelledby="day-attention-title">
     <h2 id="day-attention-title" className="day-section-title">{copy('Назар аударуды қажет етеді','Требует внимания')}</h2>
-    {['admin','manager','analyst'].includes(c.user.role)&&<WorkdayTasks {...c}/>}
+    {['admin','manager','analyst'].includes(c.user.role)&&<WorkdayTasks {...c} fallback={knownTaskList}/>}
     <section className="next-action day-focus" aria-labelledby="next-action-title">
      <div className="day-focus-copy"><span className="eyebrow">{current===5?copy('КҮН ДАЙЫН','ДЕНЬ ГОТОВ'):copy('КЕЛЕСІ ҚАДАМ','СЛЕДУЮЩИЙ ШАГ')} · {next.step}</span><h2 id="next-action-title">{next.title}</h2><p>{next.body}</p>
       {planCurrent&&production&&<p className="day-basis" data-testid="today-production-basis">{copy('Дайындау жоспары бойынша','По плану приготовления')}: <strong>{production.name||'—'}</strong>. {copy('Мөлшерді басқарушы таңдаған.','Объёмы выбраны управляющим.')} <button className="text-button" onClick={()=>go('/forecasts/'+encodeURIComponent(production.forecast_id)+'?production_plan_id='+encodeURIComponent(production.id))}>{copy('Порцияларды қарау','Посмотреть порции')}<ArrowRight size={15}/></button></p>}
      </div>
      <div className="day-focus-action"><Button onClick={()=>go(next.url)}><NextIcon size={18}/>{next.label}<ArrowRight size={17}/></Button><span className="next-action-foot">{copy('Соңғы шешімді адам қабылдайды.','Последнее решение принимает человек.')}</span></div>
     </section>
-    {c.user.role==='warehouse'&&listed.length>0&&<ul className="day-task-list">{listed.map(task=><li key={task.key} className={task.warning?'day-task is-warning':'day-task'}><span className="day-task-icon" aria-hidden="true">{task.warning?<AlertTriangle size={16}/>:<ClipboardCheck size={16}/>}</span><div><h3>{task.title}</h3><p>{task.body}</p></div><button className="text-button" onClick={()=>go(task.url)}>{task.label}<ArrowRight size={15}/></button></li>)}</ul>}
+    {c.user.role==='warehouse'&&knownTaskList}
    </section>
    <section className="day-work" aria-labelledby="day-work-title">
     <h2 id="day-work-title" className="day-section-title">{copy('Дайындаудан сатып алуға дейін','От приготовления к закупке')}<span>{date(target)}</span></h2>

@@ -76,16 +76,36 @@ test('task read receipt is explicit, survives refresh and does not resolve the c
  const state=await install(page);await page.goto('/dashboard');const tasks=page.getByTestId('workday-tasks');await expect(tasks.getByTestId('task-DAY_NEEDS_CLOSE')).toHaveCount(1);expect(state.posts).toEqual([]);
  await tasks.getByRole('button',{name:'Отметить просмотренным',exact:true}).click();await expect(tasks).toContainText('Просмотрено, причина ещё есть');await tasks.getByRole('button',{name:'Обновить',exact:true}).click();await expect(tasks.getByTestId('task-DAY_NEEDS_CLOSE')).toHaveCount(1);await expect(tasks).toContainText('Просмотрено, причина ещё есть');expect(state.posts).toHaveLength(1);
 });
+test('failed task read retains known dashboard risks until an explicit successful retry',async({page})=>{
+ const state=await install(page);let unavailable=true;
+ await page.route('**/api/v1/dashboard?**',route=>route.fulfill({json:{as_of:'2025-12-31',data_origin:'SYNTHETIC',inventory_known:true,inventory_date:target,latest_forecast:forecast,latest_plans:[{id:'known-purchase',forecast_id:forecastId,target_date:target,status:'ready',input_freshness:'unchanged',shortage_count:2,total_cost:'10000'}],warnings:[],history:[],top_meals:[]}}));
+ await page.route('**/api/v1/workday-tasks?**',route=>unavailable?route.fulfill({status:503,json:{detail:{code:'UNAVAILABLE'}}}):route.fallback());
+ await page.goto('/dashboard');const attention=page.locator('.day-attention');
+ await expect(attention.getByRole('alert')).toContainText('Задачи дня не загрузились');
+ await expect(attention).toContainText('Есть дефицит: 2 позиций');await expect(attention).toContainText('Закупка ждёт решения');
+ await expect(attention.getByRole('button',{name:'Посмотреть дефицит',exact:true})).toBeEnabled();
+ await expect(page.getByTestId('workday-tasks')).toHaveCount(0);expect(state.posts).toEqual([]);
+ unavailable=false;await attention.getByRole('button',{name:'Повторить',exact:true}).click();
+ await expect(page.getByTestId('task-DAY_NEEDS_CLOSE')).toHaveCount(1);
+ await expect(attention.getByRole('alert')).toHaveCount(0);await expect(attention.locator('.day-task-list')).toHaveCount(0);expect(state.posts).toEqual([]);
+});
 test('saved baseline explanation uses original dates and mobile KK layout has no page overflow',async({page})=>{
  await install(page,{lang:'kk'});await page.setViewportSize({width:390,height:844});await page.goto(planUrl);await page.getByTestId('forecast-explanation').locator('summary').first().click();await expect(page.getByTestId('forecast-explanation')).toContainText('25.12.2025');
  await expect(working(page)).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.goto('/dashboard');await expect(page.getByTestId('workday-tasks')).toContainText('Өзекті міндеттер');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
-test('HGB explanation displays saved zero and missing features distinctly without reading current sales',async({page})=>{
+test('HGB explanation keeps saved zero and missing features independent of current sales',async({page})=>{
  await install(page);const salesReads:string[]=[];page.on('request',request=>{if(new URL(request.url()).pathname==='/api/v1/sales')salesReads.push(request.url())});
+ // The separate history chart reads current sales. Those values must not become
+ // the saved inputs of the explanation, and opening it must not fetch sales again.
+ await page.route('**/api/v1/sales?**',route=>route.fulfill({json:{items:[{branch_id:'1',meal_id:'meal-a',date:'2025-12-31',units_sold:999}],total:1,next_cursor:null}}));
  await page.route('**/api/v1/forecasts/'+forecastId,route=>route.fulfill({json:{...forecast,model:'hist_gradient_boosting',metadata:{...forecast.metadata,features:['lag_1','promo','temperature_forecast_c']},explanation:{source:'saved_job_snapshot',model:'hist_gradient_boosting',origin:'2025-12-31',target_date:target,rows:[{meal_id:'meal-a',basis:null,history:[{date:'2025-12-31',units_sold:0}],features:{lag_1:0,promo:0,temperature_forecast_c:null}}]}}}));
- await page.goto(planUrl);const explanation=page.getByTestId('forecast-explanation');await explanation.locator('summary').first().click();await explanation.getByText('Сохранённые значения, использованные в расчёте',{exact:true}).click();
- const table=explanation.locator('table').first();await expect(table.getByRole('row').filter({hasText:'Продажи 1 день назад'}).locator('td').nth(1)).toHaveText('0');await expect(table.getByRole('row').filter({hasText:'temperature_forecast_c'}).locator('td').nth(1)).toHaveText('—');expect(salesReads).toEqual([]);await expect(explanation).toContainText('не доказывает его причинное влияние');
+ await page.goto(planUrl);await expect(page.getByTestId('forecast-time-chart').locator('[data-series="observed"]')).toHaveAttribute('aria-label',/999/);
+ const readsBeforeExplanation=salesReads.length;expect(readsBeforeExplanation).toBeGreaterThan(0);
+ const explanation=page.getByTestId('forecast-explanation');await explanation.locator('summary').first().click();await explanation.getByText('Сохранённые значения, использованные в расчёте',{exact:true}).click();
+ await expect(explanation.getByLabel('Блюдо для объяснения',{exact:true})).toHaveValue('meal-a');
+ const table=explanation.locator('table').first();await expect(table.getByRole('row').filter({hasText:'Продажи 1 день назад'}).locator('td').nth(1)).toHaveText('0');await expect(table.getByRole('row').filter({hasText:'temperature_forecast_c'}).locator('td').nth(1)).toHaveText('—');
+ await expect(explanation.locator('table').last().locator('tbody tr td').last()).toHaveText('0');await expect(explanation).not.toContainText('999');expect(salesReads).toHaveLength(readsBeforeExplanation);await expect(explanation).toContainText('не доказывает его причинное влияние');
 });
 test('working reason draft can only be discarded explicitly before leaving the saved variant',async({page})=>{
  const state=await install(page);await page.goto(planUrl);await explainSelection(page);await page.locator('.app-nav .app-nav-item').first().click();await expect(page.getByRole('dialog')).toContainText('Несохранённые изменения');await page.getByRole('button',{name:'Остаться в плане',exact:true}).click();await expect(working(page).getByLabel('Поясните решение',{exact:true})).toHaveValue('Ожидаем гостей по предварительной записи');

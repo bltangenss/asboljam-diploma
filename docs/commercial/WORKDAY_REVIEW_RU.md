@@ -1,5 +1,44 @@
 # Predas: сверка рабочего дня — сохранённый незавершённый этап 2
 
+## 20.10.2026 — стабилизация браузерных сценариев
+
+**DONE:** полям рабочего выбора, дня/версии сверки и блюда для объяснения заданы явные подписи KK/RU. Вложенные `select` и заполненный `textarea` включали содержимое в текст `label`, поэтому точный поиск поля переставал работать. Исходные сценарии потерянного ответа и конфликта версии остановились ещё на выборе причины; их требования к команде, ключу, версии и отсутствию изменений закупки сохранены.
+
+**DONE:** при загрузке, ошибке или некорректном ответе `/workday-tasks` остаются доступны предупреждения, уже известные из `/dashboard`, вместе с прежними проверенными ссылками на остатки и пересчёт закупки. Сообщение о неудачной загрузке остаётся видимым; успешная загрузка убирает резервный список. В `Dashboard.tsx` изменено только подключение виджета этапа 2. Добавлен сценарий отказа API и успешного явного повтора.
+
+**Исправленное ожидание теста:** отдельный `ForecastChart` законно читает текущие продажи на странице прогноза. Прежнее требование HGB-теста «вся страница не обращается к `/sales`» было неверным. Теперь график получает текущие продажи `999`, а объяснение обязано сохранить исходный `lag_1=0`, историю `0` и неизвестную температуру `—`; раскрытие объяснения не добавляет запросов продаж. Остальные ожидания исходных сценариев не ослаблялись.
+
+**TESTED до синхронизации с main:**
+
+- Установка: локальная `.env` из `.env.example`, случайный пароль 12+ символов, отдельная `.cache/damir-stage2/install.sqlite`; `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1 -Install`, затем аналогичный запуск `scripts/stop.ps1`. Python 3.14.3, Node 24.17.0, Chrome 155.0.8059.85. Для завершения установки потребовались `PIP_DISABLE_PIP_VERSION_CHECK=1` и доступ npm к его кэшу.
+- С `.venv/Scripts` в `PATH`, `PYTHONPATH=tests;.` и `DATABASE_URL` на отдельную `.cache/damir-stage2/unit.sqlite`: `python -X utf8 -m unittest test_working_plan test_day_close test_workday_migration test_forecast_review test_workday_tasks test_forecast_explanation -v` — **51/51 PASS**, 121.839 с.
+- Новый `DATABASE_URL` на `.cache/damir-stage2/browser.sqlite`; `scripts/start.ps1`, затем `python scripts/prepare_e2e.py`. Все данные SYNTHETIC; рабочая `data/asboljam-kz.sqlite` не использовалась.
+- Исходный `workday_review.spec.ts`: **3 PASS / 5 FAIL**. После исправления подписей и ожидания HGB — **8/8 PASS**. Смежные четыре набора выявили ещё **8 FAIL / 24 PASS** из-за скрытых предупреждений при недоступном новом API задач.
+- После исправления подключения виджета: `npx.cmd playwright test tests/e2e/workday_review.spec.ts tests/e2e/day_close.spec.ts tests/e2e/today_workflow.spec.ts tests/e2e/production_planning.spec.ts tests/e2e/predas_shell.spec.ts --trace=off --output=.cache/pw-results/regression-fixed --reporter=list,json` — **41/41 PASS** (9 этапа 2 + 32 смежных). JSON-отчёт задан через `PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/damir-stage2/browser-regression-fixed.json`.
+- `npm.cmd run build` — **PASS**, TypeScript и Vite; Vite 6.03 с.
+- С `DATABASE_URL` на `.cache/damir-stage2/regression.sqlite` и `LOKY_MAX_CPU_COUNT=1`: `python -X utf8 -m unittest discover -s tests -p "test_*.py"` — **628 случаев: 627 PASS + 1 skip**, 861.164 с. Пропущен POSIX SIGTERM drain на Windows.
+- `python scripts/generate_contracts.py`, затем нормализация `contracts/data_manifest.json` и `design/*.json` к LF — **PASS**, содержательных изменений JSON нет. OpenAPI не пересобирался: API-схемы не менялись.
+- Перед коммитом исправлений: `git diff --cached --stat`, `python scripts/check_secrets.py --staged` — 6 файлов, 0 находок; `git checkout -- artifacts/security-scan.json`.
+
+**TESTED после первого rebase:** `git pull --rebase origin main` на `07fee0e` — PASS, без конфликтов. Полная команда `python -X utf8 -m unittest discover -s tests -p "test_*.py"` с отдельной `.cache/damir-stage2/regression-rebased.sqlite` и `LOKY_MAX_CPU_COUNT=1` — **632 случая: 631 PASS + 1 skip**, 591.811 с; добавились четыре теста конфигурации из main. Пропуск по-прежнему только POSIX SIGTERM на Windows. Это не проверка развёртывания в облаке.
+
+**TESTED дополнительно:** `python scripts/check_secrets.py` — 476 файлов, 0 находок. Локальный `.venv/Scripts/python.exe -X utf8 .cache/damir-stage2/live_read_smoke.py` выполнил настоящий login → GET трёх API этапа 2 → logout на отдельной browser-базе: задачи — HTTP 200, SYNTHETIC, дата 2026-01-01; рабочий выбор — HTTP 200, `selection=null`, версия 0; сверка — HTTP 200, 28 дней, `WAPE=null`. Рабочие планы, факты и квитанции просмотра не записывались.
+
+**DONE / TESTED на итоговом main `12f5327`:** повторный `git pull --rebase origin main` около T+1:30 — ветка актуальна, конфликтов нет. Последний полученный коммит main меняет конфигурацию Render; новых правок строк экранов в этом обновлении нет.
+
+- Та же focused Python-команда на отдельной `.cache/damir-stage2/unit-final.sqlite` — **51/51 PASS**, 129.816 с.
+- Те же пять Playwright-файлов, `--trace=off --output=.cache/pw-results/rebased-final --reporter=list,json` и `PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/damir-stage2/browser-rebased-final.json` — **41/41 PASS**, 66.619 с, без пропусков и flaky.
+- `npm.cmd run build` — **PASS**, TypeScript и Vite; Vite 7.54 с.
+- Полная Python-команда с `.cache/damir-stage2/regression-final.sqlite` и `LOKY_MAX_CPU_COUNT=1` — **633 случая: 632 PASS + 1 skip**, 561.964 с. Ещё один тест конфигурации пришёл с `12f5327`; единственный пропуск — POSIX SIGTERM drain на Windows.
+- `git diff --check origin/main` — PASS; пять JSON контрактов/дизайна проверены на LF. Diff ограничен семью файлами этапа 2, включая этот журнал; общие `templates/*` оставлены интегратору.
+- После проверок `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/stop.ps1` остановил тестовые API, worker и web; порты 8000/3000 свободны.
+
+**Ограничения проверки / NOT TESTED:** браузерные сценарии используют искусственные HTTP-фикстуры; этот прогон не доказывает полный живой поток через worker. Не выполнены полный браузерный набор, PostgreSQL, native/device/APK, production и проверки на данных предприятия. API-схемы и миграции в этом исправлении не менялись. Новые функции, включая ранее отложенные уведомления о росте ошибки/цен, не добавлялись.
+
+**Для Болата — наблюдения вне исправляемого кода:** первоначальный Playwright-запуск завис при объединении уже записанных частей трассы в итоговый `trace.zip`; сырые `.trace` и промежуточные ZIP сохранены локально в `.cache/pw-results/baseline` и использованы для разбора. Из них отдельно восстановлен `recovered-trace.zip` (35 записей, проверка ZIP/CRC прошла); исходники сохранены. Последующие проверки выполнены с `--trace=off`, с JSON-отчётами и снимками отказов. Причина зависания упаковки не установлена, настройки/зависимости Playwright не менялись. Сборка также выдаёт предупреждение Vite о JS-чанке больше 500 kB.
+
+## Архив состояния на 19.10.2026
+
 19.10.2026 пользователь попросил сохранить, отправить изменения и остановиться. Это точка продолжения, не завершённый этап и не release.
 
 ## Что добавлено
