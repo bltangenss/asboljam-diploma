@@ -14,7 +14,7 @@
 | Болат Танирберген | Лидер, интегратор, спикер; тексты KK/RU | Исправленные тексты (до T+1:30), слитый и проверенный `main`, стенд для живого демо, тег релиза | строки в `apps/web/src/{DayClose,GetStarted,Profile,Register}.tsx`; `templates/*`, `README.md`, `FINAL_REPORT.md`, `CLOUD_HANDOFF.md`; слияние PR |
 | Карабек Дамир | Стабилизация этапа 2 | Зелёные тесты этапа 2 и полная регрессия (PR к T+1:45) | `apps/api/{forecast_review,forecast_explanation,workday_tasks,working_plan}.py`, `apps/web/src/{ForecastReview,ForecastExplanation,WorkdayTasks,WorkingPlan}.tsx`, `workdayData.ts`, `forecast-review.css`, их тесты, `tests/e2e/workday_review.spec.ts` |
 | Жорабек Бекзат | Демо-стенд, сценарий показа, видео | Скрипт подготовки демо-кабинета, сценарий живого показа (PR к T+1:45), демо-видео RU/KK (T+2:00–2:30) | `scripts/prepare_battle_demo.mjs` (новый), `docs/BATTLE_DEMO_RU.md` (новый), `scripts/record_demo_video.mjs`, `apps/web/src/predas.css` |
-| Сарсенбаева Айдана | Питч | Презентация 8–10 слайдов, речь на 3 минуты, ответы на вопросы, one-pager (PR к T+1:45) | `docs/pitch/*` (новая папка) |
+| Сарсенбаева Айдана | Питч (через Codex) | Веб-презентация с заметками спикера, автоматические скриншоты продукта, PDF, речь на 3 минуты, ответы на вопросы (PR к T+1:45) — задача D в `CODEX_TASKS_RU.md` | `docs/pitch/**`, `scripts/capture_pitch_screens.mjs`, `scripts/export_pitch_pdf.mjs` (новые) |
 
 Чужие файлы не трогать. Нужна правка в чужом файле — напиши владельцу. Отложено на после баттла: обновление `docs/user-guide/USER_GUIDE_KK.md` под интерфейс Predas.
 

@@ -1,12 +1,13 @@
 # Задачи для Codex на спринт к Idea Battle
 
-Три независимые задачи с кодом. Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
+Четыре независимые задачи с кодом. Их можно запустить в Codex параллельно: каждая трогает только свои файлы и заканчивается своим Pull Request. Общий план команды — [SPRINT_BATTLE_RU.md](SPRINT_BATTLE_RU.md).
 
 | Задача | Кто запускает | Ветка / PR | Срок |
 |---|---|---|---|
 | A. Стабилизация этапа 2 | Карабек Дамир | `team/damir-stage2` | T+1:45 |
 | B. Демо-стенд, сценарий показа, видео с закрытием дня | Жорабек Бекзат | `team/bekzat-demo` | T+1:45 |
 | C. Тексты KK/RU на четырёх экранах | Болат Танирберген | `team/bolat-copy` | T+1:30 |
+| D. Питч: веб-презентация, скриншоты продукта, PDF | Сарсенбаева Айдана | `team/aidana-pitch` | T+1:45 |
 
 Как запускать:
 - **Codex в облаке** (Linux): в настройках окружения выберите Python 3.13 и Node.js 24, setup-скрипт — `bash scripts/cloud_setup.sh`. Каждую задачу запускайте отдельным заданием в ветке `main`.
@@ -167,4 +168,104 @@ artifacts/security-scan.json. No force push.
 
 Open a PR to main titled "Copy: polish KK/RU texts on registration, start, profile and day
 close". In the description list each change as «было → стало» and the check results.
+```
+
+## Задача D — питч-презентация как веб-слайды, скриншоты продукта и PDF (для Codex)
+
+```text
+Repository: bltangenss/asboljam-diploma (Predas, formerly AsBoljam). Read AGENTS.md first and
+follow it. Work on branch team/aidana-pitch created from the latest main. Time box: about
+90 minutes, then a Pull Request to main. This is a code task: build the pitch deck for a
+startup Idea Battle as a self-contained HTML presentation, capture real product screenshots
+automatically, and export a PDF.
+
+Files you may create or change (nothing else — other people own the rest):
+- docs/pitch/** (new folder)
+- scripts/capture_pitch_screens.mjs (new)
+- scripts/export_pitch_pdf.mjs (new)
+
+Deliverables:
+1. docs/pitch/deck/index.html — one self-contained file (inline CSS and JS, no CDN, works
+   offline when opened from disk): 9–10 slides, 16:9, arrow keys / space / click to navigate,
+   slide counter, F for fullscreen, S toggles speaker notes. Brand Predas: white background,
+   warm greys, one orange accent #FF5A1F, text #1C1917, font Onest. Copy the Onest variable
+   woff2 files (latin, latin-ext, cyrillic, cyrillic-ext) from
+   node_modules/@fontsource-variable/onest/files/ into docs/pitch/deck/fonts/ together with
+   its LICENSE (SIL OFL 1.1) and use them via @font-face. Logo: inline the SVG from
+   apps/web/public/favicon.svg next to the word «predas». Russian text; Kazakh letters must
+   render correctly.
+2. Slides (facts only from the repository, see the list below; never invent customers,
+   revenue, savings, accuracy or pilots; market numbers only with a source link in the
+   speaker notes, otherwise leave them out):
+   1) Title: Predas — «Знайте завтрашний спрос сегодня»; prognoz продаж и закупок для
+      столовых, кафе и ресторанов Казахстана.
+   2) Problem: every day a canteen or cafe guesses how much to cook and what to buy →
+      leftovers and write-offs or dishes run out; purchases by eye.
+   3) Solution: forecast of portions per dish for tomorrow → ingredients → supplier packs
+      within budget → a person approves.
+   4) How it works in 3 steps: data (sales, menu, recipes, stock; demo data in one click) →
+      forecast → purchase and decision; plus «закрыть день с телефона».
+   5) Product screens: 3–4 screenshots from docs/pitch/assets (see deliverable 3).
+   6) Why Kazakhstan: 20 day factors — RK holidays and transfers, Nauryz, Ramadan and iftar
+      time, aits, school holidays, sunset, internet weather for 31 cities; KK/RU interface.
+   7) Competitors and difference: accounting/POS systems iiko, r_keeper, Poster; foreign
+      forecasting tools Winnow, Tenzo, 5-Out. Our difference: local calendar and languages,
+      forecast → purchase → human decision in one place.
+   8) Business model (mark it as «гипотеза»): subscription per branch; free test mode with
+      demo data.
+   9) Roadmap (from docs/PRODUCT_IDEAS_RU.md): close a shift via Telegram, Poster/iiko sales
+      import, forecast vs actual, write-offs and supplier prices.
+   10) Team and ask: Болат Танирберген — лидер, разработка, спикер; Карабек Дамир —
+      разработка (сверка прогноза с фактом); Жорабек Бекзат — разработка, демо и видео;
+      Сарсенбаева Айдана — продукт и питч. Ask: pilot establishments, mentorship,
+      and if relevant funding. Footer: «Данные в демо — синтетические».
+   Every slide gets speaker notes (2–4 sentences); total speech about 3 minutes.
+3. scripts/capture_pitch_screens.mjs — Playwright script against a running local stand
+   (--url default http://localhost:3000, --lang ru). It registers a test cafe (email
+   pitch-<random>@example.invalid, random password, city Almaty, type cafe), loads demo data
+   («Загрузить демо-данные»), computes the forecast for 01.01.2026, and saves 1440×900 PNG
+   screenshots to docs/pitch/assets/: login.png, today.png, forecast.png, day-close.png (open
+   «Закрыть день», mark «Да, работало» — do not close), purchase.png, profile.png. It must
+   never print or save the password, never touch data/asboljam-kz.sqlite, and should be run
+   on a fresh database only. Use Chrome if available (channel 'chrome'), otherwise bundled
+   Chromium. The UI labels it needs: «Регистрация», «Название заведения», «Тип заведения»,
+   «Город», «Электронная почта», password field #register-password, «Повторите пароль»,
+   consent checkbox .register-consent input, «Открыть кабинет», «Загрузить демо-данные»,
+   header buttons «Прогноз», «Закупки», account menu .user-menu-trigger → «Профиль».
+4. scripts/export_pitch_pdf.mjs — opens docs/pitch/deck/index.html with Playwright and
+   writes docs/pitch/predas-pitch.pdf (one slide per page, 16:9, notes hidden).
+5. docs/pitch/speech_ru.md (3-minute speech with marks where to switch to the live demo),
+   docs/pitch/qa_ru.md (10 likely jury questions with short honest answers: how accuracy is
+   checked, where data comes from, what already works and what does not, competitors,
+   monetization), docs/pitch/README.md (how to open the deck, regenerate screenshots and PDF).
+
+Verified product facts you may use:
+- Forecast of how many portions of each dish will sell tomorrow; 4 models (same day last
+  week, 28-day mean, gradient boosting on history, gradient boosting with 20 day factors);
+  p10–p90 is a nominal 80% interval, not a guarantee.
+- Day factors: RK holidays and transfers, pre-holiday days, Nauryz, Ramadan and iftar time,
+  Oraza and Kurban ait, school holidays, sunset, weather forecasts from the internet
+  (Open-Meteo) for 31 cities of Kazakhstan, paydays, opening days, price, promotions,
+  stockouts.
+- Purchase: portions → ingredients (yield) → supplier packs with minimum/maximum orders,
+  budget and expiry of stock; shortages are shown; a person approves; approval never sends an
+  order to a supplier automatically. Audit of decisions, CSV export.
+- Stock with expiry dates, printable cooking plan for the kitchen, close the day from a phone
+  (empty means unknown, zero is a confirmed zero), registration of an establishment with demo
+  data in one click, Kazakh and Russian interface, roles (admin, manager, warehouse,
+  analyst), each establishment has its own cabinet.
+- All demo data are SYNTHETIC; no measured savings on a real establishment exist yet.
+
+Checks:
+- Open the deck locally and check every slide at 1920×1080 and 1366×768 (no overflow, no
+  missing glyphs). Run node scripts/capture_pitch_screens.mjs on a fresh local database and
+  node scripts/export_pitch_pdf.mjs; confirm 6 PNG files and the PDF exist and look right.
+- Keep committed assets small (PNG screenshots under ~400 KB each; PDF under ~10 MB).
+- Before each commit: git diff --cached --stat; python scripts/check_secrets.py --staged;
+  git checkout -- artifacts/security-scan.json. Never commit .env, *.sqlite, .cache/,
+  passwords, videos, node_modules/, .claude/. No force push.
+
+Open a PR to main titled "Pitch: Predas web deck, product screenshots and PDF". In the
+description (Russian is fine): what was built, how to open and present it, which checks were
+run, and anything not verified.
 ```
